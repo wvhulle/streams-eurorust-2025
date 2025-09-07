@@ -101,6 +101,33 @@
 ]
 
 #slide[
+  === `Stream` vs `AsyncIterator`
+
+  Rust has `AsyncIterator` in std, but it's much less complete than `Stream`:
+
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 2em,
+    [
+      *`Stream` (futures crate)*
+      - Mature ecosystem
+      - Rich combinator library  
+      - `StreamExt` with `map`, `filter`, `collect`
+      - Production ready
+    ],
+    [
+      *`AsyncIterator` (std::async_iter)*
+      - Nightly-only experimental API
+      - NO combinators at all
+      - Just `poll_next()` and `size_hint()`
+      - Waiting for async closures
+    ],
+  )
+
+  *Recommendation:* Use `Stream` - `AsyncIterator` lacks essential combinators
+]
+
+#slide[
   === When to use `Stream`s?
 
   #grid(
@@ -170,48 +197,41 @@
 
 #slide[
 
+  #show raw: set text(size: 8pt)
 
-  #show raw: set text(size: 6pt)
-
-  #text(size: 6pt)[
+  #text(size: 8pt)[
     #grid(
-      columns: (1fr, 0.5fr, 1fr),
+      columns: (1fr, 0.3fr, 1fr),
       gutter: 1.5em,
 
       [
         *Synchronous Iterator:*
         #table(
-          columns: 3,
-          [*T*], [*Action*], [*Result*],
-          [1], [`(1..=10)`], [],
-          [2], [`next()`], [],
-          [3], [], [`Some(1)`],
-          [4], [`next()`], [],
-          [5], [*...*], [],
-          [6], [`next()`], [],
-          [7], [], [`None`],
-          [8], [`next()`], [],
-          [9], [], [`Some(2)`],
+          columns: 2,
+          [*Action*], [*Result*],
+          [`iter(1..=3)`], [],
+          [`next()`], [`Some(1)`],
+          [`next()`], [`Some(2)`],
+          [`next()`], [`Some(3)`],
+          [`next()`], [`None`],
         )
+        Values available immediately
       ],
-      [#align(horizon)[#text(size: 24pt)[→]]],
+      [#align(horizon)[#text(size: 16pt)[→]]],
 
       [
         *Asynchronous Stream:*
         #table(
-          columns: 4,
-          [*T*], [*Action*], [*Await*], [*Result*],
-          [1], [`St::new()`], [], [],
-          [2], [`next()`], [], [],
-          [3], [], [`await`], [],
-          [4], [], [], [`Some(1)`],
-          [5], [`next()`], [], [],
-          [6], [*...*], [], [],
-          [7], [], [`await`], [],
-          [8], [], [], [`Some(2)`],
-          [9], [`next()`], [], [],
-          [10], [], [], [`None`],
+          columns: 2,
+          [*Action*], [*Result*],
+          [`stream::new()`], [],
+          [`poll_next()`], [`Pending`],
+          [`poll_next()`], [`Ready(Some(1))`],
+          [`poll_next()`], [`Pending`],
+          [`poll_next()`], [`Ready(Some(2))`],
+          [`poll_next()`], [`Ready(None)`],
         )
+        May return `Pending` - not ready yet
       ],
     )
 
