@@ -1,47 +1,25 @@
 // Import template
-#import "template.typ": colors, presentation-template, slide
+#import "template.typ": presentation-template, slide
 
 // Apply template and page setup
-#show: presentation-template
-#set page(width: 16cm, height: 9cm, margin: 1.5cm)
-#set par(justify: false)
+#show: presentation-template.with(
+  title: "Make Your Own Stream Operators",
+  subtitle: "Playing with moving data in Rust",
+  author: "Willem Vanhulle",
+  event: "EuroRust 2025",
+  location: "Paris, France",
+  duration: "30 minutes + 10 minutes Q&A",
+)
 
 
-#slide[
-  #align(center + horizon)[
-    #text(size: 2.2em, weight: "bold")[
-      Make Your Own Stream Operators
-    ]
 
-    #v(0.8em)
-
-    #text(size: 1.3em, style: "italic")[
-      Playing with moving data in Rust
-    ]
-
-    #v(3em)
-
-    #text(size: 1.1em)[
-      *Willem Vanhulle* \
-      EuroRust 2025 • Paris, France
-    ]
-
-    #v(2.5em)
-
-    #text(size: 0.9em, fill: colors.gray)[
-      30 minutes + 10 minutes Q&A
-    ]
-  ]
-]
 
 #slide[
   === About me
 
   - Mathematician from Ghent, Belgium
-  - Specializing in systems software / proof assistants
   - Founder of #link("https://sysghent.be")[SysGhent.be] - systems programming community in Belgium
-  - Author of `clone-stream` crate for cloneable streams
-  - Languages: Rust, Haskell, Lean
+
 
   #v(1em)
 
@@ -502,7 +480,9 @@
     ```]
 
   *Why this works:* `Box<T>` is always `Unpin`, so `self.get_mut()` is safe
-  *Trade-off:* Extra heap allocation vs satisfying `Unpin` requirements.
+
+  *Trade-off:* Extra heap allocation vs satisfying `Unpin` requirements
+
 ]
 
 
