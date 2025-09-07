@@ -8,4 +8,5 @@ To view the presentation:
 
 1. Install `typst`.
 2. Compile: `typst compile presentation.typ`
-3. Open the PDF full-screen
+3. Open the PDF: `xdg-open presentation.pdf`
+4. Toggle presentation mode
