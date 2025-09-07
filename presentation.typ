@@ -3,19 +3,69 @@
   height: 9cm,
   margin: 1.5cm,
 )
-#set text(size: 12pt)
+// #set text(size: 12pt)
 #set par(justify: false)
 
 #show heading.where(level: 1): it => align(center + horizon, it)
 #show heading.where(level: 2): it => align(center + horizon, it)
 
-#let slide(content) = {
+// Color scheme matching willemvanhulle.tech blog
+#let colors = (
+  accent: rgb("#05004E"), // --emphasis_accent
+  code-bg: rgb("#fcfcf5"), // --code_background
+  prose-bg: rgb("#FFFFFF"), // --prose_background
+  bg-accent: rgb("#b2edd7"), // --background_accent
+  text: black,
+  gray: gray,
+)
+
+// Header styling matching blog
+#show heading.where(level: 3): it => [
+  #set text(style: "italic")
+  #underline(stroke: 1.5pt + colors.accent, offset: 0.2em, it)
+]
+
+// Link styling matching blog
+#show link: it => underline(stroke: 1pt + colors.accent, offset: 0.15em, it)
+
+#let slide(title: none, content) = {
   pagebreak(weak: true)
+  if title != none [
+    #heading(level: 3, title)
+    #v(0.5em)
+  ]
   content
   place(bottom + right, dx: -1em, dy: -1em)[
-    #context text(size: 10pt, fill: gray)[#counter(page).display()]
+    #context text(size: 10pt, fill: colors.gray)[#counter(page).display()]
   ]
 }
+
+// Typography matching blog (Fira Sans + Fira Code)
+#set text(font: "Fira Sans")
+#show raw: set text(font: ("Fira Code", "JetBrains Mono", "Liberation Mono"))
+
+
+// Show rules matching blog style
+// Inline code: just font-weight, minimal padding, no background, slightly larger size
+#show raw.where(block: false): set text(weight: "black", size: 1.2em)
+
+// Code blocks: background + border (matching blog's pre styling)
+#show raw.where(block: true): it => block(
+  fill: colors.code-bg,
+  inset: 1em,
+  stroke: 0.5pt + colors.accent,
+  radius: 0pt,
+  text(weight: "black", it),
+)
+
+// Table styling matching blog
+#show table: set table(
+  fill: colors.code-bg,
+  stroke: 0.5pt + colors.accent,
+)
+#show table.cell: set text(size: 10pt)
+#show table.header: set text(weight: "bold")
+
 
 #slide[
   #align(center)[
@@ -85,7 +135,7 @@
 #slide[
   === What are `Stream`s?
 
-  Think of them as "async `Iterator`s" - values that arrive over time:
+  Think of them as "async `Iterator`s" – values that arrive over time:
 
   ```rust
   // Iterator: all values available immediately
@@ -142,9 +192,9 @@
     ],
     [
       *Key benefits:*
-      - Lazy evaluation - only process what you need
-      - Composable - chain operations like `Iterator`
-      - Async-friendly - doesn't block other tasks
+      - Lazy evaluation – only process what you need
+      - Composable – chain operations like `Iterator`
+      - Async-friendly – doesn't block other tasks
     ],
   )
 ]
@@ -163,8 +213,8 @@
   ```
 
 
-  - *Ready* - "Here's your data!"
-  - *Pending* - "Check back later, I'm still working on it"
+  - *Ready* – "Here's your data!"
+  - *Pending* – "Check back later, I'm still working on it"
 
   This is how all async operations communicate their state
 ]
@@ -245,15 +295,15 @@
     gutter: 2em,
     [
       *`Iterator`*
-      - Synchronous - values ready immediately
+      - Synchronous – values ready immediately
       - `next()` returns instantly
       - Predictable timing
     ],
     [
       *`Stream`*
-      - Asynchronous - values arrive over time
+      - Asynchronous – values arrive over time
       - `next().await` might suspend
-      - Unpredictable timing - that's the key!
+      - Unpredictable timing – that's the key!
     ],
   )
 
@@ -320,7 +370,6 @@
       .take(3)                                 // Take first 3
       .collect()
       .await;
-
   // result: [4, 8, 12]
   ```
 ]
@@ -338,7 +387,7 @@
   ```
   Consume receiving end with a stream wrapper:
 
-  ```rs
+  ```rust
   let (tx, rx) = broadcast::channel(16);
   let mut stream = BroadcastStream::new(rx);
   ```
@@ -352,7 +401,7 @@
 
   Simulating a real producer:
 
-  ```rs
+  ```rust
   tokio::spawn(async move {
       for i in 0..5 {
           tx.send(format!("Message {}", i)).unwrap();
@@ -371,7 +420,6 @@
   Process messages as they arrive
 
   ```rust
-
   stream
       .map(Result::ok)
       .filter_map(future::ready)
@@ -396,18 +444,17 @@
 
   The wrapper pattern - most custom operators follow this structure:
 
-  #text(size: 8pt)[
-    ```rust
-    struct Double<S> {
-        stream: S,  // Wrap the inner stream
-    }
+  ```rust
+  struct Double<S> {
+      stream: S,  // Wrap the inner stream
+  }
 
-    impl<S> Double<S> {
-        fn new(stream: S) -> Self {
-            Self { stream }
-        }
-    }
-    ```]
+  impl<S> Double<S> {
+      fn new(stream: S) -> Self {
+          Self { stream }
+      }
+  }
+  ```
 
 
 
@@ -416,7 +463,7 @@
 #slide[
   === Step 2: Implement `Stream` for your wrapper
 
-  #text(size: 8pt)[
+  #text(size: 9pt)[
     ```rust
     impl<S> Stream for Double<S>
     where S: Stream<Item = i32>
@@ -500,39 +547,45 @@
 
     impl<S> Double<S> {
         fn new(stream: S) -> Self {
-            Self { stream: Box::new(stream) }
+            Self {
+              stream: Box::new(stream)
+            }
         }
     }
     ```]
 
   *Why this works:* `Box<T>` is always `Unpin`, so `self.get_mut()` is safe
-
   *Trade-off:* Extra heap allocation vs satisfying `Unpin` requirements.
 ]
 
 
 
 #slide[
-  Define a *blanket implementation* for `Double`:
+  #text(size: 9pt)[
+    Define a *blanket implementation* for `Double`:
 
-  ```rust
-    trait StreamExt: Stream {
-        fn double(self) -> Double<Self>
-        where
-            Self: Sized + Stream<Item = i32>,
-        { Double::new(self) }
-    }
 
-    impl<S: Stream> StreamExt for S {}
-  ```
-  Now you can easily double the values in a stream:
+    ```rust
+      trait StreamExt: Stream {
+          fn double(self) -> Double<Self>
+          where
+              Self: Sized + Stream<Item = i32>,
+          {
+            Double::new(self)
+          }
+      }
+      impl<S: Stream> StreamExt for S {}
+    ```
+    Now you can easily double the values in a stream:
 
-  ```rust
-  let doubled = stream::iter(1..=5).double();
-  ```
+    ```rust
+    let doubled = stream::iter(1..=5).double();
+    ```
+  ]
 ]
 
 #slide[
+
   == Part 3: Real Example
 ]
 
@@ -559,7 +612,6 @@
 
   ```rust
   use clone_stream::ForkStream;
-
   let numbers = stream::iter(vec![1, 2, 3, 4, 5]).fork();
   let copy = numbers.clone(); // Works!
   ```
@@ -635,7 +687,7 @@
 #slide[
   === Clone-stream usage
 
-  #text(size: 7pt)[
+  #text(size: 10pt)[
     ```rust
     let original = stream::iter(vec![1, 2, 3, 4, 5]).fork();
 
@@ -662,7 +714,7 @@
 
   Bob polls first, but no data is available yet:
 
-  #text(size: 7pt)[
+  #text(size: 9pt)[
     ```rust
     let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
     let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
@@ -721,7 +773,7 @@
 
   You can clone even after receiving some items:
 
-  #text(size: 7pt)[
+  #text(size: 8pt)[
     ```rust
     let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
     let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
@@ -823,7 +875,7 @@
     === Questions?
 
 
-    📖 Blog series: #link("https://wvhulle.github.io/blog/streams/")[`wvhulle.github.io/blog/streams/`]
+    📖 Blog series: #link("https://willemvanhulle.tech/blog/streams/")[`willemvanhulle.tech/blog/streams/`]
 
     📦 Clone-stream: #link("https://github.com/wvhulle/clone-stream")[`github.com/wvhulle/clone-stream`]
 
