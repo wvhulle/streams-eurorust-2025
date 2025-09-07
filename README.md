@@ -2,8 +2,6 @@
 
 A presentation given at EuroRust 2025 about the `Stream` trait (asynchronous iterators).
 
-Install `typst`.
-
 To view the presentation:
 
 1. Install `typst`.

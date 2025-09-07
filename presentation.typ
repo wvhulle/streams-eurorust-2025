@@ -8,21 +8,29 @@
 
 
 #slide[
-  #align(center)[
-    = Make Your Own Stream Operators
+  #align(center + horizon)[
+    #text(size: 2.2em, weight: "bold")[
+      Make Your Own Stream Operators
+    ]
 
-    _Building Custom Stream Combinators in Rust_
+    #v(0.8em)
 
-    #v(2em)
+    #text(size: 1.3em, style: "italic")[
+      Playing with moving data in Rust
+    ]
 
-    Willem Vanhulle \
-    EuroRust 2025
+    #v(3em)
 
-    #v(2em)
+    #text(size: 1.1em)[
+      *Willem Vanhulle* \
+      EuroRust 2025 • Paris, France
+    ]
 
+    #v(2.5em)
 
-
-    _30 minutes + 10 minutes Q&A_
+    #text(size: 0.9em, fill: colors.gray)[
+      30 minutes + 10 minutes Q&A
+    ]
   ]
 ]
 
@@ -86,7 +94,7 @@
 
   // Stream: values arrive asynchronously
   let stream: impl Stream<Item = i32> = /* ... */;
-  while let Some(n) = stream.next().await { /* process async */ }
+  while let Some(n) = stream.next().await { /* process async */ };
   ```
 
   Perfect for network data, user events, sensor readings, etc.
@@ -785,7 +793,7 @@
 
   Other topics:
   - `stream::unfold` for simple stream states
-  - Nested streams with `flatten` combinators
+  - Flattening nested streams with `flatten_*` combinators
   - The complementary `Sink` trait
   - Reactive futures crate: #link("https://crates.io/crates/futures-rx")[`futures-rx`]
 ]
@@ -809,18 +817,43 @@
 ]
 
 #slide[
+
+  === Links
+
+
+
+
+  - Blogpost series about streams: #link("https://willemvanhulle.tech/blog/streams/")[`willemvanhulle.tech/blog/streams/`]
+
+  - Stream cloning crate: #link("https://crates.io/crates/clone-stream")[clone-stream]
+
+  - Stream operator docs: #link("https://docs.rs/futures")[`docs.rs/futures`]
+
+
+  - These slides: #link("https://github.com/wvhulle/streams-eurorust-2025")[`github.com/wvhulle/streams-eurorust-2025`] (I recommend Typst!)
+
+]
+
+
+#slide[
+
+
   #align(center)[
-    === Questions?
+
+    #text(size: 2em)[Thank you!]
+
+    Willem Vanhulle \
+
+    #v(5em)
 
 
-    📖 Blog series: #link("https://willemvanhulle.tech/blog/streams/")[`willemvanhulle.tech/blog/streams/`]
+    Contact me!
 
-    📦 Clone-stream: #link("https://github.com/wvhulle/clone-stream")[`github.com/wvhulle/clone-stream`]
+    #link("mailto:willemvanhulle@protonmail.com") \
+    #link("https://willemvanhulle.tech")[willemvanhulle.tech]
 
-    📚 Futures docs: #link("https://docs.rs/futures")[`docs.rs/futures`]
 
-    #v(2em)
-
-    Willem Vanhulle • `@wvhulle` • EuroRust 2025
   ]
+
+
 ]
