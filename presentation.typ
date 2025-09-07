@@ -9,8 +9,6 @@
 #show heading.where(level: 1): it => align(center + horizon, it)
 #show heading.where(level: 2): it => align(center + horizon, it)
 
-// #show raw.where(block: true): block.with(breakable: false)
-
 #let slide(content) = {
   pagebreak(weak: true)
   content
