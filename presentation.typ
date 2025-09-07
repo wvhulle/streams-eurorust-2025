@@ -6,6 +6,8 @@
 #set text(size: 12pt)
 #set par(justify: false)
 
+#show heading.where(level: 1): it => align(center + horizon, it)
+#show heading.where(level: 2): it => align(center + horizon, it)
 
 // #show raw.where(block: true): block.with(breakable: false)
 
@@ -35,40 +37,73 @@
 ]
 
 #slide[
-  = What we'll cover
+  === About me
 
-  - Stream fundamentals in Rust
-  - Working with existing stream operators
-  - Building custom stream combinators
-  - Real-world example: `clone-stream`
-  - Advanced patterns and best practices
+  - Willem Vanhulle, Software Engineer from Ghent, Belgium
+  - Specializing in safe, high-performance systems programming
+  - Founder of #link("https://sysghent.be")[SysGhent.be] - systems programming community in Ghent
+  - Author of `clone-stream` crate for cloneable streams
+  - Languages: Rust, Haskell, Julia + formal verification (Agda, Coq, Lean)
 
-  #v(2em)
+  #v(1em)
 
-  *Goal:* By the end, you'll be comfortable creating your own stream operators!
+  _Find me at_ #link("https://github.com/wvhulle")[`github.com/wvhulle`] _or_ #link("https://willemvanhulle.tech")[`willemvanhulle.tech`]
 ]
 
 #slide[
-  = What are `Stream`s?
+  === What we'll cover
 
-  Streams are _asynchronous iterators_ that produce values over time:
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 2em,
+    [
+      *Part 1: Foundations*
+      - What are `Stream`s?
+      - Basic consumption patterns
+      - Existing combinators
+
+      *Part 2: Building Custom*
+      - The wrapper pattern
+      - Implementing `Stream` trait
+    ],
+    [
+      *Part 3: Real Example*
+      - Clone-stream library walkthrough
+      - Memory management gotchas
+
+      *Part 4: Next Steps*
+      - Advanced patterns
+      - Resources for learning more
+    ],
+  )
+
+  #align(center)[*Goal:* Build your own stream operators with confidence!]
+]
+
+#slide[
+  == Part 1: Foundations
+]
+
+#slide[
+  === What are `Stream`s?
+
+  Think of them as "async `Iterator`s" - values that arrive over time:
 
   ```rust
-  trait Stream {
-      type Item;
+  // Iterator: all values available immediately
+  let numbers: Vec<i32> = vec![1, 2, 3, 4, 5];
+  for n in numbers { /* process sync */ }
 
-      fn poll_next(
-          self: Pin<&mut Self>,
-          cx: &mut Context<'_>
-      ) -> Poll<Option<Self::Item>>;
-  }
+  // Stream: values arrive asynchronously
+  let stream: impl Stream<Item = i32> = /* ... */;
+  while let Some(n) = stream.next().await { /* process async */ }
   ```
 
-  Think: async version of `Iterator`
+  Perfect for network data, user events, sensor readings, etc.
 ]
 
 #slide[
-  = When to use `Stream`s?
+  === When to use `Stream`s?
 
   #grid(
     columns: (1fr, 1fr),
@@ -91,7 +126,7 @@
 
 
 #slide[
-  = Understanding async: `Poll`
+  === Understanding async: `Poll`
 
   Before diving into `Stream`s, you need to understand `Poll`:
 
@@ -106,14 +141,12 @@
   - *Ready* - "Here's your data!"
   - *Pending* - "Check back later, I'm still working on it"
 
-  #v(1em)
-
   This is how all async operations communicate their state
 ]
 
 
 #slide[
-  = Simplified `Stream`
+  === Simplified `Stream`
 
   A stream is "a future that may be polled more than once":
 
@@ -138,7 +171,6 @@
 
 
 #slide[
-  // = Iterator vs Stream Lifetimes
 
 
   #show raw: set text(size: 6pt)
@@ -188,27 +220,38 @@
   ]]
 
 #slide[
-  == Stream Conceptual Definition
+  === Key difference: Timing
 
-  A rough conceptual definition of a stream:
-
-  #align(center)[
-    #text(size: 14pt)[
-      _"A function that returns multiple values at unpredictable times"_
-    ]
-  ]
+  From the comparison we just saw:
 
 
-  This captures the essential nature of streams:
-  - *Multiple values* - not just one like a Future
-  - *Unpredictable times* - values arrive asynchronously
-  - *Function-like* - composable and transformable
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 2em,
+    [
+      *`Iterator`*
+      - Synchronous - values ready immediately
+      - `next()` returns instantly
+      - Predictable timing
+    ],
+    [
+      *`Stream`*
+      - Asynchronous - values arrive over time
+      - `next().await` might suspend
+      - Unpredictable timing - that's the key!
+    ],
+  )
+
+
+  This timing unpredictability is what makes `Stream`s perfect for real-world async data
 ]
 
 
 
 
 #slide[
+
+  === Processing
 
   Process items one by one:
 
@@ -227,7 +270,7 @@
 
 #slide[
 
-
+  === Collection
 
   ```rust
   use futures::stream::{self, StreamExt};
@@ -246,6 +289,8 @@
 ]
 
 #slide[
+
+  === Reactivity
 
   ```rust
   use futures::stream::{self, StreamExt};
@@ -266,15 +311,15 @@
 ]
 
 #slide[
-  = Tokio broadcast `Stream`
+  === Tokio broadcast `Stream`
 
   Needs helper library `tokio_stream`.
 
 
   ```rust
-    use tokio::sync::broadcast;
-    use tokio_stream::wrappers::BroadcastStream;
-    use futures::stream::StreamExt;
+  use tokio::sync::broadcast;
+  use tokio_stream::wrappers::BroadcastStream;
+  use futures::stream::StreamExt;
   ```
   Consume receiving end with a stream wrapper:
 
@@ -288,7 +333,7 @@
 
 #slide[
 
-  == Producer
+  === Producer
 
   Simulating a real producer:
 
@@ -306,7 +351,7 @@
 
 #slide[
 
-  == Consumer
+  === Consumer
 
   Process messages as they arrive
 
@@ -325,13 +370,21 @@
 ]
 
 #slide[
-  = Building custom `Stream` operators
+  == Part 2: Building custom operators
+]
 
-  Let's create our own `double` combinator:
+
+#slide[
+
+
+  === Step 1: Create a wrapper struct around an existing stream
+
+  The wrapper pattern - most custom operators follow this structure:
+  #show raw: set text(size: 8pt)
 
   ```rust
   struct Double<S> {
-      stream: S,
+      stream: S,  // Wrap the inner stream
   }
 
   impl<S> Double<S> {
@@ -340,16 +393,19 @@
       }
   }
   ```
+
+
+
 ]
 
 #slide[
+  === Step 2: Implement `Stream` for your wrapper
 
   #show raw: set text(size: 8pt)
 
   ```rust
   impl<S> Stream for Double<S>
-  where
-      S: Stream<Item = i32>,
+  where S: Stream<Item = i32>
   {
       type Item = i32;
 
@@ -357,44 +413,77 @@
           self: Pin<&mut Self>,
           cx: &mut Context<'_>
       ) -> Poll<Option<Self::Item>> {
-         ...
+          // Implementation goes here...
       }
   }
   ```
-
-  `Pin` prevents the struct from moving in memory while async
 ]
 
 #slide[
+  === The `Pin` challenge
 
-  #show raw: set text(size: 10pt)
+  This naive approach doesn't work:
+
   ```rust
-  fn poll_next(
-      self: Pin<&mut Self>,
-      cx: &mut Context<'_>
-  ) -> Poll<Option<Self::Item>> {
-      let this = self.get_mut(); // Violates Pin contract
-      match this.stream.poll_next(cx) { // Stream not pinned
-          Poll::Ready(x) => Poll::Ready(...),
-          Poll::Pending => Poll::Pending,
-      }
+  fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+      -> Poll<Option<Self::Item>>
+  {
+      let this = self.get_mut(); ❌ Violates Pin contract
+      // this.stream is not pinned but needs to be!
   }
   ```
+
+  *Why it fails:* `get_mut()` requires `Self: Unpin`, but our wrapper might not be `Unpin` if the inner stream isn't
 ]
 
 #slide[
+  === Pin projection explained
 
-  We need to convert `Pin<&mut Self>` to `&mut Self` with `get_mut()`
+  *The problem:* We have `Pin<&mut Wrapper>` but need `Pin<&mut InnerStream>`
 
+  #align(center)[
+    #text(size: 10pt)[
+      #grid(
+        columns: (1fr, 1fr),
+        gutter: 2em,
+        [
+          *Memory Layout:*
+          #v(0.5em)
+          #rect(width: 4em, height: 3em, stroke: 1pt)[
+            #align(top + left)[#text(size: 8pt)[Wrapper]]
+            #v(0.3em)
+            #rect(width: 3em, height: 1.5em, stroke: 1pt, fill: gray.lighten(80%))[
+              #text(size: 8pt)[stream]
+            ]
+          ]
+        ],
+        [
+          *Pin Projection:*
+          #v(0.5em)
+          `Pin<&mut Wrapper>`
+          #v(0.3em)
+          ↓
+          #v(0.3em)
+          `Pin<&mut stream>`
+        ],
+      )
+    ]
+  ]
 
+  *Pin projection* safely converts pinned references without breaking "never move" guarantee
+]
 
-  ```rs
-  let this = self.get_mut();
-  ```
+#slide[
+  === Simple solution: Box the inner stream
 
-  Boxed values (on the heap) are safe to _`Unpin`_.
+  Avoid Pin projection complexity by making everything `Unpin`:
 
-  ```rs
+  #show raw: set text(size: 7pt)
+  ```rust
+  struct Double<S> {
+      stream: Box<S>,  // Box<T> is always Unpin
+  }
+
   impl<S> Double<S> {
       fn new(stream: S) -> Self {
           Self { stream: Box::new(stream) }
@@ -402,7 +491,9 @@
   }
   ```
 
-  Now the  `Double` struct is `Unpin` = safe to move / drop pin:
+  *Why this works:* `Box<T>` is always `Unpin`, so `self.get_mut()` is safe
+
+  *Trade-off:* Extra heap allocation vs Pin projection complexity
 ]
 
 
@@ -428,7 +519,11 @@
 ]
 
 #slide[
-  = Real problem: `Stream`s aren't `Clone`
+  == Part 3: Real Example
+]
+
+#slide[
+  === Real problem: `Stream`s aren't `Clone`
 
   You can't copy a stream like other Rust values:
 
@@ -437,7 +532,6 @@
   let copy = numbers.clone(); // Error!
   ```
 
-  #v(1em)
 
   But sometimes you need multiple consumers:
   - Process data in parallel
@@ -466,7 +560,7 @@
 ]
 
 #slide[
-  = How clones work
+  === How clones work
 
   Each clone has its own reading position in the shared buffer:
 
@@ -490,7 +584,7 @@
 ]
 
 #slide[
-  = `Waker` coordination
+  === `Waker` coordination
 
   Clone-stream creates a "meta-waker" that wakes all waiting clones:
 
@@ -509,11 +603,10 @@
 ]
 
 #slide[
-  = How waking works
+  === How waking works
 
   The coordination process:
 
-  #v(1em)
 
   1. *Clone waits* - Clone calls `.next().await`, returns `Pending`
   2. *Waker stored* - Clone's waker gets stored in its state
@@ -521,7 +614,6 @@
   4. *New data arrives* - Base stream wakes the meta-waker
   5. *All wake up* - Meta-waker wakes all waiting clones
 
-  #v(1em)
 
   Efficient: no unnecessary wake-ups for clones that aren't waiting
 ]
@@ -549,7 +641,7 @@
 
 
 #slide[
-  = Clone-stream usage
+  === Clone-stream usage
 
   Both clones get all items:
   #show raw: set text(size: 8pt)
@@ -572,7 +664,7 @@
 
 
 #slide[
-  = Smart buffering: Setup
+  === Smart buffering: Setup
 
   Bob polls first, but no data is available yet:
   #show raw: set text(size: 7pt)
@@ -594,7 +686,7 @@
 ]
 
 #slide[
-  = Smart buffering: Data arrives
+  === Smart buffering: Data arrives
 
   Adam polls and data arrives - this wakes Bob too:
   #show raw: set text(size: 7pt)
@@ -617,7 +709,7 @@
 ]
 
 #slide[
-  = How it works
+  === How it works
 
   The coordination:
 
@@ -626,13 +718,12 @@
   3. Meta-waker → wakes both
   4. Both get same data
 
-  #v(1em)
 
   Buffering only happens when clones are actively waiting
 ]
 
 #slide[
-  = Late cloning
+  === Late cloning
 
   You can clone even after receiving some items:
   #show raw: set text(size: 7pt)
@@ -655,7 +746,7 @@
 ]
 
 #slide[
-  = Memory management warning
+  === Memory management warning
 
   ⚠️ Suspended clones can cause memory buildup:
   #show raw: set text(size: 7pt)
@@ -676,7 +767,7 @@
 ]
 
 #slide[
-  = Memory buildup problem
+  === Memory buildup problem
 
   Fast reader can't clean up items. `fast` reader processes 1000s of items:
 
@@ -697,17 +788,35 @@
 ]
 
 #slide[
-  = Summary
+  == Part 4: Conclusion
+]
 
-  #v(1em)
+#slide[
+  === Next steps
 
-  *Streams are async iterators* that return multiple values at unpredictable times
+  Exercises:
+  - `timeout(duration)` - cancel slow streams
+  - `batch(n)` - group items into chunks
+  - `rate_limit(per_second)` - throttle stream speed
+  - `retry(max_attempts)` - handle failures gracefully
 
-  *Start with existing combinators* - `map`, `filter`, `collect`, `fold`
 
-  *Build custom operators* using the wrapper pattern + `Stream` trait
+  Other topics:
+  - `stream::unfold` for simple stream states
+  - Nested streams with `flatten` combinators
+  - Custom `Sink` implementations for stream writing
+]
 
-  *Clone-stream enables parallel processing* - but watch memory with slow readers
+#slide[
+  === Summary
+
+  - Streams are async iterators that return multiple values at unpredictable times
+
+  - Start with existing combinators - `map`, `filter`, `collect`, `fold`
+
+  - Build custom operators using the wrapper pattern + `Stream` trait
+
+  - Clone-stream enables parallel processing - but watch memory with slow readers
 
 
 
@@ -718,14 +827,14 @@
 
 #slide[
   #align(center)[
-    = Questions?
+    === Questions?
 
 
-    📖 Blog series: `wvhulle.github.io/blog/streams/`
+    📖 Blog series: #link("https://wvhulle.github.io/blog/streams/")[`wvhulle.github.io/blog/streams/`]
 
-    📦 Clone-stream: `github.com/wvhulle/clone-stream`
+    📦 Clone-stream: #link("https://github.com/wvhulle/clone-stream")[`github.com/wvhulle/clone-stream`]
 
-    📚 Futures docs: `docs.rs/futures`
+    📚 Futures docs: #link("https://docs.rs/futures")[`docs.rs/futures`]
 
     #v(2em)
 
