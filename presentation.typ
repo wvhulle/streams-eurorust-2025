@@ -28,7 +28,7 @@
     Willem Vanhulle \
     EuroRust 2025
 
-    #v(1em)
+    #v(2em)
 
     _30 minutes + 10 minutes Q&A_
   ]
