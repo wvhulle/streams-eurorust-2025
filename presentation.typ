@@ -20,6 +20,8 @@
 
     #v(2em)
 
+
+
     _30 minutes + 10 minutes Q&A_
   ]
 ]
