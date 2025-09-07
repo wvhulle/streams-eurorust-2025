@@ -37,11 +37,11 @@
 #slide[
   === About me
 
-  - Willem Vanhulle, Software Engineer from Ghent, Belgium
-  - Specializing in safe, high-performance systems programming
-  - Founder of #link("https://sysghent.be")[SysGhent.be] - systems programming community in Ghent
+  - Mathematician from Ghent, Belgium
+  - Specializing in systems software / proof assistants
+  - Founder of #link("https://sysghent.be")[SysGhent.be] - systems programming community in Belgium
   - Author of `clone-stream` crate for cloneable streams
-  - Languages: Rust, Haskell, Julia + formal verification (Agda, Coq, Lean)
+  - Languages: Rust, Haskell, Lean
 
   #v(1em)
 
@@ -111,7 +111,7 @@
     [
       *`Stream` (futures crate)*
       - Mature ecosystem
-      - Rich combinator library  
+      - Rich combinator library
       - `StreamExt` with `map`, `filter`, `collect`
       - Production ready
     ],
@@ -175,17 +175,16 @@
 
   A stream is "a future that may be polled more than once":
 
-  #show raw: set text(size: 8pt)
+  #text(size: 8pt)[
+    ```rust
+    trait Stream {
+        type Item;
 
-  ```rust
-  trait Stream {
-      type Item;
-
-      fn poll_next(
-          &mut self
-      ) -> Poll<Option<Self::Item>>;
-  }
-  ```
+        fn poll_next(
+            &mut self
+        ) -> Poll<Option<Self::Item>>;
+    }
+    ```]
 
   - `Poll::Ready(Some(item))` → yielded a value
   - `Poll::Ready(None)` → stream is exhausted
@@ -196,8 +195,6 @@
 
 
 #slide[
-
-  #show raw: set text(size: 8pt)
 
   #text(size: 8pt)[
     #grid(
@@ -398,19 +395,19 @@
   === Step 1: Create a wrapper struct around an existing stream
 
   The wrapper pattern - most custom operators follow this structure:
-  #show raw: set text(size: 8pt)
 
-  ```rust
-  struct Double<S> {
-      stream: S,  // Wrap the inner stream
-  }
+  #text(size: 8pt)[
+    ```rust
+    struct Double<S> {
+        stream: S,  // Wrap the inner stream
+    }
 
-  impl<S> Double<S> {
-      fn new(stream: S) -> Self {
-          Self { stream }
-      }
-  }
-  ```
+    impl<S> Double<S> {
+        fn new(stream: S) -> Self {
+            Self { stream }
+        }
+    }
+    ```]
 
 
 
@@ -419,22 +416,21 @@
 #slide[
   === Step 2: Implement `Stream` for your wrapper
 
-  #show raw: set text(size: 8pt)
+  #text(size: 8pt)[
+    ```rust
+    impl<S> Stream for Double<S>
+    where S: Stream<Item = i32>
+    {
+        type Item = i32;
 
-  ```rust
-  impl<S> Stream for Double<S>
-  where S: Stream<Item = i32>
-  {
-      type Item = i32;
-
-      fn poll_next(
-          self: Pin<&mut Self>,
-          cx: &mut Context<'_>
-      ) -> Poll<Option<Self::Item>> {
-          // Implementation goes here...
-      }
-  }
-  ```
+        fn poll_next(
+            self: Pin<&mut Self>,
+            cx: &mut Context<'_>
+        ) -> Poll<Option<Self::Item>> {
+            // Implementation goes here...
+        }
+    }
+    ```]
 ]
 
 #slide[
@@ -446,18 +442,18 @@
   fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
       -> Poll<Option<Self::Item>>
   {
-      let this = self.get_mut(); ❌ Violates Pin contract
+      let this = self.get_mut(); // Violates Pin contract
       // this.stream is not pinned but needs to be!
   }
   ```
 
-  *Why it fails:* `get_mut()` requires `Self: Unpin`, but our wrapper might not be `Unpin` if the inner stream isn't
+  *Why it fails:* `get_mut()` requires `Self: Unpin`, but our wrapper might not be `Unpin` if the inner stream isn't.
 ]
 
 #slide[
   === Pin projection explained
 
-  *The problem:* We have `Pin<&mut Wrapper>` but need `Pin<&mut InnerStream>`
+  *The problem:* We have `Pin<&mut Double>` but need `Pin<&mut InnerStream>`
 
   #align(center)[
     #text(size: 10pt)[
@@ -468,7 +464,7 @@
           *Memory Layout:*
           #v(0.5em)
           #rect(width: 4em, height: 3em, stroke: 1pt)[
-            #align(top + left)[#text(size: 8pt)[Wrapper]]
+            #align(top + left)[#text(size: 8pt)[Double]]
             #v(0.3em)
             #rect(width: 3em, height: 1.5em, stroke: 1pt, fill: gray.lighten(80%))[
               #text(size: 8pt)[stream]
@@ -478,7 +474,7 @@
         [
           *Pin Projection:*
           #v(0.5em)
-          `Pin<&mut Wrapper>`
+          `Pin<&mut Double>`
           #v(0.3em)
           ↓
           #v(0.3em)
@@ -496,22 +492,22 @@
 
   Avoid Pin projection complexity by making everything `Unpin`:
 
-  #show raw: set text(size: 7pt)
-  ```rust
-  struct Double<S> {
-      stream: Box<S>,  // Box<T> is always Unpin
-  }
+  #text(size: 7pt)[
+    ```rust
+    struct Double<S> {
+        stream: Box<S>,  // Box<T> is always Unpin
+    }
 
-  impl<S> Double<S> {
-      fn new(stream: S) -> Self {
-          Self { stream: Box::new(stream) }
-      }
-  }
-  ```
+    impl<S> Double<S> {
+        fn new(stream: S) -> Self {
+            Self { stream: Box::new(stream) }
+        }
+    }
+    ```]
 
   *Why this works:* `Box<T>` is always `Unpin`, so `self.get_mut()` is safe
 
-  *Trade-off:* Extra heap allocation vs Pin projection complexity
+  *Trade-off:* Extra heap allocation vs satisfying `Unpin` requirements.
 ]
 
 
@@ -559,7 +555,7 @@
 
 #slide[
 
-  My `clone-stream` crate solves this:
+  My `clone-stream` crate solves this (but I was not the first):
 
   ```rust
   use clone_stream::ForkStream;
@@ -637,93 +633,73 @@
 ]
 
 #slide[
-
-  ```rust
-  let original = stream::iter(vec![1, 2, 3, 4, 5]).fork();
-
-  let evens = original.clone()
-      .filter(|&x| async move { x % 2 == 0 });
-
-  let doubled = original.clone()
-      .map(|x| x * 2);
-
-  // Both process the same source data independently
-  let (even_results, doubled_results) = tokio::join!(
-      evens.collect::<Vec<_>>(),
-      doubled.collect::<Vec<_>>()
-  );
-  ```
-]
-
-
-
-
-#slide[
   === Clone-stream usage
 
-  Both clones get all items:
-  #show raw: set text(size: 8pt)
+  #text(size: 7pt)[
+    ```rust
+    let original = stream::iter(vec![1, 2, 3, 4, 5]).fork();
 
-  ```rust
-  use clone_stream::ForkStream;
+    let evens = original.clone()
+        .filter(|&x| async move { x % 2 == 0 });
 
-  let original = stream::iter(vec!['a', 'b', 'c']).fork();
-  let mut adam = original.clone();
-  let mut bob = original.clone();
+    let doubled = original.clone()
+        .map(|x| x * 2);
 
-  // Both receive 'a'
-  assert_eq!(adam.next().await, Some('a'));
-  assert_eq!(bob.next().await, Some('a'));
-  ```
-
-  Each clone maintains its own position
+    // Both process the same source data independently
+    let (even_results, doubled_results) = tokio::join!(
+        evens.collect::<Vec<_>>(),
+        doubled.collect::<Vec<_>>()
+    );
+    ```]
 ]
 
 
 
+
+
 #slide[
-  === Smart buffering: Setup
+  === Smart buffering: setup
 
   Bob polls first, but no data is available yet:
-  #show raw: set text(size: 7pt)
 
-  ```rust
-  let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
-  let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
+  #text(size: 7pt)[
+    ```rust
+    let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
+    let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
 
-  let mut adam = stream.fork();
-  let mut bob = adam.clone();
+    let mut adam = stream.fork();
+    let mut bob = adam.clone();
 
-  // Bob starts waiting for data (no data sent yet)
-  let bob_task = tokio::spawn(async move {
-      bob.next().await // Returns Pending, Bob gets suspended
-  });
-  ```
+    // Bob starts waiting for data (no data sent yet)
+    let bob_task = tokio::spawn(async move {
+        bob.next().await // Returns Pending, Bob gets suspended
+    });
+    ```]
 
   Bob is now in a "waiting" state with his waker stored
 ]
 
 #slide[
-  === Smart buffering: Data arrives
+  === Smart buffering: data arrives
 
   Adam polls and data arrives - this wakes Bob too:
-  #show raw: set text(size: 7pt)
 
-  ```rust
-  // Meanwhile, data gets sent
-  sender.send('a').unwrap();
+  #text(size: 7pt)[
+    ```rust
+    // Meanwhile, data gets sent
+    sender.send('a').unwrap();
 
-  // Adam polls and gets the data
-  let adam_task = tokio::spawn(async move {
-      adam.next().await // Gets Some('a') immediately
-  });
+    // Adam polls and gets the data
+    let adam_task = tokio::spawn(async move {
+        adam.next().await // Gets Some('a') immediately
+    });
 
-  // Bob's waker gets triggered automatically!
-  let (adam_result, bob_result) = tokio::join!(adam_task, bob_task);
+    // Bob's waker gets triggered automatically!
+    let (adam_result, bob_result) = tokio::join!(adam_task, bob_task);
 
-  assert_eq!(adam_result.unwrap(), Some('a'));
-  assert_eq!(bob_result.unwrap(), Some('a')); // Same data!
-  ```
+    assert_eq!(adam_result.unwrap(), Some('a'));
+    assert_eq!(bob_result.unwrap(), Some('a')); // Same data!
+    ```]
 ]
 
 #slide[
@@ -744,44 +720,43 @@
   === Late cloning
 
   You can clone even after receiving some items:
-  #show raw: set text(size: 7pt)
 
-  ```rust
-  let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
-  let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
+  #text(size: 7pt)[
+    ```rust
+    let (sender, rx) = tokio::sync::mpsc::unbounded_channel();
+    let stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
 
-  let mut adam = stream.fork();
+    let mut adam = stream.fork();
 
-  sender.send('a').unwrap();
-  assert_eq!(adam.next().await, Some('a'));
+    sender.send('a').unwrap();
+    assert_eq!(adam.next().await, Some('a'));
 
-  // Clone after adam already read 'a'
-  let mut bob = adam.clone();
+    // Clone after adam already read 'a'
+    let mut bob = adam.clone();
 
-  sender.send('b').unwrap();
-  assert_eq!(bob.next().await, Some('b')); // Bob gets the next item
-  ```
+    sender.send('b').unwrap();
+    assert_eq!(bob.next().await, Some('b')); // Bob gets the next item
+    ```]
 ]
 
 #slide[
   === Memory management warning
 
-  ⚠️ Suspended clones can cause memory buildup:
-  #show raw: set text(size: 7pt)
+  Suspended clones *can cause memory buildup*:
+  #text(size: 10pt)[
+    ```rust
+    let original = some_big_stream().fork();
 
-  ```rust
-  let original = some_big_stream().fork();
+    let mut fast = original.clone();
+    let mut very_slow = original.clone();
 
-  let mut fast = original.clone();
-  let mut very_slow = original.clone();
+    // very_slow gets suspended waiting for data
+    let slow_task = tokio::spawn(async move {
+        very_slow.next().await // Suspended!
+    });
+    ```]
 
-  // very_slow gets suspended waiting for data
-  let slow_task = tokio::spawn(async move {
-      very_slow.next().await // Suspended!
-  });
-  ```
-
-  Now very_slow is in a suspended state
+  Now `very_slow` is in a suspended state
 ]
 
 #slide[
