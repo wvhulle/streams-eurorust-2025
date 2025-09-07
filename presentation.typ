@@ -798,13 +798,13 @@
   - `timeout(duration)` - cancel slow streams
   - `batch(n)` - group items into chunks
   - `rate_limit(per_second)` - throttle stream speed
-  - `retry(max_attempts)` - handle failures gracefully
 
 
   Other topics:
   - `stream::unfold` for simple stream states
   - Nested streams with `flatten` combinators
-  - Custom `Sink` implementations for stream writing
+  - The complementary `Sink` trait
+  - Reactive futures crate: #link("https://crates.io/crates/futures-rx")[`futures-rx`]
 ]
 
 #slide[
