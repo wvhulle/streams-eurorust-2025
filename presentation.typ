@@ -1,70 +1,10 @@
-#set page(
-  width: 16cm,
-  height: 9cm,
-  margin: 1.5cm,
-)
-// #set text(size: 12pt)
+// Import template
+#import "template.typ": colors, presentation-template, slide
+
+// Apply template and page setup
+#show: presentation-template
+#set page(width: 16cm, height: 9cm, margin: 1.5cm)
 #set par(justify: false)
-
-#show heading.where(level: 1): it => align(center + horizon, it)
-#show heading.where(level: 2): it => align(center + horizon, it)
-
-// Color scheme matching willemvanhulle.tech blog
-#let colors = (
-  accent: rgb("#05004E"), // --emphasis_accent
-  code-bg: rgb("#fcfcf5"), // --code_background
-  prose-bg: rgb("#FFFFFF"), // --prose_background
-  bg-accent: rgb("#b2edd7"), // --background_accent
-  text: black,
-  gray: gray,
-)
-
-// Header styling matching blog
-#show heading.where(level: 3): it => [
-  #set text(style: "italic")
-  #underline(stroke: 1.5pt + colors.accent, offset: 0.2em, it)
-]
-
-// Link styling matching blog
-#show link: it => underline(stroke: 1pt + colors.accent, offset: 0.15em, it)
-
-#let slide(title: none, content) = {
-  pagebreak(weak: true)
-  if title != none [
-    #heading(level: 3, title)
-    #v(0.5em)
-  ]
-  content
-  place(bottom + right, dx: -1em, dy: -1em)[
-    #context text(size: 10pt, fill: colors.gray)[#counter(page).display()]
-  ]
-}
-
-// Typography matching blog (Fira Sans + Fira Code)
-#set text(font: "Fira Sans")
-#show raw: set text(font: ("Fira Code", "JetBrains Mono", "Liberation Mono"))
-
-
-// Show rules matching blog style
-// Inline code: just font-weight, minimal padding, no background, slightly larger size
-#show raw.where(block: false): set text(weight: "black", size: 1.2em)
-
-// Code blocks: background + border (matching blog's pre styling)
-#show raw.where(block: true): it => block(
-  fill: colors.code-bg,
-  inset: 1em,
-  stroke: 0.5pt + colors.accent,
-  radius: 0pt,
-  text(weight: "black", it),
-)
-
-// Table styling matching blog
-#show table: set table(
-  fill: colors.code-bg,
-  stroke: 0.5pt + colors.accent,
-)
-#show table.cell: set text(size: 10pt)
-#show table.header: set text(weight: "bold")
 
 
 #slide[
@@ -245,44 +185,43 @@
 
 
 #slide[
+  #align(horizon + center)[
+    #text(size: 8pt)[
+      #grid(
+        columns: (1.5fr, 0.4fr, 2fr),
 
-  #text(size: 8pt)[
-    #grid(
-      columns: (1fr, 0.3fr, 1fr),
-      gutter: 1.5em,
+        [
+          *Synchronous Iterator:*
+          #table(
+            columns: 2,
+            [*Action*], [*Result*],
+            [`iter(1..=3)`], [],
+            [`next()`], [`Some(1)`],
+            [`next()`], [`Some(2)`],
+            [`next()`], [`Some(3)`],
+            [`next()`], [`None`],
+          )
+          Values available immediately
+        ],
+        [#text(size: 16pt)[→]],
 
-      [
-        *Synchronous Iterator:*
-        #table(
-          columns: 2,
-          [*Action*], [*Result*],
-          [`iter(1..=3)`], [],
-          [`next()`], [`Some(1)`],
-          [`next()`], [`Some(2)`],
-          [`next()`], [`Some(3)`],
-          [`next()`], [`None`],
-        )
-        Values available immediately
-      ],
-      [#align(horizon)[#text(size: 16pt)[→]]],
+        [
+          *Asynchronous Stream:*
+          #table(
+            columns: 2,
+            [*Action*], [*Result*],
+            [`stream::new()`], [],
+            [`poll_next()`], [`Pending`],
+            [`poll_next()`], [`Ready(Some(1))`],
+            [`poll_next()`], [`Pending`],
+            [`poll_next()`], [`Ready(Some(2))`],
+            [`poll_next()`], [`Ready(None)`],
+          )
+          May return `Pending` - not ready yet
+        ],
+      )
 
-      [
-        *Asynchronous Stream:*
-        #table(
-          columns: 2,
-          [*Action*], [*Result*],
-          [`stream::new()`], [],
-          [`poll_next()`], [`Pending`],
-          [`poll_next()`], [`Ready(Some(1))`],
-          [`poll_next()`], [`Pending`],
-          [`poll_next()`], [`Ready(Some(2))`],
-          [`poll_next()`], [`Ready(None)`],
-        )
-        May return `Pending` - not ready yet
-      ],
-    )
-
-  ]]
+    ]]]
 
 #slide[
   === Key difference: Timing
@@ -539,7 +478,7 @@
 
   Avoid Pin projection complexity by making everything `Unpin`:
 
-  #text(size: 7pt)[
+  #text(size: 8pt)[
     ```rust
     struct Double<S> {
         stream: Box<S>,  // Box<T> is always Unpin
@@ -547,9 +486,7 @@
 
     impl<S> Double<S> {
         fn new(stream: S) -> Self {
-            Self {
-              stream: Box::new(stream)
-            }
+            Self { stream: Box::new(stream) }
         }
     }
     ```]
@@ -736,9 +673,8 @@
 
   Adam polls and data arrives - this wakes Bob too:
 
-  #text(size: 7pt)[
+  #text(size: 8pt)[
     ```rust
-    // Meanwhile, data gets sent
     sender.send('a').unwrap();
 
     // Adam polls and gets the data
