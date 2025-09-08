@@ -1,6 +1,6 @@
 # Making stream combinators
 
-A presentation given at EuroRust 2025 about the `Stream` trait (asynchronous iterators).
+A [presentation given at EuroRust 2025](https://eurorust.eu/talks/make-your-own-stream-operators/) about the `Stream` trait (asynchronous iterators).
 
 To view the presentation:
 
