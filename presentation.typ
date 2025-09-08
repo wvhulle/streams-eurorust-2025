@@ -153,7 +153,7 @@
         type Item;
 
         fn poll_next(
-            &mut self,
+            self: Pin<&mut Self>,
             cx: &mut Context
         ) -> Poll<Option<Self::Item>>;
     }
@@ -266,7 +266,7 @@
     ],
   )
 
-  *Use `Stream`* - `AsyncIterator` lacks essential features
+  *Use `Stream`* - `AsyncIterator` still lacks essential features
 ]
 
 
@@ -402,7 +402,7 @@
     }
     ```
 
-    *Pin contract:* data inside the `Pin` is partially guaranteed by the compiler *at compile-time* that the content in it must not move in memory at run-time.
+    *Pin contract:* Pin partially guarantees at compile-time that the data inside must not move in memory at runtime.
   ]
 ]
 
@@ -430,7 +430,7 @@
   #text(size: 8pt)[
     ```rust
     impl<InSt> Stream for Double<InSt>
-    where InSt: Stream<Item = i32> + Unpin
+    where InSt: Stream<Item = i32>
     {
         fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>)
             -> Poll<Option<Self::Item>>
@@ -508,7 +508,7 @@
     ```
 
     ```rust
-    impl<S: Stream> StreamExt for S where S: Stream<Item = i32> {}
+    impl<S> StreamExt for S where S: Stream<Item = i32> {}
     ```
 
     This implements `StreamExt` for *all* streams that produce `i32` values
@@ -637,8 +637,6 @@
     ```]
 
   Each clone has an ID and tracks its own state.
-
-  You can also use `stream::unfold` for simple stream states
 ]
 
 #slide[
@@ -836,10 +834,10 @@
 
   Buffer grows indefinitely with slow readers:
 
-  - Memory usage = (slowest reader position) × (item count)
+  - Memory usage grows with items buffered between fastest and slowest reader
   - Can cause OOM with high-throughput streams
 
-  *Temporary solution:* Avoid blocking operations in clone tasks
+  *Workaround:* Avoid blocking operations in clone tasks
 
   #text(size: 8pt)[
     ```rust
