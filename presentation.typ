@@ -71,43 +71,57 @@
   === Iterator vs Stream: key difference
 
   #align(center)[
-    #text(size: 9pt)[
-      #grid(
-        columns: (1fr, 0.3fr, 1fr),
-        gutter: 1em,
+    #canvas(length: 1cm, {
+      import draw: *
 
-        [
-          *Iterator (sync)*
-          #table(
-            columns: 2,
-            stroke: 0.5pt,
-            [*Call*], [*Returns*],
-            [`next()`], [`Some(1)`],
-            [`next()`], [`Some(2)`],
-            [`next()`], [`Some(3)`],
-            [`next()`], [`None`],
-          )
+      let draw-data-flow(start-x, title, calls, results, is-async) = {
+        // Title
+        content((start-x + 3, 5.5), text(size: 11pt, weight: "bold", title), anchor: "center")
 
-          ✓ Always returns immediately
-        ],
-        [#text(size: 14pt)[vs]],
+        // Draw calls and results
+        for (i, (call, result)) in calls.zip(results).enumerate() {
+          let y = 4.5 - i * 0.8
+          let result-color = if is-async and result.starts-with("Pending") { orange } else { green }
 
-        [
-          *Stream (async)*
-          #table(
-            columns: 2,
-            stroke: 0.5pt,
-            [*Call*], [*Returns*],
-            [`poll_next()`], [`Pending`],
-            [`poll_next()`], [`Ready(Some(1))`],
-            [`poll_next()`], [`Pending`],
-            [`poll_next()`], [`Ready(Some(2))`],
-          )
+          // Call box
+          rect((start-x, y - 0.2), (start-x + 2, y + 0.2), fill: rgb("e6f3ff"), stroke: blue)
+          content((start-x + 1, y), text(size: 8pt, call), anchor: "center")
 
-          ⚠️ May return `Pending`
-        ],
+          // Arrow
+          line((start-x + 2.1, y), (start-x + 2.9, y), mark: (end: ">"))
+
+          // Result box
+          rect((start-x + 3, y - 0.2), (start-x + 6, y + 0.2), fill: rgb("f0f0f0"), stroke: result-color)
+          content((start-x + 4.5, y), text(size: 8pt, result), anchor: "center")
+        }
+
+        // Summary
+        let summary = if is-async { "⚠️ May return Pending" } else { "✓ Always returns immediately" }
+        content((start-x + 3, 0.5), text(size: 9pt, summary), anchor: "center")
+      }
+
+      // Iterator flow
+      draw-data-flow(
+        0,
+        "Iterator (sync)",
+        ("next()", "next()", "next()", "next()"),
+        ("Some(1)", "Some(2)", "Some(3)", "None"),
+        false,
       )
-    ]]
+
+      // Stream flow
+      draw-data-flow(
+        8,
+        "Stream (async)",
+        ("poll_next()", "poll_next()", "poll_next()", "poll_next()"),
+        ("Pending", "Ready(Some(1))", "Pending", "Ready(Some(2))"),
+        true,
+      )
+
+      // VS separator
+      content((7, 3), text(size: 14pt, weight: "bold", "vs"), anchor: "center")
+    })
+  ]
 
   Streams handle data that arrives over time
 ]
@@ -146,12 +160,56 @@
         align: left,
         [*Return Value*], [*Meaning*],
         [`Ready(Some(item))`], [New data is available],
-        [`Ready(None)`], [Stream is exhausted, no more items],
+        [`Ready(None)`], [*May* be done - depends on stream type],
         [`Pending`], [Not ready yet, will notify via waker],
       )
     ]]
 
   When `Pending`: runtime suspends task until waker signals readiness
+]
+
+#slide[
+  === The `None` confusion
+
+  *Critical distinction:* `Ready(None)` has different meanings!
+
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 2em,
+    [
+      *Regular `Stream`*
+      - `None` may be temporary
+      - Could yield `Some(item)` later
+      - Example: empty channel buffer
+
+      #text(size: 8pt)[
+        ```rust
+        // Channel stream
+        if buffer.is_empty() {
+            return Poll::Ready(None);
+        }
+        // But more data might arrive!
+        ```
+      ]
+    ],
+    [
+      *`FusedStream`*
+      - `None` means permanently done
+      - Will never yield `Some(item)` again
+      - Similar to `FusedFuture`
+
+      #text(size: 7pt)[
+        ```rust
+        // Iterator-based stream
+        match iter.next() {
+            Some(item) => Poll::Ready(Some(item)),
+            None => Poll::Ready(None), // Forever
+        }
+        ```
+      ]
+    ],
+  )
+
 ]
 
 
@@ -386,42 +444,62 @@
 #slide[
   === The Pin challenge
 
-  *Problem:* Stream requires `Pin<&mut Self>` but we need to access inner stream
+  Pin prevents direct field access - but we need the inner stream:
 
   #text(size: 10pt)[
     ```rust
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>>
     {
-        // We have: Pin<&mut Double<InSt>>
-        // We need: Pin<&mut InSt> to poll the inner stream
-        // But we can't just do: self.stream ❌
+        // ❌ self.stream.poll_next(cx)        // Can't move out of Pin
+        // ❌ Pin::new(&mut self.stream)       // Can't get &mut from Pin
     }
     ```
   ]
 
-  Pin prevents moving data that might contain self-references
+  Need "pin projection" to safely access inner `Pin<&mut InSt>`
 ]
 
 #slide[
-  === Why streams need Pin
+  === Why Pin exists: self-referential structs
 
-  Async state machines can be self-referential:
+  Future state machines can point to their own data:
 
-  #text(size: 9pt)[
-    ```rust
-    // Conceptually, async blocks create something like:
-    struct AsyncBlock {
-        state: State,
-        local_var: i32,
-        reference_to_local: *const i32,  // Points to local_var!
-    }
-    ```
-  ]
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 1.5em,
+    [
+      *Your async code:*
+      #text(size: 9pt)[
+        ```rust
+        async fn example() {
+            let data = vec![1, 2, 3];
+            let reference = &data[0];
+            some_async_fn().await;
+            println!("{}", reference);
+        }
+        ```
+      ]
 
-  Moving this struct would invalidate the internal pointer → undefined behavior
+      Reference points into owned data
+    ],
+    [
+      *Compiler generates:*
+      #text(size: 9pt)[
+        ```rust
+        struct ExampleFuture {
+            data: Vec<i32>,
+            reference: *const i32, // ⚠️
+            // ... other state
+        }
+        ```
+      ]
 
-  Pin prevents moves to maintain memory safety
+      Pointer into same struct!
+    ],
+  )
+
+  Moving this struct would break the internal pointer → undefined behavior
 ]
 
 #slide[
@@ -429,21 +507,54 @@
 
   We need to "project" the Pin from outer to inner field:
 
-  #text(size: 9pt)[
-    ```rust
-    // From: Pin<&mut Double<InSt>>  
-    // To:   Pin<&mut InSt>
-    
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-        -> Poll<Option<Self::Item>>
-    {
-        let inner_stream = /* somehow get Pin<&mut InSt> */;
-        inner_stream.poll_next(cx).map(|opt| opt.map(|x| x * 2))
-    }
-    ```
-  ]
+  #align(center)[
+    #canvas(length: 1.2cm, {
+      import draw: *
 
-  Three approaches: Unpin assumption, pin_project, or unsafe
+      let draw-box(x, y, w, h, color, stroke-color, texts) = {
+        rect((x, y), (x + w, y + h), fill: color, stroke: stroke-color + 1.5pt)
+        let center-y = y + h / 2
+        let start-y = center-y + (texts.len() - 1) * 0.2
+        for (i, txt) in texts.enumerate() {
+          content((x + w / 2, start-y - i * 0.4), txt, anchor: "center")
+        }
+      }
+
+      let draw-problem(x, y, message) = {
+        content((x, y), text(size: 7pt, fill: red, "❌ " + message), anchor: "center")
+      }
+
+      let draw-benefit(x, y, message) = {
+        content((x, y), text(size: 7pt, fill: green, "✓ " + message), anchor: "center")
+      }
+
+      // Input box
+      draw-box(0, 3, 5, 2.5, rgb("ffeeee"), red, (
+        text(size: 9pt, weight: "bold", "Pin<&mut Self>"),
+        text(size: 8pt, "stream: InSt"),
+      ))
+
+      // Projection arrow
+      line((5.3, 4.2), (7.2, 4.2), mark: (end: ">"), stroke: blue + 2pt)
+      content((6.25, 4.8), text(size: 8pt, weight: "bold", "Pin projection"), anchor: "center")
+      content((6.25, 4.5), text(size: 7pt, "safe field access"), anchor: "center")
+
+      // Output box
+      draw-box(7.5, 3, 5, 2.5, rgb("eeffee"), green, (
+        text(size: 9pt, weight: "bold", "Pin<&mut InSt>"),
+        text(size: 7pt, "Can poll inner stream"),
+        text(size: 7pt, "Pin safety preserved"),
+      ))
+
+      // Problems and benefits
+      draw-problem(2.5, 2.4, "Direct access blocked")
+      draw-benefit(10, 2.4, "Safe projection enabled")
+
+      // Labels
+      content((2.5, 1.8), text(size: 8pt, weight: "bold", "Input"), anchor: "center")
+      content((10, 1.8), text(size: 8pt, weight: "bold", "Output"), anchor: "center")
+    })
+  ]
 ]
 
 #slide[
@@ -662,14 +773,14 @@
   #align(center)[
     #canvas(length: 1cm, {
       import draw: *
-      
+
       let draw-queue-item(i) = {
         let x = i * 1.5
         rect((x, 2), (x + 1, 2.8), fill: rgb("f0f0f0"), stroke: black)
         content((x + 0.5, 2.4), text(size: 8pt, str(i)), anchor: "center")
         content((x + 0.5, 1.6), text(size: 8pt, "'" + ("abcde".at(i)) + "'"), anchor: "center")
       }
-      
+
       let draw-clone-row(y, consumed-count, ready-index, name) = {
         for i in range(5) {
           let (color, symbol) = if i < consumed-count {
@@ -687,8 +798,8 @@
       // Draw components
       for i in range(5) { draw-queue-item(i) }
       content((-0.8, 2.4), text(size: 9pt, weight: "bold", "Queue"), anchor: "center")
-      draw-clone-row(0.8, 1, 1, "Clone A")  // consumed 1, ready at 1
-      draw-clone-row(0.3, 3, 3, "Clone B")  // consumed 3, ready at 3
+      draw-clone-row(0.8, 1, 1, "Clone A") // consumed 1, ready at 1
+      draw-clone-row(0.3, 3, 3, "Clone B") // consumed 3, ready at 3
     })
   ]
 
@@ -761,7 +872,7 @@
 
 #slide[
   == Smart buffering behavior
-  
+
   Items are only buffered when other clones need them
 ]
 
@@ -775,7 +886,7 @@
     let bob_task = tokio::spawn(async move {
         bob.next().await // Enters QueueEmptyThenBasePending state
     });
-    
+
     let adam_task = tokio::spawn(async move {
         adam.next().await // Also enters QueueEmptyThenBasePending
     });
@@ -794,7 +905,7 @@
     // Base stream becomes ready with 'x'
     // Since multiple clones are in pending states,
     // item gets cloned and queued
-    
+
     let (adam_result, bob_result) = tokio::join!(adam_task, bob_task);
     assert_eq!(adam_result.unwrap(), Some('x'));
     assert_eq!(bob_result.unwrap(), Some('x'));
@@ -814,7 +925,7 @@
         tokio::time::sleep(Duration::from_secs(3)).await;
         bob.next().await // Still in NeverPolled state
     });
-    
+
     // Adam polls immediately
     let adam_result = adam.next().await; // Some('x')
     ```]
@@ -913,16 +1024,40 @@
 
   Transform and filter stream items functionally:
 
-  #text(size: 9pt)[
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-stage(x, y, width, label, input, output, color) = {
+        rect((x, y), (x + width, y + 0.8), fill: color, stroke: black)
+        content((x + width / 2, y + 0.6), text(size: 7pt, weight: "bold", label), anchor: "center")
+        content((x + width / 2, y + 0.4), text(size: 6pt, input), anchor: "center")
+        content((x + width / 2, y + 0.2), text(size: 6pt, output), anchor: "center")
+
+        if x > 0 {
+          line((x - 0.2, y + 0.4), (x + 0.1, y + 0.4), mark: (end: ">"))
+        }
+      }
+
+      // Pipeline stages
+      draw-stage(0, 2, 1.8, "iter(0..10)", "source", "0,1,2,3...", rgb("e6f3ff"))
+      draw-stage(2, 2, 1.8, "map(*2)", "0,1,2,3...", "0,2,4,6...", rgb("fff0e6"))
+      draw-stage(4, 2, 1.8, "filter(>4)", "0,2,4,6...", "6,8,10...", rgb("f0ffe6"))
+      draw-stage(6, 2, 1.8, "enumerate", "6,8,10...", "(0,6),(1,8)...", rgb("ffe6f0"))
+      draw-stage(8, 2, 1.8, "take(3)", "(0,6),(1,8)...", "first 3", rgb("f0e6ff"))
+      draw-stage(10, 2, 2.2, "skip_while(<1)", "first 3", "(1,8),(2,10)", rgb("e6fff0"))
+
+      // Final result
+      content((11, 1), text(size: 8pt, weight: "bold", "Final: [(1,8), (2,10)]"), anchor: "center")
+    })
+  ]
+
+  #v(0.5em)
+
+  #text(size: 8pt)[
     ```rust
-    stream::iter(0..10)
-        .map(|x| x * 2)           // Transform: 0, 2, 4, 6, 8...
-        .filter(|&x| x > 4)       // Keep only: 6, 8, 10, 12...
-        .enumerate()              // Add index: (0,6), (1,8), (2,10)...
-        .take(3)                  // Limit to first 3 items
-        .skip_while(|&(i, _)| i < 1)  // Skip until index >= 1
-        .collect::<Vec<_>>()
-        .await;
+    stream::iter(0..10).map(|x| x * 2).filter(|&x| x > 4)
+        .enumerate().take(3).skip_while(|&(i, _)| i < 1)
     ```]
 
   Chain operations to build complex data pipelines declaratively
@@ -936,11 +1071,11 @@
   #text(size: 9pt)[
     ```rust
     let numbers = stream::iter(vec![2, 4, 6, 8]);
-    
+
     // Check conditions across all items
     let all_even = numbers.clone().all(|x| async move { x % 2 == 0 }).await;
     let has_large = numbers.clone().any(|x| async move { x > 5 }).await;
-    
+
     // Process each item with side effects
     numbers.for_each(|x| async move {
         println!("Processing: {}", x);
@@ -962,13 +1097,13 @@
     let stream1 = stream::iter(vec![1, 2, 3]);
     let stream2 = stream::iter(vec![4, 5, 6]);
     let merged = stream::select_all(vec![stream1, stream2]);
-    
+
     // Peek without consuming
     let mut peekable = stream::iter(vec![1, 2, 3]).peekable();
     if let Some(next) = peekable.as_mut().peek().await {
         println!("Next item will be: {}", next);
     }
-    
+
     // Forward to sink (write side)
     stream.forward(sink).await?;  // Flush entire stream to sink
     ```]
