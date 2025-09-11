@@ -57,7 +57,7 @@
       dy: -1.5cm,
       line(start: (0pt, 0pt), end: (0pt, 100% + 3cm), stroke: 2pt + colors.accent),
     )
-    align(center + horizon, it)
+    pad(left: 1.5em, align(center + horizon, it))
   }
   show heading.where(level: 3): it => {
     set text(style: "italic")
