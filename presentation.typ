@@ -1,6 +1,6 @@
 // Import template
 #import "template.typ": presentation-template, slide
-#import "@preview/cetz:0.3.1": canvas, draw
+#import "@preview/cetz:0.4.2": canvas, draw
 
 // Apply template and page setup
 #show: presentation-template.with(
@@ -69,6 +69,73 @@
     }
     ```]
 
+]
+
+#slide[
+  === Why streams are challenging
+
+  Manual stream processing becomes messy quickly:
+
+  #text(size: 8pt)[
+    ```rust
+    let mut filtered_messages = Vec::new();
+    let mut count = 0;
+
+    while let Some(connection) = tcp_stream.next().await {
+        match connection {
+            Ok(stream) => {
+                if should_process(&stream) {
+                    // ... nested processing logic
+                }
+            }
+            Err(e) => log_connection_error(e),
+        }
+    }
+    ```]
+
+]
+
+#slide[
+  === The nested complexity continues...
+
+  Each processing step adds more complexity:
+
+  #text(size: 9pt)[
+    ```rust
+    // Inside the should_process block:
+    match process_stream(stream).await {
+        Ok(msg) if msg.len() > 10 => {
+            filtered_messages.push(msg);
+            count += 1;
+            if count >= 5 { break; }
+        }
+        Ok(_) => continue,  // Skip short messages
+        Err(e) => log_error(e),
+    }
+    ```]
+
+  Hard to read, maintain, test, and reason about!
+]
+
+#slide[
+  === Functional approach preview
+
+  Same logic, much cleaner with stream operators:
+
+  #text(size: 10pt)[
+    ```rust
+    let filtered_messages: Vec<String> = tcp_stream
+        .filter_map(|connection| ready(connection.ok()))
+        .filter_map(|stream| async {
+            process_stream(stream).await.ok()
+        })
+        .filter(|msg| ready(msg.len() > 10))
+        .take(5)
+        .collect()
+        .await;
+    ```]
+
+  Declarative, composable, and testable!
 ]
 
 #slide[
@@ -302,35 +369,26 @@
   *Note*: `ready(...)` wraps sync values into a future - some stream operators (like `filter`) expect `Future`s. See #link("https://docs.rs/futures/latest/futures/future/fn.ready.html")[`futures::future::ready`].
 ]
 
-
 #slide[
-  === Channel receivers
+  === Real example: broadcast channels
 
-  Try #link("https://docs.rs/postage/latest/postage/")[`postage`] crate for channels with receivers that implement `Stream`
-
-  Using `tokio` ecosystem? Use:
-
-  1. `tokio_stream::wrappers` for `Stream`s
-  2. `tokio_util::sync::PollSender` for `Sink`s
-
-  Create a channel as usual:
+  Tokio channels need `tokio_stream` wrappers to become streams:
 
   ```rust
-  let (tx, rx) = tokio::sync::broadcast::channel(16);
+  use tokio::sync::broadcast;
+  let (tx, rx) = broadcast::channel(16);
   ```
-  Let's convert `rx` into a stream.
 
-
+  Let's turn the receiver into a stream.
 ]
 
-
-
 #slide[
-  === Filtering broadcast errors functionally
+  === Handling broadcast errors functionally
 
-  Use `filter_map` with `future::ready` and `Result::ok`:
+  Broadcast streams return `Result<T, BroadcastStreamRecvError>`:
 
   ```rust
+  use tokio_stream::wrappers::BroadcastStream;
   use futures::future::ready;
   BroadcastStream::new(rx)
       .filter_map(|result| ready(result.ok()))
@@ -339,8 +397,8 @@
   ```
 
   - `Result::ok()` converts `Result<T, E>` → `Option<T>`
-  - `future::ready()` wraps sync values for async context
-  - Errors (like lagged messages) are silently dropped
+  - `filter_map` drops `None` values (errors become `None`)
+
 ]
 
 #slide[
@@ -421,25 +479,6 @@
 ]
 
 #slide[
-  === The Pin challenge
-
-  Pin prevents direct field access - but we need the inner stream:
-
-  #text(size: 10pt)[
-    ```rust
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-        -> Poll<Option<Self::Item>>
-    {
-        // ❌ self.stream.poll_next(cx)        // Can't move out of Pin
-        // ❌ Pin::new(&mut self.stream)       // Can't get &mut from Pin
-    }
-    ```
-  ]
-
-  Need "pin projection" to safely access inner `Pin<&mut InSt>`
-]
-
-#slide[
   === Why Pin exists: self-referential structs
 
   Future state machines can point to their own data:
@@ -482,7 +521,51 @@
 ]
 
 #slide[
-  === Solution: Pin projection
+  === The Pin challenge
+
+  Pin prevents direct field access - but we need the inner stream:
+
+  #text(size: 9pt)[
+    ```rust
+    impl<InSt: Stream<Item = i32>> Stream for Double<InSt> {
+        type Item = i32;
+
+        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+            -> Poll<Option<Self::Item>>
+        {
+            // ❌ self.stream.poll_next(cx)        // Can't move out of Pin
+            // ❌ Pin::new(&mut self.stream)       // Can't get &mut from Pin
+
+            // ✓ What we need: Pin<&mut InSt> from Pin<&mut Self>
+        }
+    }
+    ```
+  ]
+]
+
+#slide[
+  === Pin projection concept
+
+  We need to safely convert `Pin<&mut Self>` → `Pin<&mut Field>`:
+
+  #text(size: 10pt)[
+    ```rust
+    struct Double<InSt> {
+        stream: InSt,  // We need Pin access to this field
+    }
+
+    // Pin<&mut Double<InSt>> → Pin<&mut InSt>
+    ```
+  ]
+
+  Three approaches:
+  - *Box the field* (simple, heap allocation)
+  - *Use `pin-project` crate* (recommended, no unsafe)
+  - *Manual unsafe projection* (experts only)
+]
+
+#slide[
+  === Solution: Pin projection visualization
 
   We need to "project" the Pin from outer to inner field:
 
@@ -647,8 +730,7 @@
     // In crate `double-stream`
     trait DoubleStream: Stream {
         fn double(self) -> Double<Self>
-        where
-            Self: Sized + Stream<Item = i32>,
+        where Self: Sized + Stream<Item = i32>,
         {
           Double::new(self)
         }
@@ -706,9 +788,9 @@
 ]
 
 #slide[
-  === Solution: `clone-stream` crate
+  === No `clone` in `futures` crate
 
-  #link("https://crates.io/crates/clone-stream")[`clone-stream`] makes any stream cloneable:
+  *Solution*: #link("https://crates.io/crates/clone-stream")[`clone-stream`] makes any stream cloneable:
 
   #text(size: 10pt)[
     ```rust
@@ -788,147 +870,114 @@
 ]
 
 #slide[
-  === Fork data structure
+  === Each clone needs a mini state machine
 
-  The core `Fork` struct tracks clones and their states:
-
-  #text(size: 9pt)[
-    ```rust
-    struct Fork<BaseStream> {
-        base_stream: Pin<Box<BaseStream>>,
-        queue: BTreeMap<usize, Option<BaseStream::Item>>,
-        clones: BTreeMap<usize, CloneState>,
-        available_clone_indices: BTreeSet<usize>,
-        // ... other fields omitted for brevity
-    }
-    ```]
-
-  Clone IDs are now reused efficiently via `available_clone_indices`.
-]
-
-#slide[
-  === Clone state diagram
+  Clone streams need complex state tracking unlike simple operators:
 
   #align(center)[
-    #text(size: 8pt)[
-      #table(
-        columns: 4,
-        stroke: 0.5pt,
-        align: center,
-        [*Clone ID*], [*State*], [*Has Waker*], [*Position*],
-        [`0`], [`Waiting`], [✓], [`item_2`],
-        [`1`], [`Ready`], [✗], [`item_0`],
-        [`2`], [`Waiting`], [✓], [`item_1`],
-      )
-    ]
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-state(pos, name, color, has-waker: false) = {
+        let (x, y) = pos
+        let stroke-color = if has-waker { red + 2pt } else { black + 1pt }
+        let height = if has-waker { 1.2 } else { 1.0 }
+        rect((x - 1.2, y - height / 2), (x + 1.2, y + height / 2), fill: color, stroke: stroke-color, radius: 0.3)
+        content((x, y + 0.2), align(center, text(size: 6pt, weight: "bold", name)))
+        if has-waker {
+          content((x, y - 0.3), align(center, text(size: 6pt, "💤 waker")))
+        }
+      }
+
+      let draw-arrow(from, to, label, curve: 0) = {
+        let (x1, y1) = from
+        let (x2, y2) = to
+        if curve == 0 {
+          line((x1, y1), (x2, y2), mark: (end: ">"))
+          let mid = ((x1 + x2) / 2, (y1 + y2) / 2 + 0.3)
+          content(mid, text(size: 6pt, label), fill: white, stroke: white + 1pt)
+        } else {
+          arc((x1, y1), start: 30deg, stop: 150deg, radius: 1.5, mark: (end: ">"))
+          content((x1, y1 + 1.2), text(size: 6pt, label))
+        }
+      }
+
+      // Actual states from clone-stream source
+      draw-state((1, 4), "Never\nPolled", rgb("f0f0f0"))
+      draw-state((4, 4), "QueueEmpty\nBaseReady", rgb("ffffcc"))
+      draw-state((7, 4), "UnseenQueued\nReady", rgb("ccffcc"))
+      draw-state((1, 2), "QueueEmpty\nBasePending", rgb("ffcccc"), has-waker: true)
+      draw-state((4, 2), "NoUnseen\nBasePending", rgb("ffcccc"), has-waker: true)
+      draw-state((7, 2), "NoUnseen\nBaseReady", rgb("ffffcc"))
+
+      // Key transitions between states
+      draw-arrow((1.7, 4), (3.3, 4), "first poll")
+      draw-arrow((4.7, 4), (6.3, 4), "queue item")
+      draw-arrow((4, 3.3), (4, 2.7), "base → Pending")
+      draw-arrow((7, 3.3), (7, 2.7), "consumed")
+      draw-arrow((1, 3.3), (1, 2.7), "poll → Pending")
+      draw-arrow((4.7, 2), (6.3, 2), "item ready")
+      draw-arrow((1.7, 2), (3.3, 2), "queue ready")
+    })
   ]
 
-  Only waiting clones store wakers for coordination
+  Simple operators like `map` just transform items - no state needed!
 ]
 
 #slide[
-  === Multi-waker coordination
-
-  The fork creates a meta-waker from all waiting clones:
-
-  #text(size: 9pt)[
-    ```rust
-    pub fn waker(&self, extra_waker: &Waker) -> Waker {
-        let wakers = self.clones
-            .iter()
-            .filter(|(_id, state)| state.should_still_see_base_item())
-            .filter_map(|(_id, state)| state.waker().clone())
-            .chain(std::iter::once(extra_waker.clone()))
-            .collect::<Vec<_>>();
-
-        Waker::from(Arc::new(MultiWaker { wakers }))
-    }
-    ```]
-
-  When data arrives, all waiting clones wake up simultaneously
-]
+  === Only waiting clones store wakers
 
 
-#slide[
-  == Smart buffering behavior
+  #align(center)[
+    #canvas(length: 1.2cm, {
+      import draw: *
 
-  Items are only buffered when other clones need them
-]
+      // Configuration
+      let clone-radius = 0.5
+      let colors = (
+        sleeping: rgb("ffcccc"),
+        active: rgb("ccffcc"),
+        item: rgb("fff3cd"),
+        stream: rgb("e6f3ff"),
+      )
 
-#slide[
-  === Buffering: Both clones waiting
+      let draw-clone(pos, name, state, color) = {
+        let (x, y) = pos
+        circle((x, y), radius: clone-radius, fill: color, stroke: black + 1.5pt)
+        content((x, y + 0.1), text(size: 8pt, weight: "bold", name))
+        content((x, y - 0.1), text(size: 6pt, state))
+        content((x, y + 1), text(size: 7pt, if state == "Sleeping" { "💤 Waiting" } else { "⚡ Ready" }))
+      }
 
-  When both clones poll and get `Pending`, they enter waiting states:
+      let draw-item(pos, value) = {
+        let (x, y) = pos
+        rect((x - 0.4, y - 0.3), (x + 0.4, y + 0.3), fill: colors.item, stroke: blue + 2pt)
+        content((x, y), text(size: 10pt, weight: "bold", value))
+      }
 
-  #text(size: 9pt)[
-    ```rust
-    let bob_task = tokio::spawn(async move {
-        bob.next().await // Enters QueueEmptyThenBasePending state
-    });
+      let draw-arrow(from, to, label, color) = {
+        line(from, to, mark: (end: ">"), stroke: color + 2pt)
+        let mid = ((from.at(0) + to.at(0)) / 2, (from.at(1) + to.at(1)) / 2 - 0.3)
+        content(mid, text(size: 9pt, label))
+      }
 
-    let adam_task = tokio::spawn(async move {
-        adam.next().await // Also enters QueueEmptyThenBasePending
-    });
-    ```]
+      // Base stream
+      rect((1, 0), (7, 0.8), fill: colors.stream, stroke: gray)
+      content((4, 0.4), text(size: 8pt, "Base Stream"))
 
-  Both clones store wakers and register interest in base stream items
-]
+      // Clones
+      draw-clone((2, 3), "Alice", "Sleeping", colors.sleeping)
+      draw-clone((6, 3), "Bob", "Active", colors.active)
 
-#slide[
-  === Buffering: Item arrives for waiting clones
+      // Item
+      draw-item((4, 1.5), "'x'")
 
-  Base stream produces item, gets buffered for both waiting clones:
+      // Arrows with labels
+      draw-arrow((4.3, 2.0), (5.4, 2.6), "direct", green)
+      draw-arrow((3.7, 2.0), (2.6, 2.6), "wake + copy", blue)
+    })
+  ]
 
-  #text(size: 9pt)[
-    ```rust
-    // Base stream becomes ready with 'x'
-    // Since multiple clones are in pending states,
-    // item gets cloned and queued
-
-    let (adam_result, bob_result) = tokio::join!(adam_task, bob_task);
-    assert_eq!(adam_result.unwrap(), Some('x'));
-    assert_eq!(bob_result.unwrap(), Some('x'));
-    ```]
-
-  Both clones receive the same item from their queue positions
-]
-
-#slide[
-  === No buffering: Clone not actively waiting
-
-  Bob clone exists but hasn't started polling yet:
-
-  #text(size: 9pt)[
-    ```rust
-    let bob_task = tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_secs(3)).await;
-        bob.next().await // Still in NeverPolled state
-    });
-
-    // Adam polls immediately
-    let adam_result = adam.next().await; // Some('x')
-    ```]
-
-  Bob's clone is in `NeverPolled` state - not eligible for buffering
-]
-
-#slide[
-  === Smart buffering decision
-
-  Items only get buffered when `should_still_see_base_item()` returns `true`:
-
-  #text(size: 8pt)[
-    ```rust
-    // From the actual implementation:
-    if fork.clones.iter()
-        .any(|(_id, state)| state.should_still_see_base_item()) {
-        // Clone and queue the item
-        fork.queue.insert(queue_index, item.clone());
-    }
-    // Otherwise, item goes only to current clone
-    ```]
-
-  Only clones in pending states (actively waiting) trigger buffering
 ]
 
 
@@ -969,30 +1018,12 @@
 
   But slow reader is still blocked on item #1!
 
-  All 10,000 items remain buffered in memory
+  All 10,000 items remain buffered in memory.
+
+  *Solution*: Use a _ringbuffer_ for overflow handling.
 ]
 
-#slide[
-  === Current limitation
 
-  Buffer grows indefinitely with slow readers:
-
-  - Memory usage grows with items buffered between fastest and slowest reader
-  - Can cause OOM with high-throughput streams
-
-  *Workaround:* Avoid blocking operations in clone tasks
-
-  #text(size: 8pt)[
-    ```rust
-    // Good: non-blocking
-    tokio::spawn(async move { slow.next().await });
-    // Bad: blocks executor
-    tokio::spawn(async move {
-        let item = slow.next().await;
-        std::thread::sleep(Duration::from_secs(10)); // Blocks!
-    });
-    ```]
-]
 
 #slide[
   == Conclusion
@@ -1018,16 +1049,18 @@
         }
       }
 
-      // Pipeline stages
-      draw-stage(0, 2, 1.8, "iter(0..10)", "source", "0,1,2,3...", rgb("e6f3ff"))
-      draw-stage(2, 2, 1.8, "map(*2)", "0,1,2,3...", "0,2,4,6...", rgb("fff0e6"))
-      draw-stage(4, 2, 1.8, "filter(>4)", "0,2,4,6...", "6,8,10...", rgb("f0ffe6"))
-      draw-stage(6, 2, 1.8, "enumerate", "6,8,10...", "(0,6),(1,8)...", rgb("ffe6f0"))
-      draw-stage(8, 2, 1.8, "take(3)", "(0,6),(1,8)...", "first 3", rgb("f0e6ff"))
-      draw-stage(10, 2, 2.2, "skip_while(<1)", "first 3", "(1,8),(2,10)", rgb("e6fff0"))
+      // First row - transformation stages
+      draw-stage(0, 3.5, 1.8, "iter(0..10)", "source", "0,1,2,3...", rgb("e6f3ff"))
+      draw-stage(2, 3.5, 1.8, "map(*2)", "0,1,2,3...", "0,2,4,6...", rgb("fff0e6"))
+      draw-stage(4, 3.5, 1.8, "filter(>4)", "0,2,4,6...", "6,8,10...", rgb("f0ffe6"))
 
-      // Final result
-      content((11, 1), text(size: 8pt, weight: "bold", "Final: [(1,8), (2,10)]"), anchor: "center")
+      // Connection arrow between rows
+      line((5.8, 3.1), (0.9, 2.7), mark: (end: ">"), stroke: blue + 1.5pt)
+
+      // Second row - aggregation stages
+      draw-stage(0, 1.5, 1.8, "enumerate", "6,8,10...", "(0,6),(1,8)...", rgb("ffe6f0"))
+      draw-stage(2, 1.5, 1.8, "take(3)", "(0,6),(1,8)...", "first 3", rgb("f0e6ff"))
+      draw-stage(4, 1.5, 2.2, "skip_while(<1)", "first 3", "(1,8),(2,10)", rgb("e6fff0"))
     })
   ]
 
@@ -1039,56 +1072,9 @@
         .enumerate().take(3).skip_while(|&(i, _)| i < 1)
     ```]
 
-  Chain operations to build complex data pipelines declaratively
 ]
 
-#slide[
-  === Stream aggregation & boolean operations
 
-  Consume entire streams to produce single results:
-
-  #text(size: 9pt)[
-    ```rust
-    let numbers = stream::iter(vec![2, 4, 6, 8]);
-
-    // Check conditions across all items
-    let all_even = numbers.clone().all(|x| async move { x % 2 == 0 }).await;
-    let has_large = numbers.clone().any(|x| async move { x > 5 }).await;
-
-    // Process each item with side effects
-    numbers.for_each(|x| async move {
-        println!("Processing: {}", x);
-        // Could save to database, send to API, etc.
-    }).await;
-    ```]
-
-  Transform entire streams into scalar values or side effects
-]
-
-#slide[
-  === Stream composition & advanced operations
-
-  Combine and manipulate multiple streams:
-
-  #text(size: 8pt)[
-    ```rust
-    // Merge multiple streams
-    let stream1 = stream::iter(vec![1, 2, 3]);
-    let stream2 = stream::iter(vec![4, 5, 6]);
-    let merged = stream::select_all(vec![stream1, stream2]);
-
-    // Peek without consuming
-    let mut peekable = stream::iter(vec![1, 2, 3]).peekable();
-    if let Some(next) = peekable.as_mut().peek().await {
-        println!("Next item will be: {}", next);
-    }
-
-    // Forward to sink (write side)
-    stream.forward(sink).await?;  // Flush entire stream to sink
-    ```]
-
-  Build complex stream topologies and data flow patterns
-]
 
 #slide[
   === Not discussed
@@ -1108,12 +1094,12 @@
 #slide[
   === Summary
 
-  - **Streams vs iterators**: Handle async data with `Poll<Option<T>>`
-  - **Rich combinators**: Transform, filter, aggregate streams functionally
-  - **Check existing solutions**: `StreamExt` and `futures-rx` before custom operators
-  - **Building operators**: Wrapper struct + `Stream` trait + pin projection
-  - **Extension traits**: Make operators discoverable in separate crates
-  - **Smart cloning**: `clone-stream` buffers only when clones are waiting
+  - *Streams vs iterators*: Handle async data with `Poll<Option<T>>`
+  - *Rich combinators*: Transform, filter, aggregate streams functionally
+  - *Check existing solutions*: `StreamExt` and `futures-rx` before custom operators
+  - *Building operators*: Wrapper struct + `Stream` trait + pin projection
+  - *Extension traits*: Make operators discoverable in separate crates
+  - *Smart cloning*: `clone-stream` buffers only when clones are waiting
 
   #align(center)[
     _Build expressive async data pipelines with confidence!_
