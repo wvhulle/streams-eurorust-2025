@@ -93,7 +93,6 @@
       }
 
       #if duration != none {
-        v(2.5em)
         text(size: 0.9em, fill: gray)[#duration]
       }
     ]

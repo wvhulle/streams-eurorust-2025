@@ -16,18 +16,59 @@
 
 
 #slide[
+  === Why streams matter: real-world chaos
+
+  *The problem:* Processing streaming data from moving vehicles
+
+  #v(1em)
+
+  *What I observed:*
+  - Every developer had their own approach to handle incoming streams
+  - Inconsistent error handling across the codebase
+  - Hard to reason about data flow and state
+  - Debugging became a nightmare
+
+  #v(1em)
+
+  *The realization:* Most developers only encounter streams in distributed systems,
+  where the gotchas become apparent too late
+]
+
+#slide[
   === About me
 
   *Professionally:* Rust developer
 
-  *Hobbies:*
-  - Leading #link("https://sysghent.be")[SysGhent.be] - systems programming community in Ghent, Belgium
-  - Giving workshops and talks
-  - Formalizing mathematics in Lean
+  *My stream processing journey:*
+  - Started with reactive programming in TypeScript (frontend)
+  - Moved to vehicle telemetry systems in Rust
+  - Lots of trial and error with the unforgiving Rust compiler
+  - Struggled with `'static` lifetimes and memory management
 
-  #v(1em)
+  *Today:* Want to share the patterns I discovered the hard way
 
-  _Find me at_ #link("https://github.com/wvhulle")[`github.com/wvhulle`] _or_ #link("https://willemvanhulle.tech")[`willemvanhulle.tech`]
+]
+
+#slide[
+  === Real-world streaming scenarios
+
+  Data that arrives over time needs async handling:
+
+  #text(size: 10pt)[
+    ```rust
+    use tokio::net::TcpListener;
+    use futures::stream::StreamExt;
+
+    // Incoming network messages
+    let mut tcp_stream = TcpListener::bind("127.0.0.1:8080")
+        .await?
+        .incoming();
+
+    while let Some(connection) = tcp_stream.next().await {
+        handle_client(connection?).await;
+    }
+    ```]
+
 ]
 
 #slide[
@@ -46,25 +87,6 @@
 
 #slide[
   == Foundations
-]
-
-#slide[
-  === Real-world streaming scenarios
-
-  Data that arrives over time needs async handling:
-
-  #text(size: 10pt)[
-    ```rust
-    // Incoming network messages
-    let mut tcp_stream = TcpListener::bind("127.0.0.1:8080")
-        .await?
-        .incoming();
-
-    while let Some(connection) = tcp_stream.next().await {
-        handle_client(connection?).await;
-    }
-    ```]
-
 ]
 
 #slide[
@@ -123,7 +145,6 @@
     })
   ]
 
-  Streams handle data that arrives over time
 ]
 
 #slide[
@@ -282,86 +303,44 @@
 ]
 
 
-
-
 #slide[
-  === Tokio broadcast `Stream`
+  === Channel receivers
 
-  Needs helper library `tokio_stream`.
+  Try #link("https://docs.rs/postage/latest/postage/")[`postage`] crate for channels with receivers that implement `Stream`
 
+  Using `tokio` ecosystem? Use:
+
+  1. `tokio_stream::wrappers` for `Stream`s
+  2. `tokio_util::sync::PollSender` for `Sink`s
+
+  Create a channel as usual:
 
   ```rust
-  use tokio::sync::broadcast;
-  use tokio_stream::wrappers::BroadcastStream;
-  use futures::stream::StreamExt;
+  let (tx, rx) = tokio::sync::broadcast::channel(16);
   ```
-  Consume receiving end with a stream wrapper:
+  Let's convert `rx` into a stream.
 
-  ```rust
-  let (tx, rx) = broadcast::channel(16);
-  let mut stream = BroadcastStream::new(rx);
-  ```
 
 ]
 
 
-#slide[
-
-  === Producer
-
-  Simulating a real producer:
-
-  ```rust
-  tokio::spawn(async move {
-      for i in 0..5 {
-          if tx.send(format!("Message {}", i)).is_err() {
-              break; // No active receivers
-          }
-          tokio::time::sleep(Duration::from_millis(100)).await;
-      }
-  });
-  ```
-
-  `send()` returns `Err` when no receivers are active
-]
 
 #slide[
+  === Filtering broadcast errors functionally
 
-  === Consumer (functional approach)
-
-  Process messages using stream operators:
-
-  ```rust
-  stream
-      .for_each(|result| async move {
-          match result {
-              Ok(msg) => println!("Processing: {}", msg),
-              Err(BroadcastStreamRecvError::Lagged(n)) => {
-                  println!("Lagged by {} messages", n);
-              }
-          }
-      })
-      .await;
-  ```
-
-  Use `for_each` instead of manual polling for cleaner code
-]
-
-#slide[
-  === Ignoring broadcast errors functionally
-
-  Use `filter_map` to silently drop errors:
+  Use `filter_map` with `future::ready` and `Result::ok`:
 
   ```rust
-  stream
+  use futures::future::ready;
+  BroadcastStream::new(rx)
       .filter_map(|result| ready(result.ok()))
-      .for_each(|msg| async move {
-          println!("Processing: {}", msg);
-      })
+      .collect::<Vec<_>>()
       .await;
   ```
 
-  `Result::ok` converts `Result<T, E>` to `Option<T>`, dropping errors
+  - `Result::ok()` converts `Result<T, E>` → `Option<T>`
+  - `future::ready()` wraps sync values for async context
+  - Errors (like lagged messages) are silently dropped
 ]
 
 #slide[
