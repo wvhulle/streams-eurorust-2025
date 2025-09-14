@@ -872,7 +872,7 @@
 #slide[
   === Each clone needs a mini state machine
 
-  Clone streams need complex state tracking unlike simple operators:
+  *Beware*: First write unit tests, then create states.
 
   #align(center)[
     #canvas(length: 1cm, {
@@ -910,14 +910,19 @@
       draw-state((4, 2), "NoUnseen\nBasePending", rgb("ffcccc"), has-waker: true)
       draw-state((7, 2), "NoUnseen\nBaseReady", rgb("ffffcc"))
 
-      // Key transitions between states
-      draw-arrow((1.7, 4), (3.3, 4), "first poll")
-      draw-arrow((4.7, 4), (6.3, 4), "queue item")
-      draw-arrow((4, 3.3), (4, 2.7), "base → Pending")
-      draw-arrow((7, 3.3), (7, 2.7), "consumed")
-      draw-arrow((1, 3.3), (1, 2.7), "poll → Pending")
-      draw-arrow((4.7, 2), (6.3, 2), "item ready")
-      draw-arrow((1.7, 2), (3.3, 2), "queue ready")
+      // Key transitions from source code (simplified)
+      // From NeverPolled
+      draw-arrow((1.7, 4), (3.3, 4), "base Ready")
+      draw-arrow((1, 3.3), (1, 2.7), "base Pending")
+
+      // From QueueEmptyBaseReady
+      draw-arrow((4, 3.3), (4, 2.7), "base Pending")
+
+      // From UnseenQueuedReady (two different paths)
+      draw-arrow((6.3, 3.8), (6.3, 2.3), "→ Pending") // Straight down
+      draw-arrow((7.7, 3.8), (7.7, 2.3), "→ Ready") // Offset to the right
+
+      // Note: Complex conditional logic determines exact transitions
     })
   ]
 
