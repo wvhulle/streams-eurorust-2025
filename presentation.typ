@@ -800,11 +800,13 @@
 
   ```rust
   // Both require Pin to poll safely:
-  fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<T>
-  fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<T>>
+  fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<T> {}
+
+  // Stream version:
+  fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<T>> {}
   ```
 
-  Pin promise: *"This won't move while you're using it"*
+  Pin promise: *"The thing this points to won't move while you're using it"*
 ]
 
 #slide[
@@ -866,12 +868,12 @@
     2. `Double` should be `Unpin`
     3. `InSt` must also be `Unpin`
 
-    Move `InSt` to the heap using `Box`:
+    Move `InSt` to the heap (part of RAM memory) using `Box`:
 
     ```rust
     struct Double<InSt> { stream: Box<InSt> }
     ```
-    Gives stable address (until destruction):
+    Gives stable address on the heap (until destruction):
 
     1. `Box<Inst>: Unpin`
     2. `Double<InSt>: Unpin`
