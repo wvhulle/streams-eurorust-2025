@@ -582,6 +582,7 @@
   impl<InSt> Double<InSt> {
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>> {
+              // Delegate to inner stream (will not compile!)
               self.stream.poll_next(cx).map(|x| x * 2)
     }
   }
@@ -932,16 +933,17 @@
 
   #text(size: 10pt)[
     ```rust
-    tokio::spawn(async move {
-        while let Some(line) = logger.next().await {
-            println!("Log: {}", line?);
-        }
-    });
-    tokio::spawn(async move {
-        while let Some(line) = parser.next().await {
-            process_message(line?);
-        }
-    });
+    // Functional logging pipeline
+    let log_task = logger
+        .filter_map(|line| ready(line.ok()))
+        .for_each(|line| ready(println!("Log: {}", line)));
+
+    // Functional processing pipeline
+    let parse_task = parser
+        .filter_map(|line| ready(line.ok()))
+        .for_each(|line| process_message(line));
+
+    tokio::join!(log_task, parse_task);
     ```]
 
 ]
