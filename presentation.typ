@@ -258,14 +258,14 @@
     [
       #align(center)[*Regular Stream*]
 
-      `None` is **temporary** - the stream might yield more items later
+      `None` is *temporary* - the stream might yield more items later
 
       *Example:* Empty channel buffer waiting for new messages
     ],
     [
       #align(center)[*Fused Stream*]
 
-      `None` is **permanent** - the stream will never yield items again
+      `None` is *permanent* - the stream will never yield items again
 
       *Create with:* `.fuse()` method (like `Iterator::fuse()`)
     ],
@@ -330,7 +330,7 @@
 #slide[
   === Why `is_terminated()` exists
 
-  Checking if a **fused** stream/future is done can be done *immediately*, without polling:
+  Checking if a *fused* stream/future is done can be done *immediately*, without polling:
 
   ```rust
   fn is_terminated(&self) -> bool;
@@ -955,7 +955,7 @@
 #slide[
   === Shared queue with RwLock
 
-  Clones consume data **independently** at different speeds and share a queue behind `RwLock` for efficiency:
+  Clones consume data *independently* at different speeds and share a queue behind `RwLock` for efficiency:
 
   #align(center)[
     #canvas(length: 1cm, {
@@ -990,7 +990,7 @@
     })
   ]
 
-  Each clone tracks **where it left off** in the shared data:
+  Each clone tracks *where it left off* in the shared data:
   - Clone A will read `'b'` next, Clone B will read `'d'` next
   - Items kept until all clones consume them (or when ringbuffer overflows)
   - *RwLock allows multiple concurrent readers but exclusive writes*
