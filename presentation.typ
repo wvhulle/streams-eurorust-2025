@@ -20,33 +20,23 @@
 
   *The problem:* Processing streaming data from moving vehicles
 
-  #v(1em)
-
   *What I observed:*
-  - Every developer had their own approach to handle incoming streams
+  - Every developer had their own approach
   - Inconsistent error handling across the codebase
   - Hard to reason about data flow and state
-  - Debugging became a nightmare
 
-  #v(1em)
-
-  *The realization:* Most developers only encounter streams in distributed systems,
-  where the gotchas become apparent too late
+  *The realization:* Most developers encounter streams too late in distributed systems
 ]
 
 #slide[
   === About me
 
-  *Professionally:* Rust developer
-
   *My stream processing journey:*
-  - Started with reactive programming in TypeScript (frontend)
+  - Started with reactive programming in TypeScript
   - Moved to vehicle telemetry systems in Rust
-  - Lots of trial and error with the unforgiving Rust compiler
-  - Struggled with `'static` lifetimes and memory management
+  - Struggled with async lifetimes and memory management
 
   *Today:* Want to share the patterns I discovered the hard way
-
 ]
 
 #slide[
@@ -72,7 +62,7 @@
 ]
 
 #slide[
-  === Why streams are challenging
+  === Why stream processing is challenging
 
   Manual stream processing becomes messy quickly:
 
@@ -126,16 +116,16 @@
     ```rust
     let filtered_messages: Vec<String> = tcp_stream
         .filter_map(|connection| ready(connection.ok()))
-        .filter_map(|stream| async {
-            process_stream(stream).await.ok()
-        })
+        .filter(|stream| ready(should_process(stream)))
+        .then(|stream| process_stream(stream))
+        .filter_map(|result| ready(result.ok()))
         .filter(|msg| ready(msg.len() > 10))
         .take(5)
         .collect()
         .await;
     ```]
 
-  Declarative, composable, and testable!
+  *What do you think?*
 ]
 
 #slide[
@@ -157,9 +147,9 @@
 ]
 
 #slide[
-  === Iterator vs Stream: key difference
+  === Iterator vs Stream
 
-  #align(center)[
+  #align(center + horizon)[
     #canvas(length: 1cm, {
       import draw: *
 
@@ -215,9 +205,9 @@
 ]
 
 #slide[
-  === Stream trait definition
+  === `Stream` trait
 
-  Streams are polled for the next item:
+  Similar to `Future`, but yields multiple items over time:
 
   #text(size: 10pt)[
     ```rust
@@ -231,8 +221,9 @@
     }
     ```]
 
-  - `Context` provides access to the current task's waker
-  - Returns `Poll<Option<Item>>` - wrapped in polling state
+  - *`Context`*: Runtime manages this - contains waker for async notifications
+  - *Returns*: `Poll<Option<Item>>` instead of `Poll<Item>` (futures)
+  - *Pin safety*: Same as futures - prevents moving during async operations
 ]
 
 #slide[
@@ -257,46 +248,97 @@
 ]
 
 #slide[
-  === The `None` confusion
+  === The meaning of `Ready(None)`
 
-  *Critical distinction:* `Ready(None)` has different meanings!
+  `None` from a stream has different meanings depending on the stream type:
 
   #grid(
     columns: (1fr, 1fr),
-    gutter: 2em,
+    gutter: 3em,
     [
-      *Regular `Stream`*
-      - `None` may be temporary
-      - Could yield `Some(item)` later
-      - Example: empty channel buffer
+      #align(center)[*Regular Stream*]
 
-      #text(size: 8pt)[
-        ```rust
-        // Channel stream
-        if buffer.is_empty() {
-            return Poll::Ready(None);
-        }
-        // But more data might arrive!
-        ```
-      ]
+      `None` is **temporary** - the stream might yield more items later
+
+      *Example:* Empty channel buffer waiting for new messages
     ],
     [
-      *`FusedStream`*
-      - `None` means permanently done
-      - Will never yield `Some(item)` again
-      - Similar to `FusedFuture`
+      #align(center)[*Fused Stream*]
 
-      #text(size: 7pt)[
-        ```rust
-        // Iterator-based stream
-        match iter.next() {
-            Some(item) => Poll::Ready(Some(item)),
-            None => Poll::Ready(None), // Forever
-        }
-        ```
-      ]
+      `None` is **permanent** - the stream will never yield items again
+
+      *Create with:* `.fuse()` method (like `Iterator::fuse()`)
     ],
   )
+]
+
+#slide[
+
+  === 'Fusing' streams and futures
+
+
+
+  #align(center + horizon)[
+    #let draw-arrow(multiple: false, fused: false, color) = {
+      canvas(length: 0.8cm, {
+        import draw: *
+
+        if multiple {
+          // Stream: arrow with multiple dashes
+          if fused {
+            line((-0.8, 0), (0.6, 0), stroke: color + 2pt)
+            line((0.8, -0.3), (0.8, 0.3), stroke: color + 4pt)
+          } else {
+            line((-0.8, 0), (0.8, 0), stroke: color + 2pt, mark: (end: ">"))
+          }
+          for i in range(if fused { 4 } else { 3 }) {
+            let dash-x = -0.6 + i * 0.4
+            line((dash-x, -0.15), (dash-x, 0.15), stroke: color + 3pt)
+          }
+        } else {
+          // Future: arrow with single dash
+          line((-0.8, 0), (0.3, 0), stroke: color + 2pt)
+          line((0, -0.2), (0, 0.2), stroke: color + 3pt)
+          if fused {
+            line((0.3, 0), (0.6, 0), stroke: color + 2pt)
+            line((0.8, -0.3), (0.8, 0.3), stroke: color + 4pt)
+          } else {
+            line((0.3, 0), (0.8, 0), stroke: color + 2pt, mark: (end: ">"))
+          }
+        }
+      })
+    }
+
+    #grid(
+      columns: (auto, 1fr, 1fr, 2fr),
+      rows: (auto, auto, auto),
+      gutter: 2em,
+      [], [*Future*], [*Stream*], [*Meaning*],
+      [*Regular*],
+      [#draw-arrow(multiple: false, fused: false, blue)],
+      [#draw-arrow(multiple: true, fused: false, green)],
+      [May continue],
+
+      [*Fused*],
+      [#draw-arrow(multiple: false, fused: true, blue)],
+      [#draw-arrow(multiple: true, fused: true, green)],
+      [Done permanently],
+    )
+  ]
+]
+
+#slide[
+  === Why `is_terminated()` exists
+
+  Checking if a **fused** stream/future is done can be done *immediately*, without polling:
+
+  ```rust
+  fn is_terminated(&self) -> bool;
+  ```
+
+  Use cases:
+  - *Avoid unnecessary polling*: Skip polling if already terminated
+  - *Resource cleanup*: Know when to drop or ignore inactive streams or futures
 
 ]
 
@@ -327,69 +369,164 @@
 
 
 
+#slide[
+  == Consumption of streams
+]
 
+#slide[
+  === Common existing operators
 
+  Transform and filter stream items functionally:
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-stage(x, y, width, label, input, output, color) = {
+        rect((x, y), (x + width, y + 0.8), fill: color, stroke: black)
+        content((x + width / 2, y + 0.6), text(size: 7pt, weight: "bold", label), anchor: "center")
+        content((x + width / 2, y + 0.4), text(size: 6pt, input), anchor: "center")
+        content((x + width / 2, y + 0.2), text(size: 6pt, output), anchor: "center")
+
+        if x > 0 {
+          line((x - 0.2, y + 0.4), (x + 0.1, y + 0.4), mark: (end: ">"))
+        }
+      }
+
+      // First row - transformation stages
+      draw-stage(0, 3.5, 1.8, "iter(0..10)", "source", "0,1,2,3...", rgb("e6f3ff"))
+      draw-stage(2, 3.5, 1.8, "map(*2)", "0,1,2,3...", "0,2,4,6...", rgb("fff0e6"))
+      draw-stage(4, 3.5, 1.8, "filter(>4)", "0,2,4,6...", "6,8,10...", rgb("f0ffe6"))
+
+      // Connection arrow between rows
+      line((5.8, 3.1), (0.9, 2.7), mark: (end: ">"), stroke: blue + 1.5pt)
+
+      // Second row - aggregation stages
+      draw-stage(0, 1.5, 1.8, "enumerate", "6,8,10...", "(0,6),(1,8)...", rgb("ffe6f0"))
+      draw-stage(2, 1.5, 1.8, "take(3)", "(0,6),(1,8)...", "first 3", rgb("f0e6ff"))
+      draw-stage(4, 1.5, 2.2, "skip_while(<1)", "first 3", "(1,8),(2,10)", rgb("e6fff0"))
+    })
+  ]
+
+  #v(0.5em)
+
+  #text(size: 8pt)[
+    ```rust
+    stream::iter(0..10).map(|x| x * 2).filter(|&x| ready(x > 4))
+        .enumerate().take(3).skip_while(|&(i, _)| i < 1)
+    ```]
+
+]
 
 
 #slide[
-  === Imperative approach problems
+  === The 'ready trick'
 
-  Manual processing is verbose:
+  Stream operators expect async closures returning `Future`s:
 
   #text(size: 9pt)[
     ```rust
-    let mut evens = Vec::new();
-    while let Some(item) = stream.next().await {
-        if item % 2 == 0 {
-            evens.push(item * 2);
-            if evens.len() >= 3 { break; }
-        }
-    }
-    ```]
+    // Option 1: Async block
+    stream.filter(|&x| async move { x % 2 == 0 })
+    // Option 2: Async closure (Rust 2025+)
+    stream.filter(async |&x| x % 2 == 0)
+    // Option 3: Wrap sync output with ready()
+    stream.filter(|&x| ready(x % 2 == 0))
+    ```
+  ]
+  `ready(value)` creates a `Future` that immediately resolves to `value`.
 
-  Hard to read, maintain, and reuse
+  *Bonus*: `future::ready()` is `Unpin`, making closures `Unpin`, making output streams `Unpin`!
+]
+
+
+
+#slide[
+  === Flattening stream collections
+
+  Takes an iterator/IntoIterator of streams and merges them:
+
+  ```rust
+  let streams = vec![
+      stream::iter(1..=3),
+      stream::iter(4..=6),
+      stream::iter(7..=9),
+  ];
+
+  let merged = stream::select_all(streams);
+  ```
+
+
+  Merges all streams concurrently
 ]
 
 #slide[
-  === StreamExt operators are better
-
-  Same logic, much cleaner:
-
-  #text(size: 10pt)[
-    ```rust
-    let evens: Vec<i32> = stream
-        .filter(|&x| ready(x % 2 == 0))
-        .map(|x| x * 2)
-        .take(3)
-        .collect()
-        .await;
-    ```]
+  === Flattening an infinite stream
 
 
-  *Note*: `ready(...)` wraps sync values into a future - some stream operators (like `filter`) expect `Future`s. See #link("https://docs.rs/futures/latest/futures/future/fn.ready.html")[`futures::future::ready`].
+  Use `flatten_unordered`, `flatten`, or `switch`:
+
+  ```rust
+  let requests = stream::unfold(0, |id| async move {
+      // Each `fetch_stream` returns a stream of data chunks
+      Some((fetch_stream(format!("/api/data/{}", id)), id + 1))
+  });
+
+  let flat = requests.flatten_unordered(Some(10));
+  ```
+
+  Processes up to 10 concurrent request streams
+
 ]
 
 #slide[
-  === Real example: broadcast channels
+  == Streams 'in the wild'
+]
+
+#slide[
+  === Channel receivers as streams
+
+  `async-channel` receivers implement `Stream` directly:
+
+  ```rust
+  use async_channel::unbounded;
+  let (tx, rx) = unbounded();
+
+  // rx is already a Stream!
+  rx.map(|msg| format!("Got: {}", msg))
+    .collect::<Vec<_>>()
+    .await;
+  ```
+]
+
+#slide[
+  === Tokio channels
 
   Tokio channels need `tokio_stream` wrappers to become streams:
 
   ```rust
-  use tokio::sync::broadcast;
-  let (tx, rx) = broadcast::channel(16);
+  let (tx, rx) = tokio::sync::broadcast::unbounded();
+  tokio_stream::wrappers::BroadcastStream::new(rx)
+      .collect::<Vec<_>>()
+      .await;
   ```
 
-  Let's turn the receiver into a stream.
+  For converting sender into `Sink`, you need `tokio-util` crate.
+
+  *Not a great experience...*
+
 ]
 
+
+
+
 #slide[
-  === Handling broadcast errors functionally
+  === Ignoring broadcast errors
 
   Broadcast streams return `Result<T, BroadcastStreamRecvError>`:
 
   ```rust
-  use tokio_stream::wrappers::BroadcastStream;
-  use futures::future::ready;
+  // Easy way: ignore all errors
   BroadcastStream::new(rx)
       .filter_map(|result| ready(result.ok()))
       .collect::<Vec<_>>()
@@ -399,6 +536,7 @@
   - `Result::ok()` converts `Result<T, E>` → `Option<T>`
   - `filter_map` drops `None` values (errors become `None`)
 
+  ⚠️ *Warning*: Silently drops `Lagged` errors (missed messages)
 ]
 
 #slide[
@@ -410,24 +548,18 @@
     columns: (1fr, 1fr),
     gutter: 2em,
     [
-      *Official operators*
-      - #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
-      - Production ready & comprehensive
+      *Official*: #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
+
+      Production ready & comprehensive
     ],
     [
-      *Community extensions*
-      - #link("https://crates.io/crates/futures-rx")[`futures-rx`]
-      - Reactive operators & specialized use cases
+      *Community*: #link("https://crates.io/crates/futures-rx")[`futures-rx`]
+
+      Reactive operators & specialized cases
     ],
   )
 
-  #v(1.5em)
-
-  *Build custom only when:*
-  - No existing operator fits
-  - Domain-specific functionality needed
-  - Performance requires specialization
-
+  *Build custom only when no existing operator fits*
 ]
 
 #slide[
@@ -439,49 +571,100 @@
 #slide[
 
 
-  === Step 1: Create a wrapper struct around an existing stream
+  === Wrapper pattern
 
-  The wrapper pattern - most custom operators follow this structure:
+  Most custom operators follow this structure:
 
   ```rust
   struct Double<InSt> {
-      stream: InSt,  // Wrap the input stream
+      stream: InSt,
   }
   impl<InSt> Double<InSt> {
-      fn new(stream: InSt) -> Self {
-          Self { stream }
-      }
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+        -> Poll<Option<Self::Item>> {
+              self.stream.poll_next(cx).map(|x| x * 2)
+    }
   }
   ```
-  The constructor will be necessary later on.
-
 
 ]
 
-#slide[
-  === Step 2: Implement `Stream` for your wrapper
 
-  #text(size: 9pt)[
+
+#slide[
+  === Pin projection concept
+
+  We cannot just convert `self` into `&mut self.stream`!
+
+  #text(size: 8pt)[
     ```rust
-    impl<InSt> Stream for Double<InSt>
-    where InSt: Stream<Item = i32>
-    {
-        type Item = i32;
-
-        fn poll_next(
-            self: Pin<&mut Self>,
-            cx: &mut Context<'_>
-        ) -> Poll<Option<Self::Item>> {
-            // Implementation goes here...
-        }
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+        -> Poll<Option<Self::Item>> {
+              self.stream.poll_next(cx).map(|x| x * 2)
     }
-    ```]
+    ```
+  ]
+
+  We need projection to access inner stream safely
+
+  #text(size: 8pt)[
+    ```rust
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+        -> Poll<Option<Self::Item>> {
+              Pin::new(self.project()).poll_next(cx).map(|x| x * 2)
+    }
+    ```
+  ]
 ]
 
 #slide[
-  === Why Pin exists: self-referential structs
+  === Pin projection
 
-  Future state machines can point to their own data:
+
+  #align(center)[
+    #canvas(length: 1.2cm, {
+      import draw: *
+
+      let draw-square(center, size, fill-color, stroke-color, label, label-pos) = {
+        let half = size / 2
+        rect(
+          (center.at(0) - half, center.at(1) - half),
+          (center.at(0) + half, center.at(1) + half),
+          fill: fill-color,
+          stroke: stroke-color + 2pt,
+        )
+        content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
+      }
+
+      // Left side: Pin<&mut Self>
+      draw-square((2, 4), 4, rgb("ffeeee"), blue, "Pin<&mut Self>", (2, 6.3))
+
+      // Double wrapper circle
+      circle((2, 4), radius: 1.2, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
+      content((2, 5.5), text(size: 7pt, weight: "bold", "Double"), anchor: "center")
+
+      // Inner stream circle
+      circle((2, 4), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((2, 4), text(size: 7pt, "InSt"), anchor: "center")
+
+      // Projection arrow
+      line((4.3, 4), (6.2, 4), mark: (end: ">"), stroke: blue + 2pt)
+      content((5.25, 4.5), text(size: 7pt, weight: "bold", "Pin projection"), anchor: "center")
+
+      // Right side: Pin<&mut InSt>
+      draw-square((7.4, 4.1), 1.8, rgb("eeffee"), blue, "Pin<&mut InSt>", (7.4, 5.3))
+
+      // Projected inner stream
+      circle((7.4, 4.1), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((7.4, 4.1), text(size: 7pt, "InSt"), anchor: "center")
+    })
+  ]
+]
+
+#slide[
+  === Why Pin exists: self-referential futures
+
+  Futures are state machines that can reference their own data:
 
   #grid(
     columns: (1fr, 1fr),
@@ -517,130 +700,99 @@
     ],
   )
 
-  Moving this struct would break the internal pointer → undefined behavior
+  ⚠️ Moving this struct breaks internal pointers → undefined behavior
 ]
 
 #slide[
-  === The Pin challenge
+  === Pin protects futures and streams
 
-  Pin prevents direct field access - but we need the inner stream:
+  Both are self-referential state machines that cannot be moved:
 
-  #text(size: 9pt)[
-    ```rust
-    impl<InSt: Stream<Item = i32>> Stream for Double<InSt> {
-        type Item = i32;
+  ```rust
+  // Both require Pin to poll safely:
+  fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<T>
+  fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<T>>
+  ```
 
-        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-            -> Poll<Option<Self::Item>>
-        {
-            // ❌ self.stream.poll_next(cx)        // Can't move out of Pin
-            // ❌ Pin::new(&mut self.stream)       // Can't get &mut from Pin
-
-            // ✓ What we need: Pin<&mut InSt> from Pin<&mut Self>
-        }
-    }
-    ```
-  ]
+  Pin promise: *"This won't move while you're using it"*
 ]
 
 #slide[
-  === Pin projection concept
-
-  We need to safely convert `Pin<&mut Self>` → `Pin<&mut Field>`:
-
-  #text(size: 10pt)[
-    ```rust
-    struct Double<InSt> {
-        stream: InSt,  // We need Pin access to this field
-    }
-
-    // Pin<&mut Double<InSt>> → Pin<&mut InSt>
-    ```
-  ]
-
-  Three approaches:
-  - *Box the field* (simple, heap allocation)
-  - *Use `pin-project` crate* (recommended, no unsafe)
-  - *Manual unsafe projection* (experts only)
-]
-
-#slide[
-  === Solution: Pin projection visualization
-
-  We need to "project" the Pin from outer to inner field:
 
   #align(center)[
     #canvas(length: 1.2cm, {
       import draw: *
 
-      let draw-box(x, y, w, h, color, stroke-color, texts) = {
-        rect((x, y), (x + w, y + h), fill: color, stroke: stroke-color + 1.5pt)
-        let center-y = y + h / 2
-        let start-y = center-y + (texts.len() - 1) * 0.2
-        for (i, txt) in texts.enumerate() {
-          content((x + w / 2, start-y - i * 0.4), txt, anchor: "center")
-        }
+      let draw-square(center, size, fill-color, stroke-color, label, label-pos) = {
+        let half = size / 2
+        rect(
+          (center.at(0) - half, center.at(1) - half),
+          (center.at(0) + half, center.at(1) + half),
+          fill: fill-color,
+          stroke: stroke-color + 2pt,
+        )
+        content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
       }
 
-      let draw-problem(x, y, message) = {
-        content((x, y), text(size: 7pt, fill: red, "❌ " + message), anchor: "center")
-      }
+      // Left side: Pin<&mut Self>
+      draw-square((2, 4), 4, rgb("ffeeee"), blue, "Pin<&mut Self>", (2, 6.3))
 
-      let draw-benefit(x, y, message) = {
-        content((x, y), text(size: 7pt, fill: green, "✓ " + message), anchor: "center")
-      }
+      // Double wrapper circle
+      circle((2, 4), radius: 1.2, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
+      content((2, 5.5), text(size: 7pt, weight: "bold", "Double"), anchor: "center")
 
-      // Input box
-      draw-box(0, 3, 5, 2.5, rgb("ffeeee"), red, (
-        text(size: 9pt, weight: "bold", "Pin<&mut Self>"),
-        text(size: 8pt, "stream: InSt"),
-      ))
+      // Inner stream circle with Unpin annotation
+      circle((2, 4), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((2, 4.2), text(size: 6pt, "InSt"), anchor: "center")
+      content((2, 3.7), text(size: 5pt, "Unpin"), anchor: "center")
 
-      // Projection arrow
-      line((5.3, 4.2), (7.2, 4.2), mark: (end: ">"), stroke: blue + 2pt)
-      content((6.25, 4.8), text(size: 8pt, weight: "bold", "Pin projection"), anchor: "center")
-      content((6.25, 4.5), text(size: 7pt, "safe field access"), anchor: "center")
+      // get_mut arrow
+      line((4.3, 4), (6.2, 4), mark: (end: ">"), stroke: red + 2pt)
+      content((5.25, 4.5), text(size: 7pt, weight: "bold", "get_mut()"), anchor: "center")
 
-      // Output box
-      draw-box(7.5, 3, 5, 2.5, rgb("eeffee"), green, (
-        text(size: 9pt, weight: "bold", "Pin<&mut InSt>"),
-        text(size: 7pt, "Can poll inner stream"),
-        text(size: 7pt, "Pin safety preserved"),
-      ))
+      // Arrow pointing to Double circle
+      line((5.5, 6.5), (2.4, 5.0), mark: (end: ">"), stroke: purple + 1.5pt)
+      content((6.0, 6.8), text(size: 7pt, "Also Unpin"), anchor: "center")
 
-      // Problems and benefits
-      draw-problem(2.5, 2.4, "Direct access blocked")
-      draw-benefit(10, 2.4, "Safe projection enabled")
-
-      // Labels
-      content((2.5, 1.8), text(size: 8pt, weight: "bold", "Input"), anchor: "center")
-      content((10, 1.8), text(size: 8pt, weight: "bold", "Output"), anchor: "center")
+      // Right side: &mut InSt (no Pin box!)
+      circle((7.4, 4.1), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((7.4, 4.3), text(size: 6pt, "InSt"), anchor: "center")
+      content((7.4, 3.8), text(size: 5pt, "Unpin"), anchor: "center")
+      content((7.4, 5.3), text(size: 8pt, weight: "bold", "&mut InSt"), anchor: "center")
     })
   ]
 ]
 
+
+
 #slide[
-  === Solution 1: Boxing (easiest)
+  === Making `Double` `Unpin`
 
   #text(size: 9pt)[
-    Make everything `Unpin` by boxing the inner stream:
+
+    Steps:
+
+    1. We need to remove `Pin` from `Double`
+    2. `Double` should be `Unpin`
+    3. `InSt` must also be `Unpin`
+
+    Move `InSt` to the heap using `Box`:
 
     ```rust
-    struct Double<InSt> {
-        stream: Box<InSt>,  // Box<T> is always Unpin
-    }
+    struct Double<InSt> { stream: Box<InSt> }
     ```
+    Gives stable address (until destruction):
 
-    *Why it works:* `Box<T>` is always `Unpin`, allowing safe mutable access
-
-    *Trade-off:* Extra heap allocation but simple implementation
+    1. `Box<Inst>: Unpin`
+    2. `Double<InSt>: Unpin`
   ]
+
 ]
 
 #slide[
-  === Boxing implementation
+  === Finish `Stream` impl
 
-  #text(size: 8pt)[
+  #text(size: 9pt)[
     ```rust
     impl<InSt> Stream for Double<InSt>
     where InSt: Stream<Item = i32>
@@ -648,119 +800,54 @@
         fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
             -> Poll<Option<Self::Item>>
         {
-            let this = self.get_mut();
+            let this = self.get_mut(); // Safe because Double is Unpin
             Pin::new(&mut this.stream).poll_next(cx)
-                .map(|opt| opt.map(|x| x * 2))
+            ...
         }
     }
     ```]
 ]
 
+
+
+
+
 #slide[
-  === Solution 2: Safe pin projection
+  === Share your operators with the world
 
-  Use `pin_project` crate for safe field access:
+  Rust's trait system makes custom operators easily shareable:
 
-  #text(size: 10pt)[
-    ```rust
-    use pin_project::pin_project;
+  ```rust
+  // In your new crate `double-stream`
+  trait DoubleStream: Stream {
+      fn double(self) -> Double<Self>
+      where Self: Sized + Stream<Item = i32>,
+      { Double::new(self) }
+  }
+  // Blanket impl for all integer streams
+  impl<S> DoubleStream for S where S: Stream<Item = i32> {}
+  ```
 
-    #[pin_project]
-    struct Double<InSt> {
-        #[pin]
-        stream: InSt,
-    }
-    ```
-  ]
-
-  The `#[pin]` attribute marks fields that need pin projection
+  *Publish once, use everywhere:* One crate enables the operator for all users
 ]
 
 #slide[
-  === Safe pin projection implementation
+  === Users just add dependency + import
 
-  #text(size: 9pt)[
-    ```rust
-    impl<InSt> Stream for Double<InSt>
-    where InSt: Stream<Item = i32>
-    {
-        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-            -> Poll<Option<Self::Item>>
-        {
-            let this = self.project();  // Generated method
-            this.stream.poll_next(cx).map(|opt| opt.map(|x| x * 2))
-        }
-    }
-    ```
-  ]
+  Super simple for users to adopt your custom operators:
 
-  *Recommended:* Eliminates `unsafe` and prevents pin-safety bugs
-]
+  ```toml
+  [dependencies]
+  double-stream = "1.0"
+  ```
 
-#slide[
-  === Solution 3: Manual unsafe projection
+  ```rust
+  use double_stream::DoubleStream;  // Trait in scope
 
-  For advanced users only:
+  let doubled = stream::iter(1..=5).double();  // Now works!
+  ```
 
-  #text(size: 10pt)[
-    ```rust
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-        -> Poll<Option<Self::Item>>
-    {
-        let stream = unsafe {
-            self.map_unchecked_mut(|s| &mut s.stream)
-        };
-        stream.poll_next(cx).map(|opt| opt.map(|x| x * 2))
-    }
-    ```
-  ]
-
-  *Not recommended:* Error-prone and requires deep pin understanding
-]
-
-
-
-#slide[
-  === Creating your own extension trait
-
-  #text(size: 9pt)[
-    Recommended: Name your trait after functionality and put in separate crate:
-
-    ```rust
-    // In crate `double-stream`
-    trait DoubleStream: Stream {
-        fn double(self) -> Double<Self>
-        where Self: Sized + Stream<Item = i32>,
-        {
-          Double::new(self)
-        }
-    }
-    ```
-
-    ```rust
-    impl<S> DoubleStream for S where S: Stream<Item = i32> {}
-    ```
-
-    Separate crates make functionality discoverable and reusable
-  ]
-]
-
-#slide[
-  === Using your custom stream operators
-
-  #text(size: 9pt)[
-    Import your trait and use your custom operator:
-
-    ```rust
-    use double_stream::DoubleStream;  // Import your extension trait
-
-    let doubled = stream::iter(1..=5).double();
-    ```
-
-    *Key insight:* You only need to import the trait once to unlock all your custom stream operators
-
-    The blanket implementation makes `.double()` available on any compatible stream
-  ]
+  *Rust's superpower:* Extension traits make any stream instantly gain your methods
 ]
 
 #slide[
@@ -781,27 +868,60 @@
     let copy = lines.clone(); // Error! Can't clone TCP stream
     ```]
 
-  But you often need multiple consumers:
-  - Parse different message types in parallel
-  - Log while processing
-  - Fan-out to multiple handlers
+  *But*: Sometime you need multiple consumers.
+
+  *Solution*: #link("https://crates.io/crates/clone-stream")[`clone-stream`] makes any stream cloneable:
 ]
 
 #slide[
-  === No `clone` in `futures` crate
+  #align(center)[
+    #canvas(length: 1.2cm, {
+      import draw: *
 
-  *Solution*: #link("https://crates.io/crates/clone-stream")[`clone-stream`] makes any stream cloneable:
+      let draw-stream-box(pos, label, color) = {
+        let (x, y) = pos
+        rect((x - 1.2, y - 0.5), (x + 1.2, y + 0.5), fill: color, stroke: black + 1pt)
+        content((x, y), text(size: 8pt, weight: "bold", label), anchor: "center")
+      }
 
-  #text(size: 10pt)[
-    ```rust
-    use clone_stream::ForkStream;
+      let draw-data-flow(y, items) = {
+        for (i, item) in items.enumerate() {
+          let x = 5.5 + i * 0.8
+          circle((x, y), radius: 0.25, fill: rgb("fff3cd"), stroke: orange + 1pt)
+          content((x, y), text(size: 7pt, item), anchor: "center")
+        }
+      }
 
-    let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
-    let lines = BufReader::new(tcp_stream).lines().fork();
+      // Source stream
+      draw-stream-box((1, 3), "TCP Stream", rgb("e6f3ff"))
 
-    let logger = lines.clone();
-    let parser = lines.clone();
-    ```]
+      // Fork operation
+      rect((3.5, 2.5), (4.5, 3.5), fill: rgb("f0ffe6"), stroke: green + 2pt)
+      content((4, 3), text(size: 7pt, weight: "bold", ".fork()"), anchor: "center")
+
+      // Data items flowing right
+      draw-data-flow(3, ("'a'", "'b'", "'c'", "'d'"))
+
+      // Fork arrow right
+      line((2.2, 3), (3.3, 3), mark: (end: ">"), stroke: blue + 2pt)
+
+      // Split arrows to clones
+      line((4.7, 3), (6.8, 4.5), mark: (end: ">"), stroke: purple + 2pt)
+      line((4.7, 3), (6.8, 1.5), mark: (end: ">"), stroke: purple + 2pt)
+
+      // Clone streams
+      draw-stream-box((8, 5), "Parser Clone", rgb("ffeeee"))
+      draw-stream-box((8, 1), "Logger Clone", rgb("fff0e6"))
+
+      // Data flows to both clones
+      draw-data-flow(5, ("'a'", "'b'"))
+      draw-data-flow(1, ("'a'", "'b'"))
+
+      // Labels
+      content((5.8, 4), text(size: 7pt, ".clone()"), anchor: "center")
+      content((5.8, 2), text(size: 7pt, ".clone()"), anchor: "center")
+    })
+  ]
 
 ]
 
@@ -826,10 +946,14 @@
 
 ]
 
-#slide[
-  === How clones work
 
-  Each clone tracks which queue items it still needs to see:
+
+
+
+#slide[
+  === Shared queue with RwLock
+
+  Clones consume data **independently** at different speeds and share a queue behind `RwLock` for efficiency:
 
   #align(center)[
     #canvas(length: 1cm, {
@@ -864,9 +988,68 @@
     })
   ]
 
-  - ✓ = consumed, 📖 = next to read, ⏳ = waiting for
+  Each clone tracks **where it left off** in the shared data:
   - Clone A will read `'b'` next, Clone B will read `'d'` next
-  - Items kept until all clones consume them
+  - Items kept until all clones consume them (or when ringbuffer overflows)
+  - *RwLock allows multiple concurrent readers but exclusive writes*
+]
+
+#slide[
+  === Only waiting clones store wakers
+
+
+  #align(center)[
+    #canvas(length: 1.2cm, {
+      import draw: *
+
+      // Configuration
+      let clone-radius = 0.5
+      let colors = (
+        sleeping: rgb("ffcccc"),
+        active: rgb("ccffcc"),
+        item: rgb("fff3cd"),
+        stream: rgb("e6f3ff"),
+      )
+
+      let draw-clone(pos, name, state, color) = {
+        let (x, y) = pos
+        circle((x, y), radius: clone-radius, fill: color, stroke: black + 1.5pt)
+        content((x, y + 0.1), text(size: 8pt, weight: "bold", name))
+        content((x, y - 0.1), text(size: 6pt, state))
+        content((x, y + 1), text(size: 7pt, if state == "Sleeping" { "💤 Waiting" } else { "⚡ Ready" }))
+      }
+
+      let draw-item(pos, value) = {
+        let (x, y) = pos
+        rect((x - 0.4, y - 0.3), (x + 0.4, y + 0.3), fill: colors.item, stroke: blue + 2pt)
+        content((x, y), text(size: 10pt, weight: "bold", value))
+      }
+
+      let draw-arrow(from, to, label, color) = {
+        line(from, to, mark: (end: ">"), stroke: color + 2pt)
+        let mid = ((from.at(0) + to.at(0)) / 2, (from.at(1) + to.at(1)) / 2 - 0.3)
+        content(mid, text(size: 9pt, label))
+      }
+
+      // Base stream
+      rect((1, 0), (7, 0.8), fill: colors.stream, stroke: gray)
+      content((4, 0.4), text(size: 8pt, "Base Stream"))
+
+      // Clones
+      draw-clone((2, 3), "Alice", "Sleeping", colors.sleeping)
+      draw-clone((6, 3), "Bob", "Active", colors.active)
+
+      // Item
+      draw-item((4, 1.5), "'x'")
+
+      // Arrows with labels
+      draw-arrow((4.3, 2.0), (5.4, 2.6), "direct", green)
+      draw-arrow((3.7, 2.0), (2.6, 2.6), "wake + copy", blue)
+    })
+  ]
+
+  Have to store these wakers in a state machine for each waiting clone.
+
 ]
 
 #slide[
@@ -926,62 +1109,20 @@
     })
   ]
 
-  Simple operators like `map` just transform items - no state needed!
-]
+  #text(size: 8pt)[
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 2em,
+      [
+        - 🟨 Yellow: Clone has data ready (hot path)
+        - 🟩 Green: Clone has queued items to consume (hot path)
+      ],
+      [
+        - 🟥 Red: Clone is waiting, stored waker (cold path)
+        - ⬜ Gray: Initial state
+      ],
+    )]
 
-#slide[
-  === Only waiting clones store wakers
-
-
-  #align(center)[
-    #canvas(length: 1.2cm, {
-      import draw: *
-
-      // Configuration
-      let clone-radius = 0.5
-      let colors = (
-        sleeping: rgb("ffcccc"),
-        active: rgb("ccffcc"),
-        item: rgb("fff3cd"),
-        stream: rgb("e6f3ff"),
-      )
-
-      let draw-clone(pos, name, state, color) = {
-        let (x, y) = pos
-        circle((x, y), radius: clone-radius, fill: color, stroke: black + 1.5pt)
-        content((x, y + 0.1), text(size: 8pt, weight: "bold", name))
-        content((x, y - 0.1), text(size: 6pt, state))
-        content((x, y + 1), text(size: 7pt, if state == "Sleeping" { "💤 Waiting" } else { "⚡ Ready" }))
-      }
-
-      let draw-item(pos, value) = {
-        let (x, y) = pos
-        rect((x - 0.4, y - 0.3), (x + 0.4, y + 0.3), fill: colors.item, stroke: blue + 2pt)
-        content((x, y), text(size: 10pt, weight: "bold", value))
-      }
-
-      let draw-arrow(from, to, label, color) = {
-        line(from, to, mark: (end: ">"), stroke: color + 2pt)
-        let mid = ((from.at(0) + to.at(0)) / 2, (from.at(1) + to.at(1)) / 2 - 0.3)
-        content(mid, text(size: 9pt, label))
-      }
-
-      // Base stream
-      rect((1, 0), (7, 0.8), fill: colors.stream, stroke: gray)
-      content((4, 0.4), text(size: 8pt, "Base Stream"))
-
-      // Clones
-      draw-clone((2, 3), "Alice", "Sleeping", colors.sleeping)
-      draw-clone((6, 3), "Bob", "Active", colors.active)
-
-      // Item
-      draw-item((4, 1.5), "'x'")
-
-      // Arrows with labels
-      draw-arrow((4.3, 2.0), (5.4, 2.6), "direct", green)
-      draw-arrow((3.7, 2.0), (2.6, 2.6), "wake + copy", blue)
-    })
-  ]
 
 ]
 
@@ -1004,29 +1145,11 @@
     });
     ```]
 
-  The slow reader becomes a bottleneck
+  The slow reader may cause the queue to overflow quickly:
+
+  (Slow readers will miss elements.)
 ]
 
-#slide[
-  === Memory leak scenario
-
-  Incoming stream produces many items:
-
-  #text(size: 10pt)[
-    ```rust
-    // Fast reader processes items quickly
-    for i in 0..10_000 {
-        sender.send(i).unwrap();
-        let item = fast.next().await; // Fast!
-    }
-    ```]
-
-  But slow reader is still blocked on item #1!
-
-  All 10,000 items remain buffered in memory.
-
-  *Solution*: Use a _ringbuffer_ for overflow handling.
-]
 
 
 
@@ -1034,50 +1157,6 @@
   == Conclusion
 ]
 
-#slide[
-  === Data transformation & filtering combinators
-
-  Transform and filter stream items functionally:
-
-  #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
-
-      let draw-stage(x, y, width, label, input, output, color) = {
-        rect((x, y), (x + width, y + 0.8), fill: color, stroke: black)
-        content((x + width / 2, y + 0.6), text(size: 7pt, weight: "bold", label), anchor: "center")
-        content((x + width / 2, y + 0.4), text(size: 6pt, input), anchor: "center")
-        content((x + width / 2, y + 0.2), text(size: 6pt, output), anchor: "center")
-
-        if x > 0 {
-          line((x - 0.2, y + 0.4), (x + 0.1, y + 0.4), mark: (end: ">"))
-        }
-      }
-
-      // First row - transformation stages
-      draw-stage(0, 3.5, 1.8, "iter(0..10)", "source", "0,1,2,3...", rgb("e6f3ff"))
-      draw-stage(2, 3.5, 1.8, "map(*2)", "0,1,2,3...", "0,2,4,6...", rgb("fff0e6"))
-      draw-stage(4, 3.5, 1.8, "filter(>4)", "0,2,4,6...", "6,8,10...", rgb("f0ffe6"))
-
-      // Connection arrow between rows
-      line((5.8, 3.1), (0.9, 2.7), mark: (end: ">"), stroke: blue + 1.5pt)
-
-      // Second row - aggregation stages
-      draw-stage(0, 1.5, 1.8, "enumerate", "6,8,10...", "(0,6),(1,8)...", rgb("ffe6f0"))
-      draw-stage(2, 1.5, 1.8, "take(3)", "(0,6),(1,8)...", "first 3", rgb("f0e6ff"))
-      draw-stage(4, 1.5, 2.2, "skip_while(<1)", "first 3", "(1,8),(2,10)", rgb("e6fff0"))
-    })
-  ]
-
-  #v(0.5em)
-
-  #text(size: 8pt)[
-    ```rust
-    stream::iter(0..10).map(|x| x * 2).filter(|&x| x > 4)
-        .enumerate().take(3).skip_while(|&(i, _)| i < 1)
-    ```]
-
-]
 
 
 
@@ -1086,12 +1165,43 @@
 
   Many more advanced topics await:
 
-  - *Flattening*: `flatten`, `flatten_unordered`, `select_all`
-  - *Buffering*: `buffer_unordered`, `buffered`
-  - *Peeking*: `peekable`, `skip_while`
   - *Boolean ops*: `any`, `all`
-  - *Sinks*: The write-side counterpart to streams
-  - *Fanout*: Broadcasting to multiple destinations
+  - *Async item processing*: `then`
+  - *`Sink`s*: The write-side counterpart to `Stream`s
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-box(pos, label, color) = {
+        let (x, y) = pos
+        rect((x - 0.8, y - 0.4), (x + 0.8, y + 0.4), fill: color, stroke: black + 1pt)
+        content((x, y), text(size: 8pt, weight: "bold", label), anchor: "center")
+      }
+
+      // Stream source
+      draw-box((1, 2), "Stream", rgb("e6f3ff"))
+
+      // Data items
+      for (i, item) in ("'a'", "'b'", "'c'").enumerate() {
+        let x = 2.5 + i * 0.6
+        circle((x, 2), radius: 0.2, fill: rgb("fff3cd"), stroke: orange + 1pt)
+        content((x, 2), text(size: 6pt, item), anchor: "center")
+      }
+
+      // Forward arrow
+      line((1.8, 2), (2.2, 2), mark: (end: ">"), stroke: blue + 2pt)
+      line((4.3, 2), (4.7, 2), mark: (end: ">"), stroke: blue + 2pt)
+      content((3.5, 2.5), text(size: 7pt, weight: "bold", ".forward()"), anchor: "center")
+
+      // Sink destination
+      draw-box((6, 2), "Sink", rgb("ffe6f0"))
+
+      // Labels
+      content((1, 1.2), text(size: 7pt, "Read side"), anchor: "center")
+      content((6, 1.2), text(size: 7pt, "Write side"), anchor: "center")
+    })
+  ]
 
   📖 Deep dive: #link("https://willemvanhulle.tech/blog/streams/func-async/")[willemvanhulle.tech/blog/streams/func-async]
 ]
@@ -1099,15 +1209,13 @@
 #slide[
   === Summary
 
-  - *Streams vs iterators*: Handle async data with `Poll<Option<T>>`
-  - *Rich combinators*: Transform, filter, aggregate streams functionally
-  - *Check existing solutions*: `StreamExt` and `futures-rx` before custom operators
-  - *Building operators*: Wrapper struct + `Stream` trait + pin projection
-  - *Extension traits*: Make operators discoverable in separate crates
-  - *Smart cloning*: `clone-stream` buffers only when clones are waiting
+  - Streams handle async data with `Poll<Option<T>>`
+  - Use existing `StreamExt` / `futures-rx` before building custom operators
+  - Build operators: wrapper + `Stream` trait + pin projection
+  - `clone-stream` enables smart buffering for stream branching
 
   #align(center)[
-    _Build expressive async data pipelines with confidence!_
+    _Build expressive async data pipelines!_
   ]
 ]
 

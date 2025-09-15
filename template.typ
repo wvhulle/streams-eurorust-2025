@@ -15,7 +15,7 @@
 ) = {
   // Typography
   set text(font: "Fira Sans")
-  set page(width: 16cm, height: 9cm, margin: 1.5cm)
+  set page(width: 16cm, height: 9cm, margin: 1cm)
   set par(justify: true)
 
   // Raw text (code) styling
@@ -60,7 +60,7 @@
     pad(left: 1.5em, align(center + horizon, it))
   }
   show heading.where(level: 3): it => {
-    set text(style: "italic")
+    set text(style: "italic", size: 1.2em)
     underline(stroke: 1.5pt + colors.accent, offset: 0.2em, it)
   }
 
