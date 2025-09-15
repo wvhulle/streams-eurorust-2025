@@ -25,6 +25,23 @@
   - Inconsistent error handling across the codebase
   - Hard to reason about data flow and state
 
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      // Vehicle data source - centered vertically with the flame
+      rect((1, 1.2), (3, 2.2), fill: rgb("e6f3ff"), stroke: blue + 2pt)
+      content((2, 1.7), text(size: 8pt, weight: "bold", "Vehicle Data"), anchor: "center")
+
+      // Arrow pointing to chaos
+      line((3.2, 1.7), (4.8, 1.7), mark: (end: ">"), stroke: black + 2pt)
+
+      // Big chaos emoji representing the mess
+      content((6, 2), text(size: 3em, "🔥"), anchor: "center")
+      content((5.8, 1), text(size: 8pt, weight: "bold", "Chaos"), anchor: "center")
+    })
+  ]
+
   *The realization:* Most developers encounter streams too late in distributed systems
 ]
 
@@ -37,6 +54,53 @@
   - Struggled with async lifetimes and memory management
 
   *Today:* Want to share the patterns I discovered the hard way
+]
+
+#slide[
+  === Why reactive programming feels different in Rust
+
+  *Key insight:* Reactivity in garbage collected languages is *completely different* from Rust's ownership system
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      // TypeScript side
+      rect((0.5, 1), (3.5, 4), fill: rgb("fff0e6"), stroke: orange + 2pt)
+      content((2, 3.5), text(size: 8pt, weight: "bold", "TypeScript"), anchor: "center")
+
+      // GC cleanup
+      circle((2, 2.8), radius: 0.4, fill: rgb("e6ffe6"), stroke: green + 2pt)
+      content((2, 2.8), text(size: 6pt, "GC"), anchor: "center")
+
+
+      // Data flowing freely - simplified dots
+      for i in range(3) {
+        let x = 1.4 + i * 0.3
+        circle((x, 2.0), radius: 0.08, fill: blue)
+      }
+      content((2, 1.4), text(size: 6pt, "Put anything\nanywhere"), anchor: "center")
+
+      // VS separator
+      content((4.5, 2.5), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
+
+      // Rust side
+      rect((5.5, 1), (8.5, 4), fill: rgb("ffe6e6"), stroke: red + 2pt)
+      content((7, 3.5), text(size: 8pt, weight: "bold", "Rust"), anchor: "center")
+
+      // Ownership constraints
+      rect((6.2, 2.6), (7.8, 3.2), fill: rgb("ffcccc"), stroke: red + 1pt)
+      content((7, 2.9), text(size: 6pt, "Ownership\nRules"), anchor: "center")
+
+      // Constrained data flow
+      line((6.2, 2.2), (6.8, 2.2), stroke: blue + 2pt)
+      line((6.8, 2.2), (7.2, 1.8), stroke: blue + 2pt, mark: (end: ">"))
+      line((7.2, 1.8), (7.8, 1.8), stroke: blue + 2pt)
+      content((7, 1.3), text(size: 6pt, "Explicit design\nrequired"), anchor: "center")
+    })
+  ]
+
+  This fundamental difference explains why stream patterns from other languages don't translate directly
 ]
 
 #slide[
@@ -62,49 +126,74 @@
 ]
 
 #slide[
-  === Why stream processing is challenging
+  === Why imperative stream processing is problematic
 
-  Manual stream processing becomes messy quickly:
+  *The challenge:* Process TCP connections, filter messages, and collect 5 long ones
 
   #text(size: 8pt)[
     ```rust
     let mut filtered_messages = Vec::new();
     let mut count = 0;
+    let mut total_errors = 0;
 
     while let Some(connection) = tcp_stream.next().await {
         match connection {
             Ok(stream) => {
                 if should_process(&stream) {
-                    // ... nested processing logic
+                    // More nested logic needed...
                 }
             }
-            Err(e) => log_connection_error(e),
-        }
-    }
+            Err(e) => {
+                total_errors += 1;
+                log_connection_error(e);
+                if total_errors > 3 { break; }
+            } } }
     ```]
+
 
 ]
 
 #slide[
-  === The nested complexity continues...
+  === The complexity grows with each requirement
 
-  Each processing step adds more complexity:
+  *Inside the processing block, even more nested logic:*
 
-  #text(size: 9pt)[
+  #text(size: 8pt)[
     ```rust
-    // Inside the should_process block:
+    // Inside the should_process(&stream) block:
     match process_stream(stream).await {
         Ok(msg) if msg.len() > 10 => {
             filtered_messages.push(msg);
             count += 1;
-            if count >= 5 { break; }
+            if count >= 5 { break; }  // Break from outer loop!
         }
         Ok(_) => continue,  // Skip short messages
-        Err(e) => log_error(e),
+        Err(e) => {
+            total_errors += 1;
+            log_error(e);
+            if total_errors > 3 { break; }  // Another outer break!
+        }
     }
     ```]
 
-  Hard to read, maintain, test, and reason about!
+  *Problems:* Nested breaks, scattered error handling, mixed concerns
+]
+
+#slide[
+  === Problems with imperative approach
+
+  *Hard to reason about:*
+  - Multiple mutable variables and nested control flow
+  - Error handling scattered throughout logic
+  - Business logic mixed with flow control
+
+  *Hard to test:*
+  - Cannot test transformations in isolation
+  - Complex state combinations to mock
+
+  *Hard to maintain:*
+  - Changes require touching multiple code paths
+  - Cannot reuse parts for different scenarios
 ]
 
 #slide[
@@ -143,7 +232,7 @@
 ]
 
 #slide[
-  == Foundations
+  == The `Stream` trait
 ]
 
 #slide[
@@ -1209,15 +1298,24 @@
 ]
 
 #slide[
-  === Summary
+  === Last recommendation
 
-  - Streams handle async data with `Poll<Option<T>>`
-  - Use existing `StreamExt` / `futures-rx` before building custom operators
-  - Build operators: wrapper + `Stream` trait + pin projection
-  - `clone-stream` enables smart buffering for stream branching
+  *Streams ≠ Moving water* 🌊
+
+  A stream is simply an *output* that we can process and feed into something else.
+
+  #v(1em)
+
+  *⚠️ Warning: Don't turn everything into streams!*
+
+  - Redirecting flow unnecessarily makes code harder to maintain
+  - More stream operators ≠ better code
+  - Choose streams when you have *genuine async data flow*
+
+  #v(1em)
 
   #align(center)[
-    _Build expressive async data pipelines!_
+    _Use streams wisely, not everywhere!_
   ]
 ]
 
