@@ -29,16 +29,16 @@
     #canvas(length: 1cm, {
       import draw: *
 
-      // Vehicle data source - centered vertically with the flame
-      rect((1, 1.2), (3, 2.2), fill: rgb("e6f3ff"), stroke: blue + 2pt)
-      content((2, 1.7), text(size: 8pt, weight: "bold", "Vehicle Data"), anchor: "center")
+      // Car emoji
+      content((0, 2), text(size: 2.5em, "🚗"), anchor: "center")
 
-      // Arrow pointing to chaos
-      line((3.2, 1.7), (4.8, 1.7), mark: (end: ">"), stroke: black + 2pt)
+      // Arrow with data flow
+      line((0.8, 1.8), (3.2, 1.8), mark: (end: ">"), stroke: blue + 3pt)
+      content((1.8, 2.2), text(size: 7pt, "streaming data"), anchor: "center")
 
-      // Big chaos emoji representing the mess
-      content((6, 2), text(size: 3em, "🔥"), anchor: "center")
-      content((5.8, 1), text(size: 8pt, weight: "bold", "Chaos"), anchor: "center")
+      // Chaos emoji
+      content((4, 2), text(size: 2.5em, "🔥"), anchor: "center")
+      content((4, 1.2), text(size: 8pt, weight: "bold", "Developer Chaos"), anchor: "center")
     })
   ]
 
@@ -126,7 +126,7 @@
 ]
 
 #slide[
-  === Why imperative stream processing is problematic
+  === Problematic imperative stream processing
 
   *The challenge:* Process TCP connections, filter messages, and collect 5 long ones
 
@@ -182,18 +182,28 @@
 #slide[
   === Problems with imperative approach
 
-  *Hard to reason about:*
-  - Multiple mutable variables and nested control flow
-  - Error handling scattered throughout logic
-  - Business logic mixed with flow control
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 3em,
+    [
+      *🧠 Hard to reason about:*
+      - Multiple mutable variables
+      - Control flow chaos (`if`, `break`, `continue`)
+      - Scattered error handling
 
-  *Hard to test:*
-  - Cannot test transformations in isolation
-  - Complex state combinations to mock
+      *🧪 Hard to test:*
+      - No isolation of transformations
+      - Complex state combinations
+    ],
+    [
+      *🔧 Hard to maintain:*
+      - Changes touch multiple paths
+      - Cannot reuse components
+      - Easy to introduce bugs with nested loops
 
-  *Hard to maintain:*
-  - Changes require touching multiple code paths
-  - Cannot reuse parts for different scenarios
+      *Result:* Technical debt accumulates quickly
+    ],
+  )
 ]
 
 #slide[
@@ -221,7 +231,7 @@
 
   #align(center)[*Goal:* Build your own stream operators with confidence!]
 
-  #v(1em)
+  #v(2em)
 
   #outline(
     title: none,
@@ -233,6 +243,44 @@
 
 #slide[
   == The `Stream` trait
+
+
+]
+
+#slide[
+  === Water vs. `Stream`s
+
+  *Stream in Rust ≠ Moving body of water* 🌊
+
+  A stream is simply an *front-end for the carrier* that we can process and feed into something else.
+
+  #align(center + horizon)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      // Stream container (front-end - Stream trait)
+      rect((1, 1), (7, 3), fill: rgb("e6f3ff"), stroke: blue + 3pt, radius: 0.2)
+      content((4, 3.5), text(size: 10pt, weight: "bold", "Stream Trait (Front-end)"), anchor: "center")
+
+
+      // Data flow arrow (back-end - data carrier)
+      line((1.5, 2), (6.5, 2), stroke: orange + 8pt, mark: (end: ">"))
+
+      // Data items flowing through
+      for (i, item) in ("'a'", "'b'", "'c'", "'d'").enumerate() {
+        let x = 2.2 + i * 1.2
+        circle((x, 2), radius: 0.15, fill: rgb("fff3cd"), stroke: orange + 2pt)
+        content((x, 2), text(size: 7pt, item), anchor: "center")
+      }
+
+      content((4, 1.4), text(size: 10pt, weight: "bold", "Data Carrier (Back-end)"), anchor: "center")
+
+      // Labels with arrows pointing to components
+      line((1, 0.5), (2, 1.8), mark: (end: ">"), stroke: gray + 1pt)
+      content((0.8, 0.3), text(size: 8pt, "TCP, Channel,\nIterator, etc."), anchor: "center")
+    })
+  ]
+
 ]
 
 #slide[
@@ -400,7 +448,7 @@
 
     #grid(
       columns: (auto, 1fr, 1fr, 2fr),
-      rows: (auto, auto, auto),
+      rows: (auto, auto, auto, auto),
       gutter: 2em,
       [], [*Future*], [*Stream*], [*Meaning*],
       [*Regular*],
@@ -412,6 +460,8 @@
       [#draw-arrow(multiple: false, fused: true, blue)],
       [#draw-arrow(multiple: true, fused: true, green)],
       [Done permanently],
+
+      [*Fused value*], [Pending], [Ready(None)], [Final value],
     )
   ]
 ]
@@ -525,7 +575,7 @@
   ]
   `ready(value)` creates a `Future` that immediately resolves to `value`.
 
-  *Bonus*: `future::ready()` is `Unpin`, making closures `Unpin`, making output streams `Unpin`!
+  *Bonus*: `future::ready()` is `Unpin`, helping make the entire stream pipeline `Unpin` (through common blanket implementations)!
 ]
 
 
@@ -575,7 +625,7 @@
 #slide[
   === Channel receivers as streams
 
-  `async-channel` receivers implement `Stream` directly:
+  #link("https://docs.rs/async-channel/2.5.0/async_channel/")[`async-channel`] receivers implement `Stream` directly:
 
   ```rust
   use async_channel::unbounded;
@@ -586,6 +636,8 @@
     .collect::<Vec<_>>()
     .await;
   ```
+
+  Alternative with more channel types: #link("https://docs.rs/postage/latest/postage/")[`postage`] (older).
 ]
 
 #slide[
@@ -602,7 +654,7 @@
 
   For converting sender into `Sink`, you need `tokio-util` crate.
 
-  *Not a great experience...*
+  *Not a great experience for beginners...*
 
 ]
 
@@ -619,7 +671,7 @@
   BroadcastStream::new(rx)
       .filter_map(|result| ready(result.ok()))
       .collect::<Vec<_>>()
-      .await;
+      .await
   ```
 
   - `Result::ok()` converts `Result<T, E>` → `Option<T>`
@@ -676,7 +728,7 @@
     }
   }
   ```
-
+  ⚠️ Delegation is not possible without removing `Pin`!
 ]
 
 
@@ -686,7 +738,7 @@
 
   We cannot just convert `self` into `&mut self.stream`!
 
-  #text(size: 8pt)[
+  #text(size: 10pt)[
     ```rust
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>> {
@@ -697,7 +749,7 @@
 
   We need projection to access inner stream safely
 
-  #text(size: 8pt)[
+  #text(size: 10pt)[
     ```rust
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>> {
@@ -799,17 +851,21 @@
   Both are self-referential state machines that cannot be moved:
 
   ```rust
-  // Both require Pin to poll safely:
+  // Future version:
   fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<T> {}
 
   // Stream version:
   fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<T>> {}
   ```
 
-  Pin promise: *"The thing this points to won't move while you're using it"*
+  Pin promise: *"The thing this points to won't move anymore"* (unless destroyed)
 ]
 
 #slide[
+
+
+
+  === Stripping the `Pin` safely from `Unpin`
 
   #align(center)[
     #canvas(length: 1.2cm, {
@@ -853,6 +909,7 @@
       content((7.4, 5.3), text(size: 8pt, weight: "bold", "&mut InSt"), anchor: "center")
     })
   ]
+
 ]
 
 
@@ -860,29 +917,46 @@
 #slide[
   === Making `Double` `Unpin`
 
-  #text(size: 9pt)[
+  *Problem:* Can't delegate to inner stream without Pin projection
 
-    Steps:
+  *Solution:* Move stream to heap with `Box`
 
-    1. We need to remove `Pin` from `Double`
-    2. `Double` should be `Unpin`
-    3. `InSt` must also be `Unpin`
+  ```rust
+  struct Double<InSt> { stream: Box<InSt> }
+  ```
 
-    Move `InSt` to the heap (part of RAM memory) using `Box`:
 
-    ```rust
-    struct Double<InSt> { stream: Box<InSt> }
-    ```
-    Gives stable address on the heap (until destruction):
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
 
-    1. `Box<Inst>: Unpin`
-    2. `Double<InSt>: Unpin`
+      // Stack representation
+      rect((0.5, 2.5), (3.5, 4.5), fill: rgb("ffeeee"), stroke: red + 2pt)
+      content((2, 3.8), text(size: 8pt, weight: "bold", "Stack"), anchor: "center")
+      content((2, 3.2), text(size: 7pt, "❌ Can move"), anchor: "center")
+
+      // Arrow to heap
+      line((3.8, 3.5), (5.7, 3.5), mark: (end: ">"), stroke: blue + 2pt)
+      content((4.75, 4.2), text(size: 8pt, weight: "bold", "Box"), anchor: "center")
+
+      // Heap representation
+      rect((6, 2.5), (9, 4.5), fill: rgb("e6ffe6"), stroke: green + 2pt)
+      content((7.5, 3.8), text(size: 8pt, weight: "bold", "Heap"), anchor: "center")
+      content((7.5, 3.2), text(size: 7pt, "✅ Stable address"), anchor: "center")
+    })
   ]
 
+  #v(0.5em)
+
+  *Result:* `Box<InSt>` is always `Unpin` → `Double<InSt>` becomes `Unpin` ✅
 ]
 
 #slide[
   === Finish `Stream` impl
+  We can call `get_mut()` to get `&mut Double<InSt>` safely since:
+  - `self` is of type `Pin<&mut Double<InSt>>`
+  - `Double<InSt>` is `Unpin`,
+
 
   #text(size: 9pt)[
     ```rust
@@ -1302,22 +1376,31 @@
 #slide[
   === Last recommendation
 
-  *Streams ≠ Moving water* 🌊
+  *⚠️ Streams don't replace good software engineering!*
 
-  A stream is simply an *output* that we can process and feed into something else.
+  #grid(
+    columns: (1fr, 1fr),
+    gutter: 2em,
+    [
+      *Don't overuse streams:*
+      - Avoid forcing everything into streams
+      - More operators ≠ better code
+      - Use for *genuine async data flow*
+      - Get team buy-in before adoption
+    ],
+    [
+      *Follow best practices:*
+      - Keep functions modular & readable
+      - Use descriptive names & generics
+      - Split long function bodies
+      - Test components individually
+    ],
+  )
 
-  #v(1em)
-
-  *⚠️ Warning: Don't turn everything into streams!*
-
-  - Redirecting flow unnecessarily makes code harder to maintain
-  - More stream operators ≠ better code
-  - Choose streams when you have *genuine async data flow*
-
-  #v(1em)
+  #v(0.5em)
 
   #align(center)[
-    _Use streams wisely, not everywhere!_
+    _Streams are powerful, but code principles still apply!_
   ]
 ]
 
@@ -1327,15 +1410,16 @@
 
   #align(center)[
 
+    #text(size: 1em)[Any questions?]
 
     #text(size: 2em)[Thank you!]
 
     Willem Vanhulle \
 
-    #v(4em)
+    #v(3em)
 
 
-    Contact me!
+    Feel free to reach out!
 
     #link("mailto:willemvanhulle@protonmail.com") \
     #link("https://willemvanhulle.tech")[willemvanhulle.tech] \
