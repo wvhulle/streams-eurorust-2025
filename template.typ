@@ -14,7 +14,7 @@
   body,
 ) = {
   // Typography
-  set text(font: "Fira Sans")
+  set text(font: "Fira Sans", size: 0.9em)
   set page(width: 16cm, height: 9cm, margin: 1cm)
   set par(justify: true)
 
