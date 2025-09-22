@@ -118,25 +118,6 @@
   This fundamental difference explains why stream patterns from other languages don't translate directly
 ]
 
-#slide[
-  === A basic TCP Stream
-
-
-  #text(size: 10pt)[
-    ```rust
-    use futures::stream::StreamExt;
-
-    let mut tcp_stream = tokio::net::TcpListener::bind("127.0.0.1:8080")
-        .await?
-        .incoming();
-
-    while let Some(connection) = tcp_stream.next().await {
-        handle_client(connection?).await;
-    }
-    ```]
-
-
-]
 
 #slide[
   === Stream hierarchy: from hardware to software
@@ -165,30 +146,50 @@
       }
 
       // Hardware layer (bottom)
-      draw-layer(0.5, 7, 1.2, "Physical Leaf Streams", "Physical hardware constraints", rgb("ffeeee"))
+      draw-layer(.5, 7, 1.2, "Physical Leaf Streams", "Physical hardware constraints", rgb("ffeeee"))
       draw-examples(1.4, ("GPIO sensors", "UART/Serial", "Hardware timers", "Network NICs"))
 
       // OS layer (middle)
-      draw-layer(2, 7, 1.2, "Leaf Streams", "OS/kernel constraints", rgb("fff3cd"))
-      draw-examples(2.9, ("File I/O", "TCP sockets", "Process pipes", "System timers"))
+      draw-layer(2.3, 7, 1.2, [Leaf Streams (real streams)], "OS/kernel constraints", rgb("fff3cd"))
+      draw-examples(3.1, ("File I/O", "TCP sockets", "Process pipes", "System timers"))
 
       // Software layer (top)
-      draw-layer(3.5, 7, 1.2, "Non-Leaf Streams", "Pure software transformations", rgb("e6f3ff"))
-      draw-examples(4.4, ("map()", "filter()", "take()", "enumerate()"))
+      draw-layer(4.1, 7, 1.2, "Non-Leaf Streams (toy streams)", "Pure software transformations", rgb("e6f3ff"))
+      draw-examples(5.0, ("map()", "filter()", "take()", "enumerate()"))
 
       // Arrows showing data flow upward
-      line((4.5, 1.8), (4.5, 2.1), mark: (end: ">"), stroke: orange + 2pt)
-      line((4.5, 3.3), (4.5, 3.6), mark: (end: ">"), stroke: blue + 2pt)
+      line((4.5, 1.7), (4.5, 2.3), mark: (end: ">"), stroke: orange + 2pt)
+      content((5.5, 2.0), text(size: 7pt, "OS abstraction"), anchor: "center")
 
-      // Labels for arrows
-      content((5.5, 1.95), text(size: 7pt, "OS abstraction"), anchor: "center")
-      content((5.5, 3.45), text(size: 7pt, "Software transform"), anchor: "center")
+      line((4.5, 3.5), (4.5, 4.1), mark: (end: ">"), stroke: blue + 2pt)
+      content((5.8, 3.8), text(size: 7pt, "Software transform"), anchor: "center")
     })
   ]
 
   *Key insight:* Only the bottom layer requires `async` - everything above could theoretically be synchronous!
 
 ]
+
+#slide[
+  === A basic TCP Stream
+
+
+  #text(size: 10pt)[
+    ```rust
+    use futures::stream::StreamExt;
+
+    let mut tcp_stream = tokio::net::TcpListener::bind("127.0.0.1:8080")
+        .await?
+        .incoming();
+
+    while let Some(connection) = tcp_stream.next().await {
+        handle_client(connection?).await;
+    }
+    ```]
+
+
+]
+
 
 #slide[
   === Problematic imperative stream processing
@@ -676,23 +677,33 @@
           #canvas(length: 1.2cm, {
             import draw: *
 
-            let draw-square(center, size, fill-color, stroke-color, label, label-pos) = {
+            // Helper functions for Pin diagrams
+            let draw-pin-shape(center, size, fill-color, stroke-color, label, label-pos, radius: 0.3) = {
               let half = size / 2
               rect(
                 (center.at(0) - half, center.at(1) - half),
                 (center.at(0) + half, center.at(1) + half),
                 fill: fill-color,
                 stroke: stroke-color + 2pt,
+                radius: radius,
               )
               content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
             }
 
+            let draw-nested-structure(center, outer-radius, inner-radius, outer-label, inner-label) = {
+              circle(center, radius: outer-radius, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
+              content(
+                (center.at(0), center.at(1) + 0.6),
+                text(size: 7pt, weight: "bold", outer-label),
+                anchor: "center",
+              )
+              circle(center, radius: inner-radius, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+              content(center, text(size: 6pt, inner-label), anchor: "center")
+            }
+
             // Pin<&mut Self> with nested circles
-            draw-square((2, 2), 2.5, rgb("ffeeee"), blue, "Pin<&mut Double>", (2, 3.5))
-            circle((2, 2), radius: 0.8, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
-            content((2, 3), text(size: 7pt, weight: "bold", "Double"), anchor: "center")
-            circle((2, 2), radius: 0.4, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-            content((2, 2), text(size: 6pt, "InSt"), anchor: "center")
+            draw-pin-shape((2, 2), 2.5, rgb("ffeeee"), blue, "Pin<&mut Double>", (2, 3.5))
+            draw-nested-structure((2, 2), 0.8, 0.4, "Double", "InSt")
           })
         ],
         [
@@ -707,21 +718,27 @@
           #canvas(length: 1.2cm, {
             import draw: *
 
-            let draw-square(center, size, fill-color, stroke-color, label, label-pos) = {
+            // Helper functions for Pin diagrams
+            let draw-pin-shape(center, size, fill-color, stroke-color, label, label-pos, radius: 0.3) = {
               let half = size / 2
               rect(
                 (center.at(0) - half, center.at(1) - half),
                 (center.at(0) + half, center.at(1) + half),
                 fill: fill-color,
                 stroke: stroke-color + 2pt,
+                radius: radius,
               )
               content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
             }
 
+            let draw-simple-inner(center, radius, label) = {
+              circle(center, radius: radius, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+              content(center, text(size: 6pt, label), anchor: "center")
+            }
+
             // Pin<&mut InSt>
-            draw-square((2, 2), 2, rgb("eeffee"), blue, "Pin<&mut InSt>", (2, 3.3))
-            circle((2, 2), radius: 0.4, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-            content((2, 2), text(size: 6pt, "InSt"), anchor: "center")
+            draw-pin-shape((2, 2), 2, rgb("eeffee"), blue, "Pin<&mut InSt>", (2, 3.3), radius: 0.5)
+            draw-simple-inner((2, 2), 0.4, "InSt")
           })
         ],
         // Second row - code fragments
@@ -900,44 +917,56 @@
     #canvas(length: 1.2cm, {
       import draw: *
 
-      let draw-square(center, size, fill-color, stroke-color, label, label-pos) = {
+      // Helper functions for Pin diagrams (reused from earlier slide)
+      let draw-pin-shape(center, size, fill-color, stroke-color, label, label-pos, radius: 0.3) = {
         let half = size / 2
         rect(
           (center.at(0) - half, center.at(1) - half),
           (center.at(0) + half, center.at(1) + half),
           fill: fill-color,
           stroke: stroke-color + 2pt,
+          radius: radius,
         )
         content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
       }
 
+      let draw-nested-structure(center, outer-radius, inner-radius, outer-label, inner-label) = {
+        circle(center, radius: outer-radius, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
+        content((center.at(0), center.at(1) + 1.7), text(size: 7pt, weight: "bold", outer-label), anchor: "center")
+        circle(center, radius: inner-radius, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+        content(center, text(size: 6pt, inner-label), anchor: "center")
+        content((center.at(0), center.at(1) - 0.3), text(size: 5pt, "(!Unpin)"), anchor: "center")
+      }
+
+      let draw-box-wrapper(center, width, height, label, label-pos) = {
+        rect(
+          (center.at(0) - width / 2, center.at(1) - height / 2),
+          (center.at(0) + width / 2, center.at(1) + height / 2),
+          fill: none,
+          stroke: (paint: purple, dash: "dashed", thickness: 2pt),
+        )
+        content(label-pos, text(size: 6pt, weight: "bold", label), anchor: "center")
+      }
+
+      let draw-annotation(pos, text1, text2) = {
+        content(pos, text(size: 6pt, fill: purple, text1), anchor: "center")
+        content((pos.at(0), pos.at(1) - 0.3), text(size: 6pt, fill: purple, text2), anchor: "center")
+      }
+
       // Left side: Pin<&mut Self>
-      draw-square((2, 4), 4, rgb("ffeeee"), blue, "Pin<&mut Double>", (2, 6.3))
-
-      // Double wrapper circle
-      circle((2, 4), radius: 1.2, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
-      content((2, 5.5), text(size: 7pt, weight: "bold", "Double"), anchor: "center")
-
-      // Box wrapper - dashed rectangle around stream
-      rect((1.2, 3.2), (2.8, 4.8), fill: none, stroke: (paint: purple, dash: "dashed", thickness: 2pt))
-      content((2, 5.0), text(size: 6pt, weight: "bold", "Box<InSt>"), anchor: "center")
-
-      // Inner stream circle
-      circle((2, 4), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-      content((2, 4.2), text(size: 6pt, "InSt"), anchor: "center")
-      content((2, 3.7), text(size: 5pt, "(!Unpin)"), anchor: "center")
+      draw-pin-shape((2, 4), 4, rgb("ffeeee"), blue, "Pin<&mut Double>", (2, 6.3))
+      draw-nested-structure((2, 4), 1.5, 0.5, "Double", "InSt")
+      draw-box-wrapper((2, 4), 1.8, 1.8, "Box<InSt>", (2, 5.2))
 
       // get_mut arrow
       line((4.3, 4), (6.2, 4), mark: (end: ">"), stroke: red + 2pt)
       content((5.25, 4.5), text(size: 7pt, weight: "bold", "get_mut()"), anchor: "center")
 
       // Box annotation
-      content((0.5, 5.8), text(size: 6pt, fill: purple, "Box makes"), anchor: "center")
-      content((0.5, 5.5), text(size: 6pt, fill: purple, "it Unpin"), anchor: "center")
+      draw-annotation((0.5, 5.8), "Box makes", "it Unpin")
 
       // Right side: &mut Box<InSt>
-      rect((6.6, 3.3), (8.2, 4.9), fill: none, stroke: (paint: purple, dash: "dashed", thickness: 2pt))
-      content((7.4, 5.2), text(size: 6pt, weight: "bold", "Box<InSt>"), anchor: "center")
+      draw-box-wrapper((7.4, 4.1), 1.6, 1.6, "Box<InSt>", (7.4, 5.2))
       circle((7.4, 4.1), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
       content((7.4, 4.3), text(size: 6pt, "InSt"), anchor: "center")
       content((7.4, 3.8), text(size: 5pt, "(!Unpin)"), anchor: "center")
