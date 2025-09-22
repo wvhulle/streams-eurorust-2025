@@ -38,7 +38,6 @@
   *The problem:* Processing streaming data from moving vehicles
 
   *What I observed:*
-  - Every developer had their own approach
   - Inconsistent error handling across the codebase
   - Hard to reason about data flow and state
 
@@ -72,9 +71,69 @@
 
 
 #slide[
-  === Why reactive programming feels different in Rust
 
-  *Key insight:* Reactivity in garbage collected languages is *completely different* from Rust's ownership system
+  === Short history of reactive programming
+
+
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-timeline-entry(y, year, event, description, color) = {
+        // Year label
+        rect((1, y - 0.3), (3, y + 0.3), fill: color, stroke: black + 1pt, radius: 0.2)
+        content((2, y), text(size: 8pt, weight: "bold", year), anchor: "center")
+
+        // Event description
+        content((3.5, y + 0.1), text(size: 9pt, weight: "bold", event), anchor: "west")
+        content((3.5, y - 0.2), text(size: 7pt, description), anchor: "west")
+
+        // Connection line from timeline to date box
+        line((0.8, y), (1, y), stroke: gray + 1pt)
+      }
+
+      // Timeline entries (bottom to top = old to new)
+      draw-timeline-entry(5.5, "2019", "async/await in Rust", "Stream trait ecosystem matures", rgb("e6f3ff"))
+      draw-timeline-entry(
+        4.5,
+        "2009",
+        "Microsoft Reactive Extensions",
+        "ReactiveX brings streams to mainstream",
+        rgb("fff0e6"),
+      )
+      draw-timeline-entry(
+        3.5,
+        "1997",
+        "Functional Reactive Programming",
+        "Conal Elliott & Paul Hudak (Haskell)",
+        rgb("f0ffe6"),
+      )
+      draw-timeline-entry(
+        2.5,
+        "1978",
+        "Communicating Sequential Processes",
+        "Tony Hoare formalizes concurrent dataflow",
+        rgb("ffe6f0"),
+      )
+      draw-timeline-entry(1.5, "1973", "Unix Pipes", "Douglas McIlroy creates `|` operator", rgb("f0e6ff"))
+      draw-timeline-entry(0.5, "1960s", "Dataflow Programming", "Hardware-level stream processing", rgb("ffeeee"))
+
+      // Main timeline line (positioned to the left, not overlapping with date boxes)
+      line((0.8, 0.3), (0.8, 5.7), stroke: gray + 2pt)
+    })
+  ]
+
+
+]
+
+
+
+
+#slide[
+  === Why does Rust bring to the table?
+
+  Reactivity in garbage collected languages is *completely different* from Rust's ownership system
 
   #align(center)[
     #canvas(length: 1cm, {
@@ -166,7 +225,7 @@
     })
   ]
 
-  *Key insight:* Only the bottom layer requires `async` - everything above could theoretically be synchronous!
+  Only the bottom layer requires `async` - everything above could theoretically be synchronous! (See book by _Carl Fredrik Samson_)
 
 ]
 
@@ -271,7 +330,7 @@
 
 
 #slide[
-  == The `Stream` trait
+  == Rust's `Stream` trait
 
 
 ]
@@ -424,7 +483,7 @@
     })
   ]
 
-  *Key insight:* `Stream` trait just provides a uniform way to query - it doesn't create or drive data flow.
+  `Stream` trait just provides a *uniform way to query* - it doesn't create or drive data flow.
 ]
 
 
@@ -567,7 +626,7 @@
 
 
 #slide[
-  === Interlude: the _'`ready`-trick'_
+  === The less-known `futures::ready` function
 
   Filter needs an *async closure* (or closure returning `Future`):
 
@@ -636,7 +695,7 @@
 
 
 #slide[
-  == Doubling integer streams
+  == Example 1: Doubling integer streams
 
 ]
 
@@ -771,45 +830,84 @@
 
 
 #slide[
-  === Understanding `Unpin`: escaping from `Pin`
+  === `Pin`:  prevents movement only for types that need it (`!Unpin`)
 
-  #text(size: 10pt)[
-    `Unpin` types can safely 'escape' from `Pin<T>` back to `&mut T`:
+  #text(size: 9pt)[
+    Only two safe operations with `Pin`: creation and conditional escape
 
-    ```rust
-    let pinned: Pin<&mut T> = ...;
-    let unpinned: &mut T = pinned.get_mut(); // Only works if T: Unpin
-    ```
+    #align(center)[
+      #canvas(length: 1cm, {
+        import draw: *
 
+        // Three-column layout: Free bird | Arrows | Pinned bird
+
+        // Left column: Free bird (can move)
+        content((1, 3), text(size: 2em, "🐦"), anchor: "center")
+        content((1, 2.3), text(size: 8pt, weight: "bold", "Free Bird"), anchor: "center")
+        content((1, 2), text(size: 7pt, [(`Unpin`)]), anchor: "center")
+        content((1, 1.6), text(size: 6pt, "✅ Can move"), anchor: "center")
+
+        // Middle column: Arrows with operations
+
+        // Pin::new() arrow (left to right)
+        line((1.8, 3.0), (5.2, 3.0), mark: (end: ">"), stroke: blue + 3pt)
+        content((3.5, 3.3), text(size: 7pt, weight: "bold", [`Pin::new()`]), anchor: "center")
+        content((3.5, 2.7), text(size: 6pt, "Always safe"), anchor: "center")
+
+        // Pin::get_mut() arrow (right to left)
+        line((5.2, 2.0), (1.8, 2.0), mark: (end: ">"), stroke: green + 3pt)
+        content((3.5, 2.3), text(size: 7pt, weight: "bold", [`Pin::get_mut()`]), anchor: "center")
+        content((3.5, 1.7), text(size: 6pt, [if `T: Unpin`]), anchor: "center")
+
+        // Right column: Pin box with bird inside (similar to previous slide style)
+        let pin-width = 2.5
+        let pin-height = 1.8
+        let pin-x = 6.5
+        let pin-y = 2.6
+
+        // Pin box with similar styling as before
+        rect(
+          (pin-x - pin-width / 2, pin-y - pin-height / 2),
+          (pin-x + pin-width / 2, pin-y + pin-height / 2),
+          fill: rgb("ffeeee"),
+          stroke: blue + 2pt,
+          radius: 0.3,
+        )
+        content((pin-x, pin-y + 0.6), text(size: 8pt, weight: "bold", [`Pin<&mut Bird>`]), anchor: "center")
+
+        // Bird inside the pin box
+        content((pin-x, pin-y), text(size: 1.5em, "🐦"), anchor: "center")
+        content((pin-x, pin-y - 0.6), text(size: 6pt, "📌 Caged "), anchor: "center")
+      })
+    ]
+
+    #v(0.5em)
 
     #grid(
       columns: (1fr, 1fr),
-      column-gutter: 2em,
+      column-gutter: 1.5em,
       [
         *`Unpin` types* (safe to move)
-        - All primitive types (`i32`, `String`, etc.)
-        - Most user-defined structs
-        - `Box<T>` (pointer moves, not content)
+        - Primitives, most structs, `Box<T>`
 
-        *Can be moved* without invalidation
+        ✅ Can use `Pin::get_mut()`
       ],
       [
         *`!Unpin` types* (self-referential)
         - Hand-written futures/generators
-        - Self-referencing structs
 
-        *Moving invalidates* internal pointers
+        ❌ `Pin::get_mut()` blocked by compiler
       ],
     )
 
-    #v(1em)
+    *Pin prevents movement by restricting safe functions to `Unpin` types only*
 
-    *Key insight*: `Pin` prevents movement only for types that need it (`!Unpin`)
+
   ]
 ]
 
 #slide[
-  === Problem: accessing `!Unpin` streams
+  === Boxing `!Unpin` streams
   #text(size: 10pt)[
     *Can't access `!Unpin` stream inside `Pin<&mut Double>`*
 
@@ -898,7 +996,7 @@
     ]
   ]
 
-  *Key insights:*
+
   1. `Box` is just a pointer - moving pointers is safe
   2. Heap content stays at fixed address
   3. `Box<T>` derefs to `T` - behaves like the stream
@@ -912,6 +1010,8 @@
 
 
   === Step 3: Stripping the `Pin` safely from `Unpin`
+
+  ... and wrapping it around the boxed stream:
 
   #align(center)[
     #canvas(length: 1.2cm, {
@@ -935,7 +1035,7 @@
         content((center.at(0), center.at(1) + 1.7), text(size: 7pt, weight: "bold", outer-label), anchor: "center")
         circle(center, radius: inner-radius, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
         content(center, text(size: 6pt, inner-label), anchor: "center")
-        content((center.at(0), center.at(1) - 0.3), text(size: 5pt, "(!Unpin)"), anchor: "center")
+        content((center.at(0), center.at(1) - 0.3), text(size: 5pt, [`(!Unpin)`]), anchor: "center")
       }
 
       let draw-box-wrapper(center, width, height, label, label-pos) = {
@@ -954,23 +1054,25 @@
       }
 
       // Left side: Pin<&mut Self>
-      draw-pin-shape((2, 4), 4, rgb("ffeeee"), blue, "Pin<&mut Double>", (2, 6.3))
-      draw-nested-structure((2, 4), 1.5, 0.5, "Double", "InSt")
-      draw-box-wrapper((2, 4), 1.8, 1.8, "Box<InSt>", (2, 5.2))
+      draw-pin-shape((2, 4), 4, rgb("ffeeee"), blue, [`Pin<&mut Double>`], (2, 6.3))
+      draw-nested-structure((2, 4), 1.5, 0.5, [`Double`], [`InSt`])
+      draw-box-wrapper((2, 4), 1.8, 1.8, [`Box<InSt>`], (2, 5.2))
 
       // get_mut arrow
-      line((4.3, 4), (6.2, 4), mark: (end: ">"), stroke: red + 2pt)
-      content((5.25, 4.5), text(size: 7pt, weight: "bold", "get_mut()"), anchor: "center")
+
 
       // Box annotation
-      draw-annotation((0.5, 5.8), "Box makes", "it Unpin")
+      draw-annotation((0.5, 5.8), "Box makes", [it `Unpin`])
 
       // Right side: &mut Box<InSt>
-      draw-box-wrapper((7.4, 4.1), 1.6, 1.6, "Box<InSt>", (7.4, 5.2))
+      draw-pin-shape((7.4, 4.2), 2.5, rgb("ffeeee"), blue, "", (8, 6.3))
+      draw-box-wrapper((7.4, 4.1), 1.6, 1.6, [`&mut  Box<InSt>`], (7.4, 5.2))
       circle((7.4, 4.1), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-      content((7.4, 4.3), text(size: 6pt, "InSt"), anchor: "center")
-      content((7.4, 3.8), text(size: 5pt, "(!Unpin)"), anchor: "center")
-      content((7.4, 6.0), text(size: 8pt, weight: "bold", "&mut Box<InSt>"), anchor: "center")
+      content((7.4, 4.3), text(size: 6pt, [`InSt`]), anchor: "center")
+      content((7.4, 3.8), text(size: 5pt, [(`!Unpin`)]), anchor: "center")
+      content((7.4, 6.0), text(size: 8pt, weight: "bold", [`Pin<&mut Double>`]), anchor: "center")
+      line((4.3, 4), (6.5, 4), mark: (end: ">"), stroke: red + 2pt)
+      content((5.15, 4.5), text(size: 7pt, weight: "bold", [`Pin::get_mut()`]), anchor: "center")
     })
   ]
 
@@ -1049,7 +1151,7 @@
 
 #slide[
 
-  == Real-life operator: `clone-stream`
+  == Example 2: Cloning streams at run-time (optional)
 ]
 
 
@@ -1161,34 +1263,6 @@
 
 
 
-#slide[
-  === Core behavior: forwarding polls and waking clones
-
-  *The fundamental rule:* Each clone forwards polls to the base stream
-
-  #v(1em)
-
-  #grid(
-    columns: (1fr, 1fr),
-    column-gutter: 2em,
-    [
-      *Scenario 1: Alice polls first*
-      1. Alice calls `.poll_next()`
-      2. Forward to base stream
-      3. Base stream → `Pending`
-      4. Alice stores her waker
-      5. Alice → `Pending` (sleeps)
-    ],
-    [
-      *Scenario 2: Bob polls later*
-      1. Bob calls `.poll_next()`
-      2. Forward to base stream
-      3. Base stream → `Ready('x')`
-      4. *First:* Wake Alice + copy 'x'
-      5. *Then:* Return 'x' to Bob
-    ],
-  )
-]
 
 #slide[
   === Visualizing the polling and waking flow
@@ -1287,40 +1361,12 @@
 
 ]
 
-#slide[
-  === Don't over-engineer state machines
 
-  State machines are everywhere because *every program is a state machine* (Turing)
-
-  #v(2em)
-
-  #rect(
-    fill: red.lighten(90%),
-    stroke: red.lighten(50%),
-    radius: 8pt,
-    inset: 1.5em,
-    width: 100%,
-    [
-      *Warning: Premature state machines create problems!*
-
-      #v(1em)
-
-      Computation is the *goal* to fulfill behavior, not an assumption.
-
-      #v(1em)
-
-      Designing states too early leads to:
-      - Redundant/equivalent states
-      - Duplicate transitions
-
-    ],
-  )
-]
 
 #slide[
   === The right approach: behavior-driven design
-
   #v(2em)
+  State machines are everywhere because *every program is a state machine* (Turing)
 
   #grid(
     columns: (1fr, 1fr),
@@ -1443,72 +1489,11 @@
 
 
 
-#slide[
-  === Watch out for slow readers!
-  #text(size: 8pt)[
-
-    *Memory is not infinite!* A stalled clone fills the queue quickly:
-
-
-    ```rust
-    let mut fast = stream.fork();
-    let mut slow = stream.clone();
-    tokio::spawn(async move {
-        while let Some(item) = slow.next().await {
-            blocking_database_call(item); // Blocks for seconds!
-        }
-    });
-    ```
-
-
-    *Solution:* Use ringbuffer-like structure with indexing:
-    - Re-use old queue slots by wrapping around
-    - *Slow clones miss elements more often* (trade-off for memory safety)
-
-    #rect(
-      fill: orange.lighten(90%),
-      stroke: orange.lighten(50%),
-      radius: 8pt,
-      inset: 1em,
-      width: 100%,
-      [
-        #align(center)[
-          *Design choice:* Bounded memory vs. complete delivery guarantee
-        ]
-      ],
-    )
-  ]]
-
-
-
 
 #slide[
-  == Final remarks
+  == Side remarks
 ]
 
-
-#slide[
-  === `Stream` vs `AsyncIterator`
-
-  #grid(
-    columns: (1fr, 1fr),
-    gutter: 1.5em,
-    [
-      *`Stream` (futures)*
-      - Rich combinators
-      - Production ready
-      - Full ecosystem
-    ],
-    [
-      *`AsyncIterator` (std)*
-      - Nightly only
-      - No combinators
-      - Experimental
-    ],
-  )
-
-  *Use `Stream`* - `AsyncIterator` still lacks essential features
-]
 
 
 
@@ -1517,8 +1502,8 @@
 
   Many more advanced topics await:
 
-  - *Boolean ops*: `any`, `all`
-  - *Async item processing*: `then`
+  - *Boolean operations*: `any`, `all`
+  - *Async operations*: `then`
   - *`Sink`s*: The write-side counterpart to `Stream`s
 
   #align(center)[
@@ -1555,7 +1540,7 @@
     })
   ]
 
-  📖 Deep dive: #link("https://willemvanhulle.tech/blog/streams/func-async/")[willemvanhulle.tech/blog/streams/func-async]
+  Longer introduction to streams: #link("https://willemvanhulle.tech/blog/streams/func-async/")[willemvanhulle.tech/blog/streams/func-async]
 ]
 
 #slide[
@@ -1563,31 +1548,34 @@
 
   *⚠️ Streams don't replace good software engineering!*
 
-  #grid(
-    columns: (1fr, 1fr),
-    gutter: 2em,
-    [
-      *Don't overuse streams:*
-      - Avoid forcing everything into streams
-      - More operators ≠ better code
-      - Use for *genuine async data flow*
-      - Get team buy-in before adoption
-    ],
-    [
-      *Follow best practices:*
-      - Keep functions modular & readable
-      - Use descriptive names & generics
-      - Split long function bodies
-      - Test components individually
-    ],
-  )
+  #align(horizon)[
+    #grid(
+      columns: (1fr, 1fr, 1fr),
+      gutter: 2em,
+      [
+        *Don't overuse streams:*
+        - Keep pipelines short
+        - Only _physical async data flow_
+      ],
+      [
+        *Follow best practices:*
+        - Modular functions
+        - Descriptive names
+        - Split long functions
+      ],
+      [
+        *Use objective targets:*
+        - Interval-based tests
+        - Representative benchmarks (use `criterion`)
+      ],
+    )
 
-  #v(0.5em)
+    #v(0.5em)
 
-  #align(center)[
-    _Streams are powerful, but basic principles still apply!_
-  ]
-]
+    #align(center)[
+      _Streams are powerful, but basic principles still apply!_
+    ]
+  ]]
 
 
 #slide[
