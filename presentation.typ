@@ -1303,12 +1303,12 @@
         }
       }
 
-      let draw-arrow(from, to, label, curve: 0) = {
+      let draw-arrow(from, to, label, curve: 0, label-offset: 0.3) = {
         let (x1, y1) = from
         let (x2, y2) = to
         if curve == 0 {
           line((x1, y1), (x2, y2), mark: (end: ">"))
-          let mid = ((x1 + x2) / 2, (y1 + y2) / 2 + 0.3)
+          let mid = ((x1 + x2) / 2, (y1 + y2) / 2 + label-offset)
           content(mid, text(size: 6pt, label), fill: white, stroke: white + 1pt)
         } else {
           arc((x1, y1), start: 30deg, stop: 150deg, radius: 1.5, mark: (end: ">"))
@@ -1316,27 +1316,20 @@
         }
       }
 
-      // Actual states from clone-stream source
-      draw-state((1, 4), "Never\nPolled", rgb("f0f0f0"))
-      draw-state((4, 4), "QueueEmpty\nBaseReady", rgb("ffffcc"))
-      draw-state((7, 4), "UnseenQueued\nReady", rgb("ccffcc"))
-      draw-state((1, 2), "QueueEmpty\nBasePending", rgb("ffcccc"), has-waker: true)
-      draw-state((4, 2), "NoUnseen\nBasePending", rgb("ffcccc"), has-waker: true)
-      draw-state((7, 2), "NoUnseen\nBaseReady", rgb("ffffcc"))
+      // Actual states from clone-stream source (states.rs)
+      draw-state((1, 4.5), "QueueEmpty", rgb("ffffcc"))
+      draw-state((5, 4.5), "UnseenReady\n{index}", rgb("ccffcc"))
+      draw-state((9, 4.5), "AllSeen", rgb("ffffcc"))
+      draw-state((1, 1.5), "QueueEmpty\nPending", rgb("ffcccc"), has-waker: true)
+      draw-state((5, 1.5), "AllSeen\nPending", rgb("ffcccc"), has-waker: true)
 
-      // Key transitions from source code (simplified)
-      // From NeverPolled
-      draw-arrow((1.7, 4), (3.3, 4), "base Ready")
-      draw-arrow((1, 3.3), (1, 2.7), "base Pending")
-
-      // From QueueEmptyBaseReady
-      draw-arrow((4, 3.3), (4, 2.7), "base Pending")
-
-      // From UnseenQueuedReady (two different paths)
-      draw-arrow((6.3, 3.8), (6.3, 2.3), "→ Pending") // Straight down
-      draw-arrow((7.7, 3.8), (7.7, 2.3), "→ Ready") // Offset to the right
-
-      // Note: Complex conditional logic determines exact transitions
+      // Key transitions from source code with proper spacing
+      draw-arrow((2.2, 4.5), (3.8, 4.5), "queue item", label-offset: 0.4)
+      draw-arrow((6.2, 4.5), (7.8, 4.5), "all consumed", label-offset: 0.4)
+      draw-arrow((0.6, 3.9), (0.6, 2.1), "base Pending", label-offset: 0.4)
+      draw-arrow((8.4, 3.7), (5.6, 2.3), "base Pending", label-offset: -0.4)
+      draw-arrow((1.4, 2.1), (1.4, 3.9), "queue/base Ready", label-offset: -0.4)
+      draw-arrow((5.6, 2.3), (8.4, 3.7), "base Ready", label-offset: 0.4)
     })
   ]
 
@@ -1345,12 +1338,12 @@
       columns: (1fr, 1fr),
       gutter: 2em,
       [
-        - 🟨 Yellow: Clone has data ready (hot path)
-        - 🟩 Green: Clone has queued items to consume (hot path)
+        - 🟨 Yellow: Clone can read directly from base stream
+        - 🟩 Green: Clone has unseen queued items ready
       ],
       [
-        - 🟥 Red: Clone is waiting, stored waker (cold path)
-        - ⬜ Gray: Initial state
+        - 🟥 Red: Clone is waiting with stored waker
+        - Queue state tracks position relative to shared queue
       ],
     )]
 
