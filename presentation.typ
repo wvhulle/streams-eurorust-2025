@@ -53,9 +53,16 @@
       line((0.8, 1.8), (3.2, 1.8), mark: (end: ">"), stroke: blue + 3pt)
       content((1.8, 2.2), text(size: 7pt, "streaming data"), anchor: "center")
 
-      // Chaos emoji
+      // Central chaos fire
       content((4, 2), text(size: 2.5em, "🔥"), anchor: "center")
-      content((4, 1.2), text(size: 8pt, weight: "bold", "Developer Chaos"), anchor: "center")
+
+      // Developers around the chaos (positioned in a circle around the fire)
+      content((3.2, 2.8), text(size: 1.2em, "👨‍💻"), anchor: "center") // Top-left dev
+      content((4.8, 2.8), text(size: 1.2em, "👩‍💻"), anchor: "center") // Top-right dev
+      content((3.2, 1.2), text(size: 1.2em, "🧑‍💻"), anchor: "center") // Bottom-left dev
+      content((4.8, 1.2), text(size: 1.2em, "👨‍💻"), anchor: "center") // Bottom-right dev
+      content((4, 2.8), text(size: 1.2em, "👩‍💻"), anchor: "center") // Top dev
+      content((5.2, 2), text(size: 1.2em, "🧑‍💻"), anchor: "center") // Right dev
     })
   ]
 
@@ -112,9 +119,8 @@
 ]
 
 #slide[
-  === 'Leaf `Stream`s'
+  === A basic TCP Stream
 
-  Leaf `Stream`s are _real world_ streams (like leaf `Future`s)
 
   #text(size: 10pt)[
     ```rust
@@ -129,7 +135,58 @@
     }
     ```]
 
-  More leaf `Stream`s: async *channel receivers* in #link("https://docs.rs/postage/latest/postage/")[`postage`] or #link("https://docs.rs/async-channel/latest/async_channel/")[`async-channel`]
+
+]
+
+#slide[
+  === Stream hierarchy: from hardware to software
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-layer(y, width, height, label, description, color, text-color: black) = {
+        rect((1, y), (1 + width, y + height), fill: color, stroke: black + 1pt, radius: 0.2)
+        content(
+          (1 + width / 2, y + height - 0.3),
+          text(size: 10pt, weight: "bold", fill: text-color, label),
+          anchor: "center",
+        )
+        content((1 + width / 2, y + 0.3), text(size: 8pt, fill: text-color, description), anchor: "center")
+      }
+
+      let draw-examples(y, examples) = {
+        let start-x = 8.5
+        for (i, example) in examples.enumerate() {
+          let x = start-x + calc.rem(i, 2) * 3
+          let row = calc.floor(i / 2)
+          content((x, y - row * 0.5), text(size: 7pt, example), anchor: "west")
+        }
+      }
+
+      // Hardware layer (bottom)
+      draw-layer(0.5, 7, 1.2, "Physical Leaf Streams", "Physical hardware constraints", rgb("ffeeee"))
+      draw-examples(1.4, ("GPIO sensors", "UART/Serial", "Hardware timers", "Network NICs"))
+
+      // OS layer (middle)
+      draw-layer(2, 7, 1.2, "Leaf Streams", "OS/kernel constraints", rgb("fff3cd"))
+      draw-examples(2.9, ("File I/O", "TCP sockets", "Process pipes", "System timers"))
+
+      // Software layer (top)
+      draw-layer(3.5, 7, 1.2, "Non-Leaf Streams", "Pure software transformations", rgb("e6f3ff"))
+      draw-examples(4.4, ("map()", "filter()", "take()", "enumerate()"))
+
+      // Arrows showing data flow upward
+      line((4.5, 1.8), (4.5, 2.1), mark: (end: ">"), stroke: orange + 2pt)
+      line((4.5, 3.3), (4.5, 3.6), mark: (end: ">"), stroke: blue + 2pt)
+
+      // Labels for arrows
+      content((5.5, 1.95), text(size: 7pt, "OS abstraction"), anchor: "center")
+      content((5.5, 3.45), text(size: 7pt, "Software transform"), anchor: "center")
+    })
+  ]
+
+  *Key insight:* Only the bottom layer requires `async` - everything above could theoretically be synchronous!
 
 ]
 
@@ -346,7 +403,7 @@
 
   === The _'real'_ stream drivers
 
-  #align(center)[
+  #align(center + horizon)[
     #canvas(length: 1cm, {
       import draw: *
 
@@ -742,13 +799,13 @@
 
     #grid(
       columns: (1fr, 1fr),
-      column-gutter: 3em,
+      column-gutter: 1em,
       [
         #rect(
           fill: red.lighten(90%),
           stroke: red.lighten(50%),
           radius: 8pt,
-          inset: 1.5em,
+          inset: 1em,
           width: 100%,
           [
             #align(center)[
@@ -774,7 +831,7 @@
           fill: green.lighten(90%),
           stroke: green.lighten(50%),
           radius: 8pt,
-          inset: 1.5em,
+          inset: 1em,
           width: 100%,
           [
             #align(center)[
@@ -1012,7 +1069,9 @@
 
   *But*: Sometime you need multiple consumers.
 
-  *Solution*: #link("https://crates.io/crates/clone-stream")[`clone-stream`] makes any stream cloneable:
+  *Solution*: a crate #link("https://crates.io/crates/clone-stream")[`clone-stream`] makes any stream cloneable:
+
+  Pre-existing stream cloning crate: `fork_stream`.
 ]
 
 #slide[
@@ -1096,8 +1155,8 @@
       1. Bob calls `.poll_next()`
       2. Forward to base stream
       3. Base stream → `Ready('x')`
-      4. **First:** Wake Alice + copy 'x'
-      5. **Then:** Return 'x' to Bob
+      4. *First:* Wake Alice + copy 'x'
+      5. *Then:* Return 'x' to Bob
     ],
   )
 ]
@@ -1106,37 +1165,50 @@
   === Visualizing the polling and waking flow
 
   #align(center)[
-    #canvas(length: 1cm, {
+    #canvas(length: 1.2cm, {
       import draw: *
 
-      // Base stream
-      rect((2, 0.5), (6, 1.2), fill: rgb("e6f3ff"), stroke: blue + 2pt)
-      content((4, 0.85), text(size: 9pt, weight: "bold", "Base Stream"))
+      // Helper functions for drawing components
+      let draw-base-stream(pos, width, height, label) = {
+        let (x, y) = pos
+        rect((x, y), (x + width, y + height), fill: rgb("e6f3ff"), stroke: blue + 2pt)
+        content((x + width / 2, y + height / 2), text(size: 10pt, weight: "bold", label))
+      }
 
-      // Alice (sleeping)
-      circle((1.5, 2.5), radius: 0.4, fill: rgb("ffcccc"), stroke: red + 2pt)
-      content((1.5, 2.5), text(size: 7pt, "Alice"))
-      content((1.5, 3.2), text(size: 6pt, "💤 Sleeping"))
+      let draw-actor(pos, radius, name, status, fill-color, stroke-color) = {
+        let (x, y) = pos
+        circle((x, y), radius: radius, fill: fill-color, stroke: stroke-color + 2pt)
+        content((x, y), text(size: 8pt, name))
+        content((x, y + 0.8), text(size: 7pt, status))
+      }
 
-      // Bob (polling)
-      circle((6.5, 2.5), radius: 0.4, fill: rgb("ccffcc"), stroke: green + 2pt)
-      content((6.5, 2.5), text(size: 7pt, "Bob"))
-      content((6.5, 3.2), text(size: 6pt, "🔍 Polling"))
+      let draw-data-item(pos, width, height, label) = {
+        let (x, y) = pos
+        rect((x, y), (x + width, y + height), fill: rgb("fff3cd"), stroke: orange + 2pt)
+        content((x + width / 2, y + height / 2), text(size: 9pt, label))
+      }
 
-      // Item ready
-      rect((3.5, 1.7), (4.5, 2.3), fill: rgb("fff3cd"), stroke: orange + 2pt)
-      content((4, 2), text(size: 8pt, "'x'"))
+      let draw-flow-arrow(from, to, label, color) = {
+        line(from, to, mark: (end: ">"), stroke: color + 2pt)
+        let mid-x = (from.at(0) + to.at(0)) / 2
+        let mid-y = (from.at(1) + to.at(1)) / 2 - 0.3
+        content((mid-x, mid-y), text(size: 8pt, label), anchor: "center")
+      }
 
-      // Flow arrows with proper spacing
-      line((6.1, 2.3), (4.7, 1.4), mark: (end: ">"), stroke: green + 2pt)
-      content((5.5, 1.7), text(size: 7pt, "1. poll"), anchor: "center")
+      // Draw the diagram components
+      draw-base-stream((1.5, 0.5), 5, 1, "Base Stream")
 
-      line((3.3, 1.9), (1.9, 2.3), mark: (end: ">"), stroke: blue + 2pt)
-      content((2.6, 2.2), text(size: 7pt, "2. wake"), anchor: "center")
+      draw-actor((1.5, 3.2), 0.5, "Alice", "💤 Sleeping", rgb("ffcccc"), red)
+      draw-actor((6.5, 3.2), 0.5, "Bob", "🔍 Polling", rgb("ccffcc"), green)
+
+      draw-data-item((3.2, 2.2), 1.6, 0.6, "'x'")
+
+      draw-flow-arrow((6, 3), (5, 2.6), "1. poll", green)
+      draw-flow-arrow((3, 2.6), (2, 3), "2. wake", blue)
     })
   ]
 
-  *Key insight:* When data arrives, *all waiting clones* must be notified
+  When data arrives, *all waiting clones* must be notified
 ]
 
 
@@ -1211,7 +1283,6 @@
       Designing states too early leads to:
       - Redundant/equivalent states
       - Duplicate transitions
-      - Unnecessary complexity
 
     ],
   )
@@ -1238,8 +1309,6 @@
           #v(1em)
 
           - Required behavior (tests)
-          - Edge cases
-          - Error conditions
           - Performance requirements
 
         ],
@@ -1259,8 +1328,6 @@
 
           - Minimal state set
           - Clean transitions
-          - Simple implementation
-          - Optimized paths
 
         ],
       )
@@ -1297,23 +1364,18 @@
         let stroke-color = if has-waker { red + 2pt } else { black + 1pt }
         let height = if has-waker { 1.2 } else { 1.0 }
         rect((x - 1.2, y - height / 2), (x + 1.2, y + height / 2), fill: color, stroke: stroke-color, radius: 0.3)
-        content((x, y + 0.2), align(center, text(size: 6pt, weight: "bold", name)))
+        content((x, y + 0.15), align(center, text(size: 6pt, weight: "bold", name)))
         if has-waker {
           content((x, y - 0.3), align(center, text(size: 6pt, "💤 waker")))
         }
       }
 
-      let draw-arrow(from, to, label, curve: 0, label-offset: 0.3) = {
+      let draw-arrow(from, to, label, curve: 0, x-label-offset: 0, y-label-offset: 0) = {
         let (x1, y1) = from
         let (x2, y2) = to
-        if curve == 0 {
-          line((x1, y1), (x2, y2), mark: (end: ">"))
-          let mid = ((x1 + x2) / 2, (y1 + y2) / 2 + label-offset)
-          content(mid, text(size: 6pt, label), fill: white, stroke: white + 1pt)
-        } else {
-          arc((x1, y1), start: 30deg, stop: 150deg, radius: 1.5, mark: (end: ">"))
-          content((x1, y1 + 1.2), text(size: 6pt, label))
-        }
+        line((x1, y1), (x2, y2), mark: (end: ">"))
+        let mid = ((x1 + x2) / 2 + x-label-offset, (y1 + y2) / 2 + y-label-offset)
+        content(mid, text(size: 6pt, label), fill: white, stroke: white + 1pt)
       }
 
       // Actual states from clone-stream source (states.rs)
@@ -1324,12 +1386,12 @@
       draw-state((5, 1.5), "AllSeen\nPending", rgb("ffcccc"), has-waker: true)
 
       // Key transitions from source code with proper spacing
-      draw-arrow((2.2, 4.5), (3.8, 4.5), "queue item", label-offset: 0.4)
-      draw-arrow((6.2, 4.5), (7.8, 4.5), "all consumed", label-offset: 0.4)
-      draw-arrow((0.6, 3.9), (0.6, 2.1), "base Pending", label-offset: 0.4)
-      draw-arrow((8.4, 3.7), (5.6, 2.3), "base Pending", label-offset: -0.4)
-      draw-arrow((1.4, 2.1), (1.4, 3.9), "queue/base Ready", label-offset: -0.4)
-      draw-arrow((5.6, 2.3), (8.4, 3.7), "base Ready", label-offset: 0.4)
+      draw-arrow((2.2, 4.5), (3.8, 4.5), "queue item", y-label-offset: 0.4)
+      draw-arrow((6.2, 4.5), (7.8, 4.5), "all consumed", y-label-offset: 0.4)
+      draw-arrow((0.6, 3.9), (0.6, 2.3), [base `Pending`], x-label-offset: -1)
+      draw-arrow((8.4, 3.7), (5.6, 2.3), [base `Pending`], x-label-offset: -1)
+      draw-arrow((1.4, 2.3), (1.4, 3.9), [queue/base `Ready`], x-label-offset: 1.2)
+      draw-arrow((6.6, 2.3), (9.4, 3.7), [base `Ready`], x-label-offset: 1)
     })
   ]
 
@@ -1372,8 +1434,7 @@
 
     *Solution:* Use ringbuffer-like structure with indexing:
     - Re-use old queue slots by wrapping around
-    - Fast clones get newest data
-    - *Slow clones miss elements* (trade-off for memory safety)
+    - *Slow clones miss elements more often* (trade-off for memory safety)
 
     #rect(
       fill: orange.lighten(90%),
