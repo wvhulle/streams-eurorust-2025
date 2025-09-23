@@ -324,7 +324,8 @@
         .await;
     ```]
 
-  *What do you think?*
+  #align(center)[
+    "Programs must be written *for people to read*, and only incidentally for machines to execute." — _Harold Abelson & Gerald Jay Sussman_]
 ]
 
 
@@ -1381,7 +1382,6 @@
         [
           *Start with:*
 
-          #v(1em)
 
           - Required behavior (tests)
           - Performance requirements
@@ -1399,29 +1399,21 @@
         [
           *Then derive:*
 
-          #v(1em)
 
           - Minimal state set
           - Clean transitions
-
+          - Minimise function calls
         ],
       )
     ],
   )
 
 
-  #rect(
-    fill: yellow.lighten(80%),
-    stroke: orange,
-    radius: 8pt,
-    inset: 1.5em,
-    width: 100%,
-    [
-      #align(center)[
-        *Golden Rule:* Behavior first, states emerge naturally
-      ]
-    ],
-  )
+
+  #align(center)[
+    "Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away." — _Antoine de Saint-Exupéry_
+  ]
+
 ]
 
 
@@ -1573,7 +1565,11 @@
     #v(0.5em)
 
     #align(center)[
-      _Streams are powerful, but basic principles still apply!_
+      "When you have a hammer, everything looks like a nail." _— Abraham Maslow_
+
+
+
+
     ]
   ]]
 
