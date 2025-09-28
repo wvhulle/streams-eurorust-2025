@@ -34,7 +34,7 @@
 // Apply template and page setup
 #show: presentation-template.with(
   title: "Make Your Own Stream Operators",
-  subtitle: "Dealing with data flows",
+  subtitle: "Advanced stream processing in Rust",
   author: "Willem Vanhulle",
   event: "EuroRust 2025",
   location: "Paris, France",
@@ -62,13 +62,14 @@
 
 
 #slide[
-  === Why streams matter: real-world chaos
+  === My interest in stream processing (with Rust)
 
   *The problem:* Processing incoming (streaming) data from moving vehicles
 
   *What I observed:*
-  - Inconsistent error handling across the codebase
-  - Hard to reason about data flow and state
+  - _Inconsistent error handling_ across the codebase
+  - Hard to reason about _data flow_ and state
+  - Code duplication and boilerplate
 
   #align(center)[
     #canvas(length: 1cm, {
@@ -219,13 +220,13 @@
   }
   ```
 
-  The same pattern exists for several types of middleware.
+  The same pattern exists for all types of network middleware.
 
 ]
 
 
 #slide[
-  === Problematic imperative stream processing
+  === Naive stream processing
 
   *The challenge:* Process TCP connections, filter messages, and collect 5 long ones
 
@@ -253,9 +254,9 @@
 ]
 
 #slide[
-  === The complexity grows with each requirement
+  === Complexity grows with each requirement
 
-  *Inside the processing block, even more nested logic:*
+  Inside the processing block, *even more nested logic:*
 
   #text(size: 8pt)[
     ```rust
@@ -281,7 +282,7 @@
 
 
 #slide[
-  === `Stream` preview
+  === Functional `Stream` usage preview
 
   Same logic, much cleaner with stream operators:
 
@@ -311,7 +312,7 @@
 
 
 #slide[
-  === Iterator vs Stream
+  === Moving from `Iterator` to `Stream`
 
   #align(center + horizon)[
     #set text(size: 7pt)
@@ -569,7 +570,7 @@
 #slide[
 
 
-  === Step 1: The 'wrapper `Stream`' pattern
+  === Wrapping the original stream
 
 
 
@@ -731,7 +732,7 @@
 
 
 #slide[
-  === Why `Box<T>` is always `Unpin`
+  === Why `Box<T>: Unpin`?
   #text(size: 8pt)[
     #align(center)[
       #canvas(length: 1.2cm, {
@@ -784,7 +785,7 @@
 
 
 
-  === Step 3: Stripping the `Pin` safely from `Unpin`
+  === Putting it all together
 
   ... and wrapping it around the boxed stream:
 
