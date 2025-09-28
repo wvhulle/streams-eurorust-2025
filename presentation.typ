@@ -1,6 +1,8 @@
 // Import template
 #import "template.typ": presentation-template, slide
 #import "@preview/cetz:0.4.2": canvas, draw
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
+#import fletcher.shapes: pill
 
 // Apply template and page setup
 #show: presentation-template.with(
@@ -65,7 +67,7 @@
     })
   ]
 
-  *Today:* Want to share the patterns I discovered the hard way
+  ... Let's fix this!
 ]
 
 
@@ -307,7 +309,7 @@
 
 
 #slide[
-  === Functional approach preview
+  === `Stream` preview
 
   Same logic, much cleaner with stream operators:
 
@@ -1266,53 +1268,53 @@
 
 
 #slide[
+  #set text(size: 8pt)
   === Visualizing the polling and waking flow
 
   #align(center)[
-    #canvas(length: 1.2cm, {
-      import draw: *
+    #diagram(
+      node-corner-radius: 5pt,
+      spacing: (3em, 2.5em),
 
-      // Helper functions for drawing components
-      let draw-base-stream(pos, width, height, label) = {
-        let (x, y) = pos
-        rect((x, y), (x + width, y + height), fill: rgb("e6f3ff"), stroke: blue + 2pt)
-        content((x + width / 2, y + height / 2), text(size: 10pt, weight: "bold", label))
-      }
+      // Base stream at bottom
+      node(
+        (1, 0),
+        [Base Stream],
+        fill: rgb("e6f3ff"),
+        stroke: blue + 2pt,
+      ),
 
-      let draw-actor(pos, radius, name, status, fill-color, stroke-color) = {
-        let (x, y) = pos
-        circle((x, y), radius: radius, fill: fill-color, stroke: stroke-color + 2pt)
-        content((x, y), text(size: 8pt, name))
-        content((x, y + 0.8), text(size: 7pt, status))
-      }
+      // Alice - sleeping after first poll
+      node(
+        (0, 3),
+        [Alice\ 💤 Sleeping],
+        fill: rgb("ffcccc"),
+        stroke: red + 2pt,
+        shape: fletcher.shapes.circle,
+      ),
 
-      let draw-data-item(pos, width, height, label) = {
-        let (x, y) = pos
-        rect((x, y), (x + width, y + height), fill: rgb("fff3cd"), stroke: orange + 2pt)
-        content((x + width / 2, y + height / 2), text(size: 9pt, label))
-      }
+      // Bob - actively polling
+      node(
+        (2, 3),
+        [Bob\ 🔍 Polling],
+        fill: rgb("ccffcc"),
+        stroke: green + 2pt,
+        shape: fletcher.shapes.circle,
+      ),
 
-      let draw-flow-arrow(from, to, label, color) = {
-        line(from, to, mark: (end: ">"), stroke: color + 2pt)
-        let mid-x = (from.at(0) + to.at(0)) / 2
-        let mid-y = (from.at(1) + to.at(1)) / 2 - 0.3
-        content((mid-x, mid-y), text(size: 8pt, label), anchor: "center")
-      }
+      // Data item that will be shared
+      node((1, 1.5), [data 'x'], fill: rgb("fff3cd"), stroke: orange + 2pt),
 
-      // Draw the diagram components
-      draw-base-stream((1.5, 0.5), 5, 1, "Base Stream")
-
-      draw-actor((1.5, 3.2), 0.5, "Alice", "💤 Sleeping", rgb("ffcccc"), red)
-      draw-actor((6.5, 3.2), 0.5, "Bob", "🔍 Polling", rgb("ccffcc"), green)
-
-      draw-data-item((3.2, 2.2), 1.6, 0.6, "'x'")
-
-      draw-flow-arrow((6, 3), (5, 2.6), "1. poll", green)
-      draw-flow-arrow((3, 2.6), (2, 3), "2. wake", blue)
-    })
+      // Flow sequence with better spacing
+      edge((1, 0), (1, 1.5), [ready], "->", stroke: orange + 2pt),
+      edge((0, 3), (1, 0), [1. poll\ (not ready)], "->", stroke: gray + 1.5pt, bend: 50deg),
+      edge((2, 3), (1, 0), [2. poll\ (ready!)], "->", stroke: green + 2pt, bend: -50deg),
+      edge((2, 3), (0, 3), [3. wake Alice], "->", stroke: blue + 2pt, bend: 40deg),
+      edge((1, 1.5), (0, 3), [4. copy], "->", stroke: orange + 1.5pt, bend: -40deg),
+      edge((1, 1.5), (2, 3), [5. original], "->", stroke: orange + 1.5pt, bend: 40deg),
+    )
   ]
 
-  When data arrives, *all waiting clones* must be notified
 ]
 
 
@@ -1418,61 +1420,60 @@
 
 
 #slide[
+  #let yellow-color = rgb("ffffcc")
+  #let green-color = rgb("ccffcc")
+  #let red-color = rgb("ffcccc")
 
   === Example: `clone-stream` states and transitions
-
-  Final #link("https://github.com/wvhulle/clone-stream/tree/main/src/states")[`clone-stream` states]:
-  #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
-
-      let draw-state(pos, name, color, has-waker: false) = {
-        let (x, y) = pos
-        let stroke-color = if has-waker { red + 2pt } else { black + 1pt }
-        let height = if has-waker { 1.2 } else { 1.0 }
-        rect((x - 1.2, y - height / 2), (x + 1.2, y + height / 2), fill: color, stroke: stroke-color, radius: 0.3)
-        content((x, y + 0.15), align(center, text(size: 6pt, weight: "bold", name)))
-        if has-waker {
-          content((x, y - 0.3), align(center, text(size: 6pt, "💤 waker")))
-        }
-      }
-
-      let draw-arrow(from, to, label, curve: 0, x-label-offset: 0, y-label-offset: 0) = {
-        let (x1, y1) = from
-        let (x2, y2) = to
-        line((x1, y1), (x2, y2), mark: (end: ">"))
-        let mid = ((x1 + x2) / 2 + x-label-offset, (y1 + y2) / 2 + y-label-offset)
-        content(mid, text(size: 6pt, label), fill: white, stroke: white + 1pt)
-      }
-
-      // Actual states from clone-stream source (states.rs)
-      draw-state((1, 4.5), "QueueEmpty", rgb("ffffcc"))
-      draw-state((5, 4.5), "UnseenReady\n{index}", rgb("ccffcc"))
-      draw-state((9, 4.5), "AllSeen", rgb("ffffcc"))
-      draw-state((1, 1.5), "QueueEmpty\nPending", rgb("ffcccc"), has-waker: true)
-      draw-state((5, 1.5), "AllSeen\nPending", rgb("ffcccc"), has-waker: true)
-
-      // Key transitions from source code with proper spacing
-      draw-arrow((2.2, 4.5), (3.8, 4.5), "queue item", y-label-offset: 0.4)
-      draw-arrow((6.2, 4.5), (7.8, 4.5), "all consumed", y-label-offset: 0.4)
-      draw-arrow((0.6, 3.9), (0.6, 2.3), [base `Pending`], x-label-offset: -1)
-      draw-arrow((8.4, 3.7), (5.6, 2.3), [base `Pending`], x-label-offset: -1)
-      draw-arrow((1.4, 2.3), (1.4, 3.9), [queue/base `Ready`], x-label-offset: 1.2)
-      draw-arrow((6.6, 2.3), (9.4, 3.7), [base `Ready`], x-label-offset: 1)
-    })
-  ]
-
   #text(size: 8pt)[
+    Final #link("https://github.com/wvhulle/clone-stream/tree/main/src/states")[`clone-stream` states]:
+    #align(center)[
+      #diagram(
+        node-stroke: 1pt,
+        spacing: (3em, 1.5em),
+
+        // Top row: Ready states
+        node((0, 1), text(size: 7pt)[AwaitingFirstItem], fill: yellow-color, shape: pill),
+        node((1, 1), text(size: 7pt)[BaseStreamReady], fill: green-color, shape: pill),
+        node((2, 1), text(size: 7pt)[BaseStreamReady\ WithHistory], fill: green-color, shape: pill),
+        node((3, 1), text(size: 7pt)[ProcessingQueue], fill: green-color, shape: pill),
+
+        // Bottom row: Pending states with wakers
+        node((0, 0), text(size: 7pt)[AwaitingBase\ 💤], fill: red-color, stroke: red + 2pt, shape: pill),
+        node(
+          (2, 0),
+          text(size: 7pt)[AwaitingBase\ WithHistory\ 💤],
+          fill: red-color,
+          stroke: red + 2pt,
+          shape: pill,
+        ),
+
+        // Main flow transitions
+        edge((0, 1), (1, 1), text(size: 6pt)[ready], "->"),
+        edge((1, 1), (2, 1), text(size: 6pt)[history], "->"),
+        edge((2, 1), (3, 1), text(size: 6pt)[queue], "->"),
+        edge((3, 1), (2, 1), text(size: 6pt)[done], "->", bend: 30deg),
+
+        // Pending transitions
+        edge((1, 1), (0, 0), text(size: 6pt)[pending], "->", bend: -20deg),
+        edge((2, 1), (2, 0), text(size: 6pt)[pending], "->", bend: 20deg),
+        edge((0, 0), (1, 1), text(size: 6pt)[ready], "->", bend: -20deg),
+        edge((0, 0), (3, 1), text(size: 6pt)[queue ready], "->", bend: 40deg),
+        edge((2, 0), (3, 1), text(size: 6pt)[queue ready], "->", bend: 0deg),
+        edge((2, 0), (2, 1), text(size: 6pt)[ready], "->", bend: 20deg),
+      )
+    ]
+
+
     #grid(
       columns: (1fr, 1fr),
       gutter: 2em,
       [
-        - 🟨 Yellow: Clone can read directly from base stream
-        - 🟩 Green: Clone has unseen queued items ready
+        - #box(rect(width: 0.8em, height: 0.8em, fill: yellow-color, stroke: 0.5pt)) Yellow: Initial state, reads from base stream
+        - #box(rect(width: 0.8em, height: 0.8em, fill: green-color, stroke: 0.5pt)) Green: Processing items (base or queue)
       ],
       [
-        - 🟥 Red: Clone is waiting with stored waker
-        - Queue state tracks position relative to shared queue
+        - #box(rect(width: 0.8em, height: 0.8em, fill: red-color, stroke: 0.5pt)) Red: Pending state with stored waker
       ],
     )]
 

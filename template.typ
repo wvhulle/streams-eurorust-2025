@@ -62,6 +62,7 @@
   show heading.where(level: 3): it => {
     set text(style: "italic", size: 1.2em)
     underline(stroke: 1.5pt + colors.accent, offset: 0.2em, it)
+    v(0.5em)
   }
 
   // Content styling
