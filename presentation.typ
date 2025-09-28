@@ -4,6 +4,33 @@
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 #import fletcher.shapes: pill
 
+// Note: cetz functions must be defined within canvas contexts
+// Standard hexagon function template for use in slides
+
+// Reusable hexagon function that takes draw module as parameter
+#let hexagon(draw, center, size, fill-color, stroke-color, label, label-pos) = {
+  let (cx, cy) = center
+  let radius = size / 2
+
+  // Calculate hexagon vertices (6 points around circle)
+  let vertices = ()
+  for i in range(6) {
+    let angle = i * 60deg
+    let x = cx + radius * calc.cos(angle)
+    let y = cy + radius * calc.sin(angle)
+    vertices.push((x, y))
+  }
+
+  // Draw hexagon outline using line() calls
+  for i in range(6) {
+    let start = vertices.at(i)
+    let end = vertices.at(calc.rem(i + 1, 6))
+    draw.line(start, end, stroke: stroke-color + 2pt)
+  }
+
+  draw.content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
+}
+
 // Apply template and page setup
 #show: presentation-template.with(
   title: "Make Your Own Stream Operators",
@@ -37,7 +64,7 @@
 #slide[
   === Why streams matter: real-world chaos
 
-  *The problem:* Processing streaming data from moving vehicles
+  *The problem:* Processing incoming (streaming) data from moving vehicles
 
   *What I observed:*
   - Inconsistent error handling across the codebase
@@ -48,33 +75,25 @@
       import draw: *
 
       // Car emoji
-      content((0, 2), text(size: 2.5em, "🚗"), anchor: "center")
+      content((-1, 2.5), text(size: 7em, "🚗"), anchor: "center")
 
       // Arrow with data flow
       line((0.8, 1.8), (3.2, 1.8), mark: (end: ">"), stroke: blue + 3pt)
       content((1.8, 2.2), text(size: 7pt, "streaming data"), anchor: "center")
 
       // Central chaos fire
-      content((4, 2), text(size: 2.5em, "🔥"), anchor: "center")
-
-      // Developers around the chaos (positioned in a circle around the fire)
-      content((3.2, 2.8), text(size: 1.2em, "👨‍💻"), anchor: "center") // Top-left dev
-      content((4.8, 2.8), text(size: 1.2em, "👩‍💻"), anchor: "center") // Top-right dev
-      content((3.2, 1.2), text(size: 1.2em, "🧑‍💻"), anchor: "center") // Bottom-left dev
-      content((4.8, 1.2), text(size: 1.2em, "👨‍💻"), anchor: "center") // Bottom-right dev
-      content((4, 2.8), text(size: 1.2em, "👩‍💻"), anchor: "center") // Top dev
-      content((5.2, 2), text(size: 1.2em, "🧑‍💻"), anchor: "center") // Right dev
+      content((5, 2.2), text(size: 6em, "🔥"), anchor: "center")
     })
   ]
 
-  ... Let's fix this!
+
 ]
 
 
 
 #slide[
 
-  === Short history of reactive programming
+  === Previous work
 
 
 
@@ -132,56 +151,9 @@
 
 
 
-#slide[
-  === Why does Rust bring to the table?
-
-  Reactivity in garbage collected languages is *completely different* from Rust's ownership system
-
-  #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
-
-      // TypeScript side
-      rect((0.5, 1), (3.5, 4), fill: rgb("fff0e6"), stroke: orange + 2pt)
-      content((2, 3.5), text(size: 8pt, weight: "bold", "TypeScript"), anchor: "center")
-
-      // GC cleanup
-      circle((2, 2.8), radius: 0.4, fill: rgb("e6ffe6"), stroke: green + 2pt)
-      content((2, 2.8), text(size: 6pt, "GC"), anchor: "center")
-
-
-      // Data flowing freely - simplified dots
-      for i in range(3) {
-        let x = 1.4 + i * 0.3
-        circle((x, 2.0), radius: 0.08, fill: blue)
-      }
-      content((2, 1.4), text(size: 6pt, "Put anything\nanywhere"), anchor: "center")
-
-      // VS separator
-      content((4.5, 2.5), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
-
-      // Rust side
-      rect((5.5, 1), (8.5, 4), fill: rgb("ffe6e6"), stroke: red + 2pt)
-      content((7, 3.5), text(size: 8pt, weight: "bold", "Rust"), anchor: "center")
-
-      // Ownership constraints
-      rect((6.2, 2.6), (7.8, 3.2), fill: rgb("ffcccc"), stroke: red + 1pt)
-      content((7, 2.9), text(size: 6pt, "Ownership\nRules"), anchor: "center")
-
-      // Constrained data flow
-      line((6.2, 2.2), (6.8, 2.2), stroke: blue + 2pt)
-      line((6.8, 2.2), (7.2, 1.8), stroke: blue + 2pt, mark: (end: ">"))
-      line((7.2, 1.8), (7.8, 1.8), stroke: blue + 2pt)
-      content((7, 1.3), text(size: 6pt, "Explicit design\nrequired"), anchor: "center")
-    })
-  ]
-
-  This fundamental difference explains why stream patterns from other languages don't translate directly
-]
-
 
 #slide[
-  === Stream hierarchy: from hardware to software
+  === What kind of streams exist?
 
   #align(center)[
     #canvas(length: 1cm, {
@@ -232,22 +204,22 @@
 ]
 
 #slide[
-  === A basic TCP Stream
+  === A common leaf stream
 
 
-  #text(size: 10pt)[
-    ```rust
-    use futures::stream::StreamExt;
 
-    let mut tcp_stream = tokio::net::TcpListener::bind("127.0.0.1:8080")
-        .await?
-        .incoming();
+  ```rust
+  let mut tcp_stream = tokio::net::TcpListener::bind("127.0.0.1:8080")
+      .await?
+      .incoming();
 
-    while let Some(connection) = tcp_stream.next().await {
-        handle_client(connection?).await;
-    }
-    ```]
+  use futures::stream::StreamExt; // Needed for .next()
+  while let Some(connection) = tcp_stream.next().await {
+      handle_client(connection?).await;
+  }
+  ```
 
+  The same pattern exists for several types of middleware.
 
 ]
 
@@ -326,8 +298,7 @@
         .await;
     ```]
 
-  #align(center)[
-    "Programs must be written *for people to read*, and only incidentally for machines to execute." — _Harold Abelson & Gerald Jay Sussman_]
+  "Programs must be written *for people to read*, and only incidentally for machines to execute." — _Harold Abelson & Gerald Jay Sussman_
 ]
 
 
@@ -343,56 +314,81 @@
   === Iterator vs Stream
 
   #align(center + horizon)[
-    #canvas(length: 1cm, {
-      import draw: *
+    #set text(size: 7pt)
+    #diagram(
+      node-corner-radius: 5pt,
+      spacing: (1.2em, 0.8em),
 
-      let draw-data-flow(start-x, title, calls, results, is-async) = {
-        // Title
-        content((start-x + 3, 5.5), text(size: 11pt, weight: "bold", title), anchor: "center")
+      // Iterator side - title
+      node((0.5, 5), text(size: 11pt, weight: "bold")[Iterator (sync)], fill: none, stroke: none),
 
-        // Draw calls and results
-        for (i, (call, result)) in calls.zip(results).enumerate() {
-          let y = 4.5 - i * 0.8
-          let result-color = if is-async and result.starts-with("Pending") { orange } else { green }
+      // Iterator calls
+      node((0, 4), [next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
+      node((0, 3), [next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
+      node((0, 2), [next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
+      node((0, 1), [next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
 
-          // Call box
-          rect((start-x, y - 0.2), (start-x + 2, y + 0.2), fill: rgb("e6f3ff"), stroke: blue)
-          content((start-x + 1, y), text(size: 8pt, call), anchor: "center")
+      // Iterator results
+      node((1, 4), [Some(1)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((1, 3), [Some(2)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((1, 2), [Some(3)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((1, 1), [None], fill: rgb("f0f0f0"), stroke: green + 1pt),
 
-          // Arrow
-          line((start-x + 2.1, y), (start-x + 2.9, y), mark: (end: ">"))
+      // Iterator arrows
+      edge((0, 4), (1, 4), "->"),
+      edge((0, 3), (1, 3), "->"),
+      edge((0, 2), (1, 2), "->"),
+      edge((0, 1), (1, 1), "->"),
 
-          // Result box
-          rect((start-x + 3, y - 0.2), (start-x + 6, y + 0.2), fill: rgb("f0f0f0"), stroke: result-color)
-          content((start-x + 4.5, y), text(size: 8pt, result), anchor: "center")
-        }
 
-        // Summary
-        let summary = if is-async { "⚠️ May return Pending" } else { "✓ Always returns immediately" }
-        content((start-x + 3, 0.5), text(size: 9pt, summary), anchor: "center")
-      }
+      // Stream low-level side - title
+      node((3.5, 5), text(size: 10pt, weight: "bold")[Stream (low-level)], fill: none, stroke: none),
 
-      // Iterator flow
-      draw-data-flow(
-        0,
-        "Iterator (sync)",
-        ("next()", "next()", "next()", "next()"),
-        ("Some(1)", "Some(2)", "Some(3)", "None"),
-        false,
-      )
+      // Stream calls
+      node((3, 4), [poll_next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
+      node((3, 3), [poll_next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
+      node((3, 2), [poll_next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
+      node((3, 1), [poll_next()], fill: rgb("e6f3ff"), stroke: blue + 1pt),
 
-      // Stream flow
-      draw-data-flow(
-        8,
-        "Stream (async)",
-        ("poll_next()", "poll_next()", "poll_next()", "poll_next()"),
-        ("Pending", "Ready(Some(1))", "Pending", "Ready(Some(2))"),
-        true,
-      )
+      // Stream results
+      node((4, 4), [Pending], fill: rgb("f0f0f0"), stroke: orange + 1pt),
+      node((4, 3), [Ready(Some(1))], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((4, 2), [Pending], fill: rgb("f0f0f0"), stroke: orange + 1pt),
+      node((4, 1), [Ready(Some(2))], fill: rgb("f0f0f0"), stroke: green + 1pt),
 
-      // VS separator
-      content((7, 3), text(size: 14pt, weight: "bold", "vs"), anchor: "center")
-    })
+      // Stream arrows
+      edge((3, 4), (4, 4), "->"),
+      edge((3, 3), (4, 3), "->"),
+      edge((3, 2), (4, 2), "->"),
+      edge((3, 1), (4, 1), "->"),
+
+
+      // Stream high-level side - title
+      node((6.5, 5), text(size: 10pt, weight: "bold")[Stream (high-level)], fill: none, stroke: none),
+
+      // Stream async calls
+      node((6, 4), [next().await], fill: rgb("f0e6ff"), stroke: purple + 1pt),
+      node((6, 3), [next().await], fill: rgb("f0e6ff"), stroke: purple + 1pt),
+      node((6, 2), [next().await], fill: rgb("f0e6ff"), stroke: purple + 1pt),
+      node((6, 1), [next().await], fill: rgb("f0e6ff"), stroke: purple + 1pt),
+
+      // Stream async results
+      node((7, 4), [Some(1)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((7, 3), [Some(2)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((7, 2), [Some(3)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((7, 1), [None], fill: rgb("f0f0f0"), stroke: green + 1pt),
+
+      // Stream async arrows
+      edge((6, 4), (7, 4), "->"),
+      edge((6, 3), (7, 3), "->"),
+      edge((6, 2), (7, 2), "->"),
+      edge((6, 1), (7, 1), "->"),
+
+      // Summary labels
+      node((0.5, 0), text(size: 8pt)[✓ Always returns immediately], fill: none, stroke: none),
+      node((3.5, 0), text(size: 8pt)[⚠️ May be Pending], fill: none, stroke: none),
+      node((6.5, 0), text(size: 8pt)[✓ Hides polling complexity], fill: none, stroke: none),
+    )
   ]
 
 ]
@@ -402,33 +398,32 @@
 
   Similar to `Future`, but yields multiple items over time (when queried / *pulled*):
 
-  #text(size: 10pt)[
 
-    #grid(
-      columns: (1fr, 1fr),
-      [
-        ```rust
-        trait Stream {
-            type Item;
 
-            fn poll_next(
-                self: Pin<&mut Self>,
-                cx: &mut Context
-            ) -> Poll<Option<Self::Item>>;
-        }
-        ```],
-      [
-        Returned values:
+  #grid(
+    columns: (1fr, 1fr),
+    [
+      ```rust
+      trait Stream {
+          type Item;
 
-        1. `Pending` - Not ready yet, will notify via waker
-        2. `Ready( ... )` - Ready with result:
-          - `Some(item)` - New data is available
-          - `None` - *May* be done - depends on stream type
-      ],
-    )]
+          fn poll_next(
+              self: Pin<&mut Self>,
+              cx: &mut Context
+          ) -> Poll<Option<Self::Item>>;
+      }
+      ```],
 
-  Ignore for now: `Context`, `Pin`.
-]
+    text(size: 8pt)[
+      Returns `Poll` enum:
+
+      1. `Poll::Pending`: not ready (like `Future`)
+      2. `Poll::Ready(_)`:
+        - `Ready(Some(item))`: new data is made available
+        - `Ready(None)`: currently exhausted (not necessarily the end)
+    ],
+  )]
+
 
 
 
@@ -445,33 +440,73 @@
   The basic stream operators of #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]:
 
   #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
+    #set text(size: 7pt)
+    #diagram(
+      node-corner-radius: 4pt,
+      spacing: (2.5em, 1.5em),
+      edge-stroke: 1.5pt,
 
-      let draw-stage(x, y, width, label, input, output, color) = {
-        rect((x, y), (x + width, y + 0.8), fill: color, stroke: black, radius: 4pt)
-        content((x + width / 2, y + 0.6), text(size: 7pt, weight: "bold", label), anchor: "center")
-        content((x + width / 2, y + 0.4), text(size: 6pt, input), anchor: "center")
-        content((x + width / 2, y + 0.2), text(size: 6pt, output), anchor: "center")
+      // Top row: Rust operator names
+      node((0, 2), [`iter(0..10)`], fill: rgb("e6f3ff"), stroke: black + 1pt, shape: circle),
+      node((1, 2), [`map(*2)`], fill: rgb("fff0e6"), stroke: black + 1pt, shape: rect),
+      node((2, 2), [`filter(>4)`], fill: rgb("f0ffe6"), stroke: black + 1pt, shape: rect),
+      node((3, 2), [`enumerate`], fill: rgb("ffe6f0"), stroke: black + 1pt, shape: rect),
+      node((4, 2), [`take(3)`], fill: rgb("f0e6ff"), stroke: black + 1pt, shape: rect),
+      node((5, 2), [`skip_while(<1)`], fill: rgb("e6fff0"), stroke: black + 1pt),
 
-        if x > 0 {
-          line((x - 2, y + 0.4), (x - 0.5, y + 0.4), mark: (end: ">"))
-        }
-      }
+      // Middle row: Data values
+      node((0, 1), [0,1,2,3...], fill: rgb("e6f3ff"), stroke: black + 1pt, shape: circle),
+      node((1, 1), [0,2,4,6...], fill: rgb("fff0e6"), stroke: black + 1pt, shape: rect),
+      node((2, 1), [6,8,10...], fill: rgb("f0ffe6"), stroke: black + 1pt, shape: rect),
+      node((3, 1), [(0,6),(1,8)...], fill: rgb("ffe6f0"), stroke: black + 1pt, shape: rect),
+      node((4, 1), [(0,6),(1,8),(2,10)], fill: rgb("f0e6ff"), stroke: black + 1pt, shape: rect),
+      node((5, 1), [(1,8),(2,10)], fill: rgb("e6fff0"), stroke: black + 1pt),
 
-      // First row - transformation stages
-      draw-stage(0, 3.5, 1.8, "iter(0..10)", "source", "0,1,2,3...", rgb("e6f3ff"))
-      draw-stage(4, 3.5, 1.8, "map(*2)", "0,1,2,3...", "0,2,4,6...", rgb("fff0e6"))
-      draw-stage(8, 3.5, 1.8, "filter(>4)", "0,2,4,6...", "6,8,10...", rgb("f0ffe6"))
+      // Bottom row: Textual descriptions
+      node((0, 0), [source], fill: rgb("e6f3ff"), stroke: black + 1pt, shape: circle),
+      node((1, 0), [multiply by 2], fill: rgb("fff0e6"), stroke: black + 1pt, shape: rect),
+      node((2, 0), [keep if > 4], fill: rgb("f0ffe6"), stroke: black + 1pt, shape: rect),
+      node((3, 0), [add index], fill: rgb("ffe6f0"), stroke: black + 1pt, shape: rect),
+      node((4, 0), [take first 3], fill: rgb("f0e6ff"), stroke: black + 1pt, shape: rect),
+      node((5, 0), [skip while < 1], fill: rgb("e6fff0"), stroke: black + 1pt),
 
-      // Connection arrow between rows
-      line((9, 3.1), (0.9, 2.7), mark: (end: ">"), stroke: blue + 1.5pt)
+      // Linear flow edges (top row)
+      edge((0, 2), (1, 2), "->"),
+      edge((1, 2), (2, 2), "->"),
+      edge((2, 2), (3, 2), "->"),
+      edge((3, 2), (4, 2), "->"),
+      edge((4, 2), (5, 2), "->"),
 
-      // Second row - aggregation stages
-      draw-stage(0, 1.5, 1.8, "enumerate", "6,8,10...", "(0,6),(1,8)...", rgb("ffe6f0"))
-      draw-stage(4, 1.5, 1.8, "take(3)", "(0,6),(1,8)...", "first 3", rgb("f0e6ff"))
-      draw-stage(8, 1.5, 2.2, "skip_while(<1)", "first 3", "(1,8),(2,10)", rgb("e6fff0"))
-    })
+      // Data flow edges (middle row)
+      edge((0, 1), (1, 1), "->", stroke: (dash: "dashed")),
+      edge((1, 1), (2, 1), "->", stroke: (dash: "dashed")),
+      edge((2, 1), (3, 1), "->", stroke: (dash: "dashed")),
+      edge((3, 1), (4, 1), "->", stroke: (dash: "dashed")),
+      edge((4, 1), (5, 1), "->", stroke: (dash: "dashed")),
+
+      // Description flow edges (bottom row)
+      edge((0, 0), (1, 0), "->", stroke: (dash: "dotted")),
+      edge((1, 0), (2, 0), "->", stroke: (dash: "dotted")),
+      edge((2, 0), (3, 0), "->", stroke: (dash: "dotted")),
+      edge((3, 0), (4, 0), "->", stroke: (dash: "dotted")),
+      edge((4, 0), (5, 0), "->", stroke: (dash: "dotted")),
+
+      // Vertical connections from operators to data
+      edge((0, 2), (0, 1), "-", stroke: (dash: "dashed")),
+      edge((1, 2), (1, 1), "-", stroke: (dash: "dashed")),
+      edge((2, 2), (2, 1), "-", stroke: (dash: "dashed")),
+      edge((3, 2), (3, 1), "-", stroke: (dash: "dashed")),
+      edge((4, 2), (4, 1), "-", stroke: (dash: "dashed")),
+      edge((5, 2), (5, 1), "-", stroke: (dash: "dashed")),
+
+      // Vertical connections from data to descriptions
+      edge((0, 1), (0, 0), "-", stroke: (dash: "dashed")),
+      edge((1, 1), (1, 0), "-", stroke: (dash: "dashed")),
+      edge((2, 1), (2, 0), "-", stroke: (dash: "dashed")),
+      edge((3, 1), (3, 0), "-", stroke: (dash: "dashed")),
+      edge((4, 1), (4, 0), "-", stroke: (dash: "dashed")),
+      edge((5, 1), (5, 0), "-", stroke: (dash: "dashed")),
+    )
   ]
 
   #align(center)[
@@ -490,20 +525,36 @@
   === The less-known `futures::ready` function
 
   Filter needs an *async closure* (or closure returning `Future`):
-
   #text(size: 9pt)[
-    ```rust
-    // Option 1: Async block
-    stream.filter(|&x| async move { x % 2 == 0 })
-    // Option 2: Async closure (Rust 2025+)
-    stream.filter(async |&x| x % 2 == 0)
-    // Option 3: Wrap sync output with ready()
-    stream.filter(|&x| ready(x % 2 == 0))
-    ```
-  ]
-  `ready(value)` creates a `Future` that immediately resolves to `value`.
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 1em,
+      [
 
-  *Bonus*: `future::ready()` is `Unpin`, helping make the entire stream pipeline `Unpin` (through common blanket implementations)!
+        *Option 1*: Async block
+        ```rust
+        stream.filter(|&x| async move {
+          x % 2 == 0
+        })
+        ```
+
+        *Option 2*: Async closure (Rust 2025+)
+        ```rs
+        stream.filter(async |&x| x % 2 == 0)
+        ```
+      ],
+      [
+        *Option 3*: Wrap sync output with `std::future::ready()`
+        ```rust
+        stream.filter(|&x| ready(x % 2 == 0))
+        ```
+
+        `ready(value)` creates a `Future` that immediately resolves to `value`.
+      ],
+    )]
+
+
+  *Bonus*: `future::ready()` is `Unpin`, helping to keep the entire stream pipeline `Unpin` (if the input stream was `Unpin`)!
 ]
 
 
@@ -539,285 +590,194 @@
 
 
 #slide[
-  === *Projecting* the _'pinned wrapper'_ `Pin<&mut Double>`
+  === *Projecting* the '_pinned_ wrapper'
   #text(size: 8pt)[
-    #align(center)[
-      #grid(
-        columns: (1fr, auto, 1fr),
-        column-gutter: 2em,
-        row-gutter: 1.5em,
-        // First row - diagrams
-        [
-          #canvas(length: 1.2cm, {
-            import draw: *
+    #align(center + horizon)[
 
-            // Helper functions for Pin diagrams
-            let draw-pin-shape(center, size, fill-color, stroke-color, label, label-pos, radius: 0.3) = {
-              let half = size / 2
-              rect(
-                (center.at(0) - half, center.at(1) - half),
-                (center.at(0) + half, center.at(1) + half),
-                fill: fill-color,
-                stroke: stroke-color + 2pt,
-                radius: radius,
-              )
-              content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
-            }
+      #canvas(length: 1.2cm, {
+        import draw: *
 
-            let draw-nested-structure(center, outer-radius, inner-radius, outer-label, inner-label) = {
-              circle(center, radius: outer-radius, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
-              content(
-                (center.at(0), center.at(1) + 0.6),
-                text(size: 7pt, weight: "bold", outer-label),
-                anchor: "center",
-              )
-              circle(center, radius: inner-radius, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-              content(center, text(size: 6pt, inner-label), anchor: "center")
-            }
+        // Left: Pin<&mut Self> with nested circles
+        hexagon(
+          draw,
+          (1, 2),
+          3,
+          rgb("ffeeee"),
+          blue,
+          text(fill: blue, size: 8pt, weight: "bold")[`Pin<&mut Double>`],
+          (1, 3.5),
+        )
+        circle((1, 2), radius: 0.8, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
+        content((1, 3), text(size: 7pt, weight: "bold", [`&mut Double`], fill: orange), anchor: "center")
+        circle((1, 2), radius: 0.4, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+        content((1, 2), text(size: 6pt, fill: green, [`InSt`]), anchor: "center")
 
-            // Pin<&mut Self> with nested circles
-            draw-pin-shape((2, 2), 2.5, rgb("ffeeee"), blue, "Pin<&mut Double>", (2, 3.5))
-            draw-nested-structure((2, 2), 0.8, 0.4, "Double", "InSt")
-          })
-        ],
-        [
-          #align(center + horizon)[
-            #text(size: 20pt, weight: "bold")[⟶]
-            #v(0.5em)
-            *Warning*: only possible when\
-            `Double<InSt>: Unpin`
-          ]
-        ],
-        [
-          #canvas(length: 1.2cm, {
-            import draw: *
+        // First arrow with .get_mut() label
+        line((2.5, 2), (3.5, 2), mark: (end: ">"), stroke: blue + 2pt)
+        content((3, 2.4), text(size: 7pt, fill: blue, [`.get_mut()`]), anchor: "center")
 
-            // Helper functions for Pin diagrams
-            let draw-pin-shape(center, size, fill-color, stroke-color, label, label-pos, radius: 0.3) = {
-              let half = size / 2
-              rect(
-                (center.at(0) - half, center.at(1) - half),
-                (center.at(0) + half, center.at(1) + half),
-                fill: fill-color,
-                stroke: stroke-color + 2pt,
-                radius: radius,
-              )
-              content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
-            }
+        // Middle: Just InSt
+        circle((4, 2), radius: 0.4, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+        content((4, 2), text(size: 6pt, fill: green, [`InSt`]), anchor: "center")
 
-            let draw-simple-inner(center, radius, label) = {
-              circle(center, radius: radius, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-              content(center, text(size: 6pt, label), anchor: "center")
-            }
+        // Second arrow with Pin::new() label
+        line((4.4, 2), (5.5, 2), mark: (end: ">"), stroke: green + 2pt)
+        content((5, 2.4), text(size: 6pt, text(fill: blue)[`Pin::new()`]), anchor: "center")
 
-            // Pin<&mut InSt>
-            draw-pin-shape((2, 2), 2, rgb("eeffee"), blue, "Pin<&mut InSt>", (2, 3.3), radius: 0.5)
-            draw-simple-inner((2, 2), 0.4, "InSt")
-          })
-        ],
-        // Second row - code fragments
-        [
-          ```rust
-          self: Pin<&mut Self>
-          ```
-          How to convert into `&mut self.in_stream`?
+        // Right: Pin<&mut InSt>
+        hexagon(draw, (6.5, 2), 2, rgb("eeffee"), blue, text(fill: blue)[`Pin<&mut InSt>`], (6.5, 3.3))
+        circle((6.5, 2), radius: 0.4, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+        content((6.5, 2), text(size: 6pt, fill: green)[`InSt`], anchor: "center")
 
-        ],
-        [
-          ```rust
-          let this =
-                self // Pin<&mut Double>
-                .get_mut() // &mut Double
-                .in_stream; // &mut InSt
-          ```
-        ],
-        [
-          Can now call
-          ```rust
-          Pin::new(this)
-              .poll_next(cx)
-          ```
-        ],
-      )
+        // Third arrow with next().await label
+        line((7.5, 2), (8.5, 2), mark: (end: ">"), stroke: purple + 2pt)
+        content((8, 2.4), text(size: 6pt, fill: purple, [`Stream::poll_next()`]), anchor: "north-west")
+      })
+
     ]
   ]]
 
 
 
 #slide[
-  === `Pin`:  prevents movement only for types that need it (`!Unpin`)
+  === `!Unpin` defends against unsafe moves
 
   #text(size: 9pt)[
-    Only two safe operations with `Pin`: creation and conditional escape
 
     #align(center)[
-      #canvas(length: 1cm, {
-        import draw: *
+      #grid(
+        rows: (auto, auto),
+        row-gutter: 1.5em,
 
-        // Three-column layout: Free bird | Arrows | Pinned bird
+        // Row 1: Unpin Bird example
+        [
+          #canvas(length: 1cm, {
+            import draw: *
 
-        // Left column: Free bird (can move)
-        content((1, 3), text(size: 2em, "🐦"), anchor: "center")
-        content((1, 2.3), text(size: 8pt, weight: "bold", "Free Bird"), anchor: "center")
-        content((1, 2), text(size: 7pt, [(`Unpin`)]), anchor: "center")
-        content((1, 1.6), text(size: 6pt, "✅ Can move"), anchor: "center")
+            // Left: Free bird (can move)
+            content((1, 2.5), text(size: 2em, "🐦"), anchor: "center")
+            content((1, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
+            content((1, 1.6), text(size: 6pt, "✅ Can move"), anchor: "center")
 
-        // Middle column: Arrows with operations
+            // Pin::new() arrow (left to right)
+            line((1.8, 2.7), (7.2, 2.7), mark: (end: ">"), stroke: blue + 3pt)
+            content((4.5, 3.0), text(size: 7pt, weight: "bold", [`Pin::new()`]), anchor: "center")
+            content((4.5, 2.4), text(size: 6pt, "Always safe"), anchor: "center")
 
-        // Pin::new() arrow (left to right)
-        line((1.8, 3.0), (5.2, 3.0), mark: (end: ">"), stroke: blue + 3pt)
-        content((3.5, 3.3), text(size: 7pt, weight: "bold", [`Pin::new()`]), anchor: "center")
-        content((3.5, 2.7), text(size: 6pt, "Always safe"), anchor: "center")
+            // Pin::get_mut() arrow (right to left)
+            line((7.2, 1.7), (1.8, 1.7), mark: (end: ">"), stroke: green + 3pt)
+            content((4.5, 2.0), text(size: 7pt, weight: "bold", [`Pin::get_mut()`]), anchor: "center")
+            content((4.5, 1.4), text(size: 6pt, [if `T: Unpin`]), anchor: "center")
 
-        // Pin::get_mut() arrow (right to left)
-        line((5.2, 2.0), (1.8, 2.0), mark: (end: ">"), stroke: green + 3pt)
-        content((3.5, 2.3), text(size: 7pt, weight: "bold", [`Pin::get_mut()`]), anchor: "center")
-        content((3.5, 1.7), text(size: 6pt, [if `T: Unpin`]), anchor: "center")
+            // Right: Pin<&mut Bird> with caged bird
+            hexagon(
+              draw,
+              (8.5, 2.3),
+              2.5,
+              rgb("ffeeee"),
+              blue,
+              text(fill: blue)[`Pin<&mut Bird>`],
+              (8.5, 3.7),
+            )
+            content((8.5, 2.6), text(size: 2em, "🐦"), anchor: "center")
+            content((8.5, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
+            content((8.5, 1.6), text(size: 6pt, [Can be\ uncaged]), anchor: "center")
+          })
+        ],
 
-        // Right column: Pin box with bird inside (similar to previous slide style)
-        let pin-width = 2.5
-        let pin-height = 1.8
-        let pin-x = 6.5
-        let pin-y = 2.6
+        // Row 2: !Unpin Tiger example
+        [
+          #canvas(length: 1cm, {
+            import draw: *
 
-        // Pin box with similar styling as before
-        rect(
-          (pin-x - pin-width / 2, pin-y - pin-height / 2),
-          (pin-x + pin-width / 2, pin-y + pin-height / 2),
-          fill: rgb("ffeeee"),
-          stroke: blue + 2pt,
-          radius: 0.3,
-        )
-        content((pin-x, pin-y + 0.6), text(size: 8pt, weight: "bold", [`Pin<&mut Bird>`]), anchor: "center")
+            // Left: Free tiger (!Unpin, dangerous to move)
+            content((1, 2.8), text(size: 3em, "🐅"), anchor: "center")
+            content((1, 2.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
+            content((1, 1.6), text(size: 6pt, "⚠️ Dangerous to move"), anchor: "center")
 
-        // Bird inside the pin box
-        content((pin-x, pin-y), text(size: 1.5em, "🐦"), anchor: "center")
-        content((pin-x, pin-y - 0.6), text(size: 6pt, "📌 Caged "), anchor: "center")
-      })
+            // Cross mark (blocked operation)
+            line((2.5, 2.8), (6.5, 1.8), stroke: red + 4pt)
+            line((2.5, 1.8), (6.5, 2.8), stroke: red + 4pt)
+
+            content((4.5, 1.5), text(size: 6pt, fill: red, [❌ Not safe]), anchor: "center")
+
+            content(
+              (4.5, 2.5),
+              text(size: 9pt, weight: "bold", fill: black, [`Pin::get_mut()` \ `Pin::new()`]),
+              anchor: "center",
+            )
+
+            // Right: Pin<&mut Tiger> with caged tiger (permanently caged)
+            hexagon(
+              draw,
+              (8.5, 2.3),
+              2.5,
+              rgb("ffeeee"),
+              red,
+              text(fill: red)[`Pin<&mut Tiger>`],
+              (8.5, 3.7),
+            )
+            content((8.5, 2.8), text(size: 3em, "🐅"), anchor: "center")
+            content((8.5, 2.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
+            content((8.5, 1.6), text(size: 6pt, [Can't be\ uncaged]), anchor: "center")
+          })
+        ],
+      )
     ]
-
-    #v(0.5em)
-
-    #grid(
-      columns: (1fr, 1fr),
-      column-gutter: 1.5em,
-      [
-        *`Unpin` types* (safe to move)
-        - Primitives, most structs, `Box<T>`
-
-        ✅ Can use `Pin::get_mut()`
-      ],
-      [
-        *`!Unpin` types* (self-referential)
-        - Hand-written futures/generators
-
-        ❌ `Pin::get_mut()` blocked by compiler
-      ],
-    )
-
-    *Pin prevents movement by restricting safe functions to `Unpin` types only*
 
 
   ]
 ]
 
-#slide[
-  === Boxing `!Unpin` streams
-  #text(size: 10pt)[
-    *Can't access `!Unpin` stream inside `Pin<&mut Double>`*
-
-
-    #grid(
-      columns: (1fr, 1fr),
-      column-gutter: 1em,
-      [
-        #rect(
-          fill: red.lighten(90%),
-          stroke: red.lighten(50%),
-          radius: 8pt,
-          inset: 1em,
-          width: 100%,
-          [
-            #align(center)[
-              *Before: `!Unpin` stream*
-
-              #v(1em)
-
-              ```rust
-              struct Double<InSt> {
-                stream: InSt  // !Unpin
-              }
-              ```
-
-              #v(1em)
-
-              ❌ Cannot escape `Pin` wrapper
-            ]
-          ],
-        )
-      ],
-      [
-        #rect(
-          fill: green.lighten(90%),
-          stroke: green.lighten(50%),
-          radius: 8pt,
-          inset: 1em,
-          width: 100%,
-          [
-            #align(center)[
-              *After: `Box` wrapper*
-
-              #v(1em)
-
-              ```rust
-              struct Double<InSt> {
-                stream: Box<InSt>  // Unpin!
-              }
-              ```
-
-              #v(1em)
-
-              ✅ Can safely call `.get_mut()`
-            ]
-          ],
-        )
-      ],
-    )
-  ]]
 
 #slide[
   === Why `Box<T>` is always `Unpin`
-  #text(size: 10pt)[
+  #text(size: 8pt)[
     #align(center)[
       #canvas(length: 1.2cm, {
         import draw: *
 
         // Stack - Box pointer
         rect((1, 3), (4, 5), fill: rgb("e6f3ff"), stroke: blue + 2pt)
-        content((2.5, 4.3), text(size: 9pt, weight: "bold", "Stack"), anchor: "center")
-        content((2.5, 3.7), text(size: 8pt, "Box<InSt>"), anchor: "center")
+        content((2.5, 5.2), text(size: 9pt, weight: "bold", "Stack"), anchor: "center")
+        content((2.5, 4.7), text(size: 8pt, [`Box<InSt>`]), anchor: "center")
+        rect((1.3, 3.5), (3.7, 4.5), stroke: (dash: "dashed", paint: black, thickness: 1pt))
+        content((2.5, 4.), text(size: 8pt, [pointer \ `0X1234`]), anchor: "center")
+
         content((2.5, 3.3), text(size: 7pt, "✅ Safe to move"), anchor: "center")
 
         // Arrow to heap
-        line((4.2, 4), (6.3, 4), mark: (end: ">"), stroke: orange + 2pt)
-        content((5.25, 4.5), text(size: 7pt, "points to"), anchor: "center")
+        line((3.5, 4), (7.3, 3.7), mark: (end: ">"), stroke: orange + 2pt)
+        content((5.25, 4.3), text(size: 8pt, [dereferences to]), anchor: "center")
 
-        // Heap - actual stream
-        rect((6.5, 3), (9.5, 5), fill: rgb("fff0e6"), stroke: orange + 2pt)
-        content((8, 4.3), text(size: 9pt, weight: "bold", "Heap"), anchor: "center")
-        content((8, 3.7), text(size: 8pt, "InSt (!Unpin)"), anchor: "center")
-        content((8, 3.3), text(size: 7pt, "📌 Fixed address"), anchor: "center")
+        // Tiger pointing into heap
+        content((11.5, 5.0), text(size: 3em, "🐅"), anchor: "center")
+        content((11.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
+        // Smooth curved arrow going into triangle center
+        arc((10.5, 5.2), start: 60deg, stop: 160deg, radius: 1.5, mark: (end: ">"), stroke: red + 2pt)
+
+        // Heap - actual stream (triangle laying flat)
+        line((6.0, 3), (10, 3), stroke: orange + 2pt) // base
+        line((6.0, 3), (8, 5), stroke: orange + 2pt) // left side
+        line((10, 3), (8, 5), stroke: orange + 2pt) // right side
+
+        content((8, 5.3), text(size: 9pt, weight: "bold", "Heap"), anchor: "center")
+        content((8.4, 3.8), text(size: 6pt, [`0X1234`]), anchor: "center")
+        content((8.4, 3.5), text(size: 8pt, [`InSt (!Unpin)`]), anchor: "center")
+        content((8.3, 3.2), text(size: 7pt, "📌 Fixed address"), anchor: "center")
       })
     ]
+
+
+    1. Put your `!Unpin` type on the heap with `Box::new()`\
+      (Heap content stays at fixed address)
+    2. The output of `Box::new(st)` is just a pointer \
+      (Moving pointers is safe)
+    3. `Box<X>: Deref<Target = X>`, so `Box<InSt>` *behaves like `InSt`*\
   ]
-
-
-  1. `Box` is just a pointer - moving pointers is safe
-  2. Heap content stays at fixed address
-  3. `Box<T>` derefs to `T` - behaves like the stream
-  4. Even `!Unpin` content becomes accessible through `Unpin` `Box`
-
-  *Result:* `Box<InSt>` is always `Unpin` → `Double<InSt>` becomes `Unpin` ✅
+  ```rs
+  struct Double {in_stream: Box<InSt>}: Unpin
+  ```
 ]
 
 #slide[
@@ -832,64 +792,59 @@
     #canvas(length: 1.2cm, {
       import draw: *
 
-      // Helper functions for Pin diagrams (reused from earlier slide)
-      let draw-pin-shape(center, size, fill-color, stroke-color, label, label-pos, radius: 0.3) = {
-        let half = size / 2
-        rect(
-          (center.at(0) - half, center.at(1) - half),
-          (center.at(0) + half, center.at(1) + half),
-          fill: fill-color,
-          stroke: stroke-color + 2pt,
-          radius: radius,
-        )
-        content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
-      }
 
-      let draw-nested-structure(center, outer-radius, inner-radius, outer-label, inner-label) = {
-        circle(center, radius: outer-radius, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
-        content((center.at(0), center.at(1) + 1.7), text(size: 7pt, weight: "bold", outer-label), anchor: "center")
-        circle(center, radius: inner-radius, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-        content(center, text(size: 6pt, inner-label), anchor: "center")
-        content((center.at(0), center.at(1) - 0.3), text(size: 5pt, [`(!Unpin)`]), anchor: "center")
-      }
+      // Left side: Pin<&mut Self> with nested structure
 
-      let draw-box-wrapper(center, width, height, label, label-pos) = {
-        rect(
-          (center.at(0) - width / 2, center.at(1) - height / 2),
-          (center.at(0) + width / 2, center.at(1) + height / 2),
-          fill: none,
-          stroke: (paint: purple, dash: "dashed", thickness: 2pt),
-        )
-        content(label-pos, text(size: 6pt, weight: "bold", label), anchor: "center")
-      }
+      // Annotation about Box making it Unpin
+      content((-0.5, 5.8), text(size: 9pt, fill: black, [`Box` makes \ `Double: Unpin`]), anchor: "center")
 
-      let draw-annotation(pos, text1, text2) = {
-        content(pos, text(size: 6pt, fill: purple, text1), anchor: "center")
-        content((pos.at(0), pos.at(1) - 0.3), text(size: 6pt, fill: purple, text2), anchor: "center")
-      }
+      hexagon(draw, (2, 4), 4.5, rgb("ffeeee"), blue, text(fill: blue)[`Pin<&mut Double>`], (2, 6.2))
+      circle((2, 4), radius: 1.5, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
+      content((2, 5.7), text(size: 7pt, weight: "bold", text(fill: orange)[`&mut Double`]), anchor: "center")
+      circle((2, 4), radius: 0.5, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((2, 4), text(size: 6pt, text(fill: green)[`InSt:` \ `!Unpin`]), anchor: "center")
 
-      // Left side: Pin<&mut Self>
-      draw-pin-shape((2, 4), 4, rgb("ffeeee"), blue, [`Pin<&mut Double>`], (2, 6.3))
-      draw-nested-structure((2, 4), 1.5, 0.5, [`Double`], [`InSt`])
-      draw-box-wrapper((2, 4), 1.8, 1.8, [`Box<InSt>`], (2, 5.2))
+      // Box wrapper around left structure
+      rect(
+        (2 - 1.8 / 2, 4 - 1.8 / 2),
+        (2 + 1.8 / 2, 4 + 1.8 / 2),
+        fill: none,
+        stroke: (paint: black, thickness: 2pt),
+      )
+      content((2, 5.2), text(size: 6pt, weight: "bold", text(fill: black)[`Box<InSt>`]), anchor: "center")
 
-      // get_mut arrow
+      // Arrow and transformation labels
+      line((4.3, 4), (6.5, 4), mark: (end: ">"), stroke: blue + 2pt)
+      content((5.15, 4.5), text(size: 7pt, weight: "bold", text(fill: blue)[`Pin::get_mut()`]), anchor: "center")
+      content((5.15, 3.5), text(fill: red, size: 8pt, [if `Double<InSt>:` \ `Unpin`]), anchor: "center")
 
 
-      // Box annotation
-      draw-annotation((0.5, 5.8), "Box makes", [it `Unpin`])
+      // Right side: &mut Box<InSt> with nested structure
+      hexagon(draw, (7.4, 4.0), 3, rgb("ffeeee"), blue, "", (8, 6.3))
+      content((7.4, 5.8), text(size: 8pt, weight: "bold", text(fill: blue)[`Pin<&mut Double>`]), anchor: "center")
+      circle((7.4, 4.1), radius: 0.5, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((7.4, 4.1), text(size: 6pt, text(fill: green)[`InSt:` \ `!Unpin`]), anchor: "center")
 
-      // Right side: &mut Box<InSt>
-      draw-pin-shape((7.4, 4.2), 2.5, rgb("ffeeee"), blue, "", (8, 6.3))
-      draw-box-wrapper((7.4, 4.1), 1.6, 1.6, [`&mut  Box<InSt>`], (7.4, 5.2))
-      circle((7.4, 4.1), radius: 0.6, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-      content((7.4, 4.3), text(size: 6pt, [`InSt`]), anchor: "center")
-      content((7.4, 3.8), text(size: 5pt, [(`!Unpin`)]), anchor: "center")
-      content((7.4, 6.0), text(size: 8pt, weight: "bold", [`Pin<&mut Double>`]), anchor: "center")
-      line((4.3, 4), (6.5, 4), mark: (end: ">"), stroke: red + 2pt)
-      content((5.15, 4.5), text(size: 7pt, weight: "bold", [`Pin::get_mut()`]), anchor: "center")
+      // Box wrapper around right structure
+      rect(
+        (7.4 - 1.6 / 2, 4.1 - 1.6 / 2),
+        (7.4 + 1.6 / 2, 4.1 + 1.6 / 2),
+        fill: none,
+        stroke: (paint: black, thickness: 2pt),
+      )
+      content((7.4, 5.1), text(size: 6pt, weight: "bold", text(fill: black)[`&mut  Box<InSt>`]), anchor: "center")
+
+
+      // Arrow and transformation labels
+      line((9, 4), (10, 4), mark: (end: ">"), stroke: purple + 2pt)
+      content(
+        (9.5, 4.5),
+        text(size: 7pt, weight: "bold", text(fill: purple)[`Stream::poll_next()`]),
+        anchor: "north-west",
+      )
     })
   ]
+
 
 ]
 
@@ -992,6 +947,7 @@
 ]
 
 #slide[
+  === Rough architecture of `clone-stream`
   #align(center + horizon)[
     #diagram(
       node-corner-radius: 5pt,
@@ -1000,15 +956,15 @@
 
       // Main stream nodes
       node((0, 1), [TCP Stream], fill: rgb("e6f3ff"), stroke: black + 1pt),
-      node((1, 1), [.fork()], fill: rgb("f0ffe6"), stroke: green + 2pt),
-      node((2, 2), [Parser Clone], fill: rgb("ffeeee"), stroke: black + 1pt),
-      node((2, 0), [Logger Clone], fill: rgb("fff0e6"), stroke: black + 1pt),
+      node((1, 1), [`Fork`], fill: rgb("f0ffe6"), stroke: green + 2pt),
+      node((2, 2), [Parser `Clone`], fill: rgb("ffeeee"), stroke: black + 1pt),
+      node((2, 0), [Logger `Clone`], fill: rgb("fff0e6"), stroke: black + 1pt),
 
       // MIDDLE
-      node((3, 1), ['a'], fill: rgb("fff3cd"), stroke: orange + 1pt, shape: fletcher.shapes.circle),
-      node((3.5, 1), ['b'], fill: rgb("fff3cd"), stroke: orange + 1pt, shape: fletcher.shapes.circle),
-      node((4, 1), ['c'], fill: rgb("fff3cd"), stroke: orange + 1pt, shape: fletcher.shapes.circle),
-      node((4.5, 1), ['d'], fill: rgb("fff3cd"), stroke: orange + 1pt, shape: fletcher.shapes.circle),
+      node((3, 1), [#strike['a']], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
+      node((3.5, 1), [#strike['b']], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
+      node((4, 1), ['c'], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
+      node((4.5, 1), ['d'], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
 
 
       // BOTTOM
@@ -1022,14 +978,14 @@
       node((3.5, -1), ['b'], fill: rgb("fff3cd"), stroke: orange + 1pt, shape: fletcher.shapes.circle),
 
       // Main flow edges
-      edge((0, 1), (1, 1), [.fork()], "->", stroke: blue + 2pt),
+      edge((0, 1), (1, 1), [.fork()], "->", stroke: blue + 2pt, label-pos: 0.4),
       edge((1, 1), (2, 2), [.clone()], "->", stroke: purple + 2pt, bend: -20deg),
       edge((1, 1), (2, 0), [.clone()], "->", stroke: purple + 2pt, bend: 20deg),
 
       // Data flow edges
 
       edge((2, 0), (3, -1), "->", stroke: orange + 1pt),
-      edge((1, 1), (3, 1), "-->", stroke: gray + 1pt),
+      edge((1, 1), (3, 1), [queue], "-->", stroke: gray + 1pt),
       edge((2, 2), (3, 3), "->", stroke: orange + 1pt),
     )
   ]
@@ -1043,9 +999,9 @@
 
 
 #slide[
-  #set text(size: 8pt)
-  === Visualizing the polling and waking flow
 
+  === Polling and waking flow
+  #set text(size: 8pt)
   #align(center)[
     #diagram(
       node-corner-radius: 5pt,
@@ -1140,10 +1096,64 @@
 ]
 
 
+#slide[
+  === Meaningful operator testing
+
+  #text(size: 8pt)[
+
+
+
+
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 1em,
+      [
+        When you build your own:
+
+        1. Pick an async run-time.
+        2. Write `Barrier`-based tests:
+          ```rs
+          let barrier = Arc::new(Barrier::new(3));
+
+          let b1 = barrier.clone(); // First output
+          let b2 = barrier.clone(); // Second output
+          let b3 = barrier.clone(); // For input
+
+          // Apply your custom operator
+          let stream = create_test_stream()
+              .your_custom_operator();
+          ```
+
+          Much better than using `sleep()`!
+      ],
+      [
+        ```rs
+        try_join_all([
+            spawn(async move {
+                b1.wait().await;
+                read_from_stream().await;
+            }),
+            spawn(async move {
+                b2.wait().await;
+                read_from_stream().await;
+            }),
+            spawn(async move {
+                b3.wait().await;
+                send_to_stream().await;
+            })
+        ]).await.unwrap();
+        ```
+      ],
+    )
+
+
+  ]
+]
+
 
 #slide[
   === How to use state machines
-  // #v(2em)
+
   State machines are everywhere because *every program is a state machine* (Turing)
 
   #grid(
@@ -1201,7 +1211,7 @@
 
   === Example: `clone-stream` states and transitions
   #text(size: 8pt)[
-    Final #link("https://github.com/wvhulle/clone-stream/tree/main/src/states")[`clone-stream` states]:
+    Final #link("https://github.com/wvhulle/clone-stream/tree/main/src/states")[`clone-stream` states] (many states because of `Option` avoidance):
     #align(center)[
       #diagram(
         node-stroke: 1pt,
@@ -1259,7 +1269,7 @@
 
 
 #slide[
-  == Side remarks
+  == General principles
 ]
 
 
@@ -1267,17 +1277,17 @@
 #slide[
   === Before building your own operators
 
-  Is your operator 1-N, N-1, or 1-1?
+  Is your operator 1-N, N-1, or 1-1? In case, of 1-1:
 
-  In case, of 1-1:
+  1. use `futures::stream::unfold`
+  2. use a generator from `async-stream` crate
 
-  1. use `stream::unfold`
-  2. use a generator
-
-  Otherwise, use an operator from:
+  Otherwise, import an operator from:
 
   #grid(
     columns: (1fr, 1fr),
+    stroke: black + 1pt,
+    inset: 0.5em,
     gutter: 2em,
     [
       *Standard*: #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
@@ -1292,19 +1302,17 @@
       - Reactive operators & specialized cases
       - 8 ⭐, small project
       - Since Dec 2024, very new
-      - Fills gaps in StreamExt
+      - Fills gaps in `futures::StreamExt`
     ],
   )
 
-  *Build custom only when no existing operator fits*
+  Build custom operators *only when no existing operator fits*!
 ]
-
 
 
 #slide[
   === Last recommendation
 
-  *⚠️ Streams don't replace good software engineering!*
 
   #align(horizon)[
     #grid(
@@ -1316,19 +1324,19 @@
         - Only _physical async data flow_
       ],
       [
-        *Follow best practices:*
+        *Separation of concerns:*
         - Modular functions
         - Descriptive names
         - Split long functions
       ],
       [
         *Use objective targets:*
-        - Barrier-based correctness tests
+        - Correctness tests
         - Representative benchmarks (use `criterion`)
       ],
     )
 
-    #v(0.5em)
+    #v(2em)
 
     #align(center)[
       "When you have a hammer, everything looks like a nail." _— Abraham Maslow_
@@ -1338,6 +1346,9 @@
 
     ]
   ]]
+
+
+
 
 
 #slide[
@@ -1364,4 +1375,330 @@
   ]
 
 
+]
+
+
+#slide[
+  == Bonus slides
+]
+
+#slide[
+  === Why does Rust bring to the table?
+
+  Reactivity in garbage collected languages is *completely different* from Rust's ownership system
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      // TypeScript side
+      rect((0.5, 1), (3.5, 4), fill: rgb("fff0e6"), stroke: orange + 2pt)
+      content((2, 3.5), text(size: 8pt, weight: "bold", "TypeScript"), anchor: "center")
+
+      // GC cleanup
+      circle((2, 2.8), radius: 0.4, fill: rgb("e6ffe6"), stroke: green + 2pt)
+      content((2, 2.8), text(size: 6pt, "GC"), anchor: "center")
+
+
+      // Data flowing freely - simplified dots
+      for i in range(3) {
+        let x = 1.4 + i * 0.3
+        circle((x, 2.0), radius: 0.08, fill: blue)
+      }
+      content((2, 1.4), text(size: 6pt, "Put anything\nanywhere"), anchor: "center")
+
+      // VS separator
+      content((4.5, 2.5), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
+
+      // Rust side
+      rect((5.5, 1), (8.5, 4), fill: rgb("ffe6e6"), stroke: red + 2pt)
+      content((7, 3.5), text(size: 8pt, weight: "bold", "Rust"), anchor: "center")
+
+      // Ownership constraints
+      rect((6.2, 2.6), (7.8, 3.2), fill: rgb("ffcccc"), stroke: red + 1pt)
+      content((7, 2.9), text(size: 6pt, "Ownership\nRules"), anchor: "center")
+
+      // Constrained data flow
+      line((6.2, 2.2), (6.8, 2.2), stroke: blue + 2pt)
+      line((6.8, 2.2), (7.2, 1.8), stroke: blue + 2pt, mark: (end: ">"))
+      line((7.2, 1.8), (7.8, 1.8), stroke: blue + 2pt)
+      content((7, 1.3), text(size: 6pt, "Explicit design\nrequired"), anchor: "center")
+    })
+  ]
+
+  This fundamental difference explains why stream patterns from other languages don't translate directly
+]
+
+
+
+#slide[
+  === The meaning of `Ready(None)`
+
+  #align(horizon + center)[
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 3em,
+      [
+        #align(center)[*Regular Stream*]
+
+        "No items *right now*"
+
+        (_Stream might yield more later_)
+      ],
+      [
+        #align(center)[*Fused Stream*]
+
+        "No items *ever again*"
+
+        (_Stream is permanently done_)
+      ],
+    )
+  ]]
+
+
+
+#slide[
+
+  === 'Fusing' streams and futures
+
+
+
+  #align(center + horizon)[
+    #let draw-arrow(multiple: false, fused: false, color) = {
+      canvas(length: 0.8cm, {
+        import draw: *
+
+        if multiple {
+          // Stream: arrow with multiple dashes
+          if fused {
+            line((-0.8, 0), (0.6, 0), stroke: color + 2pt)
+            line((0.8, -0.3), (0.8, 0.3), stroke: color + 4pt)
+          } else {
+            line((-0.8, 0), (0.8, 0), stroke: color + 2pt, mark: (end: ">"))
+          }
+          for i in range(if fused { 4 } else { 3 }) {
+            let dash-x = -0.6 + i * 0.4
+            line((dash-x, -0.15), (dash-x, 0.15), stroke: color + 3pt)
+          }
+        } else {
+          // Future: arrow with single dash
+          line((-0.8, 0), (0.3, 0), stroke: color + 2pt)
+          line((0, -0.2), (0, 0.2), stroke: color + 3pt)
+          if fused {
+            line((0.3, 0), (0.6, 0), stroke: color + 2pt)
+            line((0.8, -0.3), (0.8, 0.3), stroke: color + 4pt)
+          } else {
+            line((0.3, 0), (0.8, 0), stroke: color + 2pt, mark: (end: ">"))
+          }
+        }
+      })
+    }
+
+    #grid(
+      columns: (auto, 1fr, 1fr, 2fr),
+      rows: (auto, auto, auto, auto, auto),
+      gutter: 2em,
+      [], [*Future*], [*Stream*], [*Meaning*],
+      [*Regular*],
+      [#draw-arrow(multiple: false, fused: false, blue)],
+      [#draw-arrow(multiple: true, fused: false, green)],
+      [May continue],
+
+      [*Fused*], [*FusedFuture*], [*FusedStream*], [`is_terminated()` method],
+
+      [*Fused*],
+      [#draw-arrow(multiple: false, fused: true, blue)],
+      [#draw-arrow(multiple: true, fused: true, green)],
+      [Done permanently],
+
+      [*Fused value*], [Pending], [Ready(None)], [Final value],
+    )
+  ]
+]
+
+
+
+
+#slide[
+  === Flatten a *finite collection* of `Stream`s
+
+  A finite collection of `Stream`s = `IntoIterator<Item: Stream>`
+
+
+  ```rust
+  let streams = vec![
+      stream::iter(1..=3),
+      stream::iter(4..=6),
+      stream::iter(7..=9),
+  ];
+
+  let merged = stream::select_all(streams);
+  ```
+
+  1. Creates a `FuturesUnordered` of the streams
+  2. Polls all streams concurrently
+  3. Yields items as they arrive
+]
+
+#slide[
+  === Flattening an infinite stream
+
+  *Beware!*: `flatten()` on a stream of infinite streams will never complete!
+
+  ```rs
+  let infinite_streams = stream::unfold(0, |id| async move {
+      Some((stream::iter(id..), id + 1))
+  });
+  let flat = infinite_streams.flatten();
+  ```
+
+  Instead, *buffer streams* concurrently with `flatten_unordered()`.
+
+  ```rust
+  let requests = stream::unfold(0, |id| async move {
+      Some((fetch_stream(format!("/api/data/{}", id)), id + 1))
+  });
+  let flat = requests.flatten_unordered(Some(10));
+  ```
+
+
+]
+
+
+
+
+
+#slide[
+  === More `Stream` features to explore
+
+  Many more advanced topics await:
+
+  - *Boolean operations*: `any`, `all`
+  - *Async operations*: `then`
+  - *`Sink`s*: The write-side counterpart to `Stream`s
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-box(pos, label, color) = {
+        let (x, y) = pos
+        rect((x - 0.8, y - 0.4), (x + 0.8, y + 0.4), fill: color, stroke: black + 1pt)
+        content((x, y), text(size: 8pt, weight: "bold", label), anchor: "center")
+      }
+
+      // Stream source
+      draw-box((1, 2), "Stream", rgb("e6f3ff"))
+
+      // Data items
+      for (i, item) in ("'a'", "'b'", "'c'").enumerate() {
+        let x = 2.5 + i * 0.6
+        circle((x, 2), radius: 0.2, fill: rgb("fff3cd"), stroke: orange + 1pt)
+        content((x, 2), text(size: 6pt, item), anchor: "center")
+      }
+
+      // Forward arrow
+      line((1.8, 2), (2.2, 2), mark: (end: ">"), stroke: blue + 2pt)
+      line((4.3, 2), (4.7, 2), mark: (end: ">"), stroke: blue + 2pt)
+      content((3.5, 2.5), text(size: 7pt, weight: "bold", ".forward()"), anchor: "center")
+
+      // Sink destination
+      draw-box((6, 2), "Sink", rgb("ffe6f0"))
+
+      // Labels
+      content((1, 1.2), text(size: 7pt, "Read side"), anchor: "center")
+      content((6, 1.2), text(size: 7pt, "Write side"), anchor: "center")
+    })
+  ]
+
+
+]
+
+
+
+#slide[
+  === The `Stream` trait: a lazy query interface
+
+  *The `Stream` trait is NOT the stream itself* - it's just a lazy frontend to query data.
+
+  #v(1em)
+
+  #grid(
+    columns: (1fr, 1fr),
+    column-gutter: 2em,
+    [
+      *What `Stream` trait does:*
+      - Provides uniform `.poll_next()` interface
+      - Lazy: only responds when asked
+      - Doesn't drive or produce data itself
+      - Just queries whatever backend exists
+    ],
+    [
+      *What actually drives streams:*
+      - TCP connections receiving packets
+      - File I/O completing reads
+      - Timers firing
+      - Hardware signals
+      - Channel senders pushing data
+    ],
+  )
+]
+
+
+#slide[
+
+  === The _'real'_ stream drivers
+
+  #align(center + horizon)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      // Leaf streams (drivers) at bottom
+      rect((0.5, 0.5), (7.5, 2), fill: rgb("fff0e6"), stroke: orange + 2pt, radius: 0.2)
+      content((4, 1.6), text(size: 9pt, weight: "bold", "Leaf Streams (Real Drivers)"), anchor: "center")
+      content((4, 1.1), text(size: 7pt, "TCP, Files, Timers, Hardware, Channels"), anchor: "center")
+
+      // Data flow upward
+      line((4, 2.2), (4, 2.8), stroke: orange + 4pt, mark: (end: ">"))
+      content((5.2, 2.5), text(size: 7pt, "Data pushed up"), anchor: "center")
+
+      // Stream trait interface at top
+      rect((1, 3), (7, 4), fill: rgb("e6f3ff"), stroke: blue + 2pt, radius: 0.2)
+      content((4, 3.7), text(size: 9pt, weight: "bold", "Stream Trait Interface"), anchor: "center")
+      content((4, 3.3), text(size: 7pt, "Lazy: .poll_next() only responds when called"), anchor: "center")
+    })
+  ]
+
+  `Stream` trait just provides a *uniform way to query* - it doesn't create or drive data flow.
+]
+
+
+
+#slide[
+
+  === Possible inconsistency
+
+
+  ```rs
+  trait Stream {
+      type Item;
+
+      fn poll_next(self: Pin<&mut Self>, cx: &mut Context)
+          -> Poll<Option<Self::Item>>
+  }
+  ```
+
+  #rect(inset: 5mm)[
+    What about Rust rule `self` needs to be `Deref<Target=Self>`?
+  ]
+
+
+  `Pin<&mut Self>` only implements `Deref<Target=Self>` for `Self: Unpin`.
+
+  Problem? No, `Pin` is an exception in the compiler.
+]
+
+
+#slide[
+  === The end
 ]
