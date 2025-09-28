@@ -1,0 +1,1 @@
+- Use the example code from https://github.com/Jollywatt/typst-fletcher/blob/main/docs/gallery/04-io-flowchart.typ as inspiration for making flowchart diagrams.
