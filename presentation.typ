@@ -331,9 +331,9 @@
 
       // Iterator results
       node((1, 4), [Some(1)], fill: rgb("f0f0f0"), stroke: green + 1pt),
-      node((1, 3), [Some(2)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((1, 1), [Some(2)], fill: rgb("f0f0f0"), stroke: green + 1pt),
       node((1, 2), [Some(3)], fill: rgb("f0f0f0"), stroke: green + 1pt),
-      node((1, 1), [None], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((1, 3), [None], fill: rgb("f0f0f0"), stroke: green + 1pt),
 
       // Iterator arrows
       edge((0, 4), (1, 4), "->"),
@@ -375,9 +375,9 @@
 
       // Stream async results
       node((7, 4), [Some(1)], fill: rgb("f0f0f0"), stroke: green + 1pt),
-      node((7, 3), [Some(2)], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((7, 1), [Some(2)], fill: rgb("f0f0f0"), stroke: green + 1pt),
       node((7, 2), [Some(3)], fill: rgb("f0f0f0"), stroke: green + 1pt),
-      node((7, 1), [None], fill: rgb("f0f0f0"), stroke: green + 1pt),
+      node((7, 3), [None], fill: rgb("f0f0f0"), stroke: green + 1pt),
 
       // Stream async arrows
       edge((6, 4), (7, 4), "->"),
@@ -582,11 +582,14 @@
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>> {
               // ⚠️ Will not compile!
-              self.in_stream.poll_next(cx).map(|x| x * 2)
+              self.in_stream
+                  .poll_next_unpin(cx)
+                  .map(|x| x * 2)
     }
   }
   ```
-  `Pin` blocks access to `self.in_stream`!
+  1. `Pin<&mut Self>` blocks access to `self.in_stream`!
+  2. `poll_next_unpin` requires `Unpin`
 ]
 
 
@@ -615,7 +618,7 @@
 
         // First arrow with .get_mut() label
         line((2.5, 2), (3.5, 2), mark: (end: ">"), stroke: blue + 2pt)
-        content((3, 2.4), text(size: 7pt, fill: blue, [`.get_mut()`]), anchor: "center")
+        content((3, 2.4), text(size: 7pt, fill: blue, [?]), anchor: "center")
 
         // Middle: Just InSt
         circle((4, 2), radius: 0.4, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
@@ -797,7 +800,11 @@
       // Left side: Pin<&mut Self> with nested structure
 
       // Annotation about Box making it Unpin
-      content((-0.5, 5.8), text(size: 9pt, fill: black, [`Box` makes \ `Double: Unpin`]), anchor: "center")
+      content(
+        (-0.5, 5.8),
+        text(size: 8pt, fill: black, [`Box` makes \ `Box<InSt>: Unpin` \ `Double: Unpin`]),
+        anchor: "center",
+      )
 
       hexagon(draw, (2, 4), 4.5, rgb("ffeeee"), blue, text(fill: blue)[`Pin<&mut Double>`], (2, 6.2))
       circle((2, 4), radius: 1.5, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
@@ -816,13 +823,17 @@
 
       // Arrow and transformation labels
       line((4.3, 4), (6.5, 4), mark: (end: ">"), stroke: blue + 2pt)
-      content((5.15, 4.5), text(size: 7pt, weight: "bold", text(fill: blue)[`Pin::get_mut()`]), anchor: "center")
-      content((5.15, 3.5), text(fill: red, size: 8pt, [if `Double<InSt>:` \ `Unpin`]), anchor: "center")
+      content(
+        (5.15, 4.5),
+        text(size: 8pt, weight: "bold", underline(stroke: 1pt, offset: 1.5pt, text(fill: blue)[`Pin::get_mut()`])),
+        anchor: "center",
+      )
+      content((5.15, 3.5), text(fill: red, size: 7pt, [if `Double<InSt>:` \ `Unpin`]), anchor: "center")
 
 
       // Right side: &mut Box<InSt> with nested structure
       hexagon(draw, (7.4, 4.0), 3, rgb("ffeeee"), blue, "", (8, 6.3))
-      content((7.4, 5.8), text(size: 8pt, weight: "bold", text(fill: blue)[`Pin<&mut Double>`]), anchor: "center")
+      content((7.4, 5.8), text(size: 8pt, weight: "bold", text(fill: blue)[`Pin<&mut InSt>`]), anchor: "center")
       circle((7.4, 4.1), radius: 0.5, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
       content((7.4, 4.1), text(size: 6pt, text(fill: green)[`InSt:` \ `!Unpin`]), anchor: "center")
 
@@ -868,7 +879,7 @@
             -> Poll<Option<Self::Item>>
         {
             let this = self.get_mut(); // Safe because Double is Unpin
-            Pin::new(&mut this.stream).poll_next(cx)
+            Pin::new(&mut this.in_stream).poll_next(cx)
             ...
         }
     }
@@ -880,7 +891,7 @@
 
 
 #slide[
-  === Step 4: Extension trait and *'blanket' `impl`*
+  === Distributing your operator
 
   Create an extension trait to add `.double()` method to any integer stream:
 
@@ -956,7 +967,7 @@
       spacing: (4em, 1.5em),
 
       // Main stream nodes
-      node((0, 1), [TCP Stream], fill: rgb("e6f3ff"), stroke: black + 1pt),
+      node((0, 1), [LinesStream], fill: rgb("e6f3ff"), stroke: black + 1pt),
       node((1, 1), [`Fork`], fill: rgb("f0ffe6"), stroke: green + 2pt),
       node((2, 2), [Parser `Clone`], fill: rgb("ffeeee"), stroke: black + 1pt),
       node((2, 0), [Logger `Clone`], fill: rgb("fff0e6"), stroke: black + 1pt),
@@ -1008,10 +1019,10 @@
       node-corner-radius: 5pt,
       spacing: (3em, 2.5em),
 
-      // Base stream at bottom
+      // Input stream at bottom
       node(
         (1, 0),
-        [Base Stream],
+        [Input Stream],
         fill: rgb("e6f3ff"),
         stroke: blue + 2pt,
       ),
@@ -1114,14 +1125,12 @@
         1. Pick an async run-time.
         2. Write `Barrier`-based tests:
           ```rs
-          let barrier = Arc::new(Barrier::new(3));
-
-          let b1 = barrier.clone(); // First output
-          let b2 = barrier.clone(); // Second output
-          let b3 = barrier.clone(); // For input
+          let b1 = Arc::new(Barrier::new(3)); // First output
+          let b2 = b1.clone(); // Second output
+          let b3 = b1.clone(); // For input
 
           // Apply your custom operator
-          let stream = create_test_stream()
+          let out_stream = create_test_stream()
               .your_custom_operator();
           ```
 
@@ -1132,11 +1141,11 @@
         try_join_all([
             spawn(async move {
                 b1.wait().await;
-                read_from_stream().await;
+                read_from_stream(out_stream).await;
             }),
             spawn(async move {
                 b2.wait().await;
-                read_from_stream().await;
+                read_from_stream(out_stream).await;
             }),
             spawn(async move {
                 b3.wait().await;
@@ -1153,7 +1162,7 @@
 
 
 #slide[
-  === How to use state machines
+  === State machines for distributed systems
 
   State machines are everywhere because *every program is a state machine* (Turing)
 
@@ -1210,9 +1219,11 @@
   #let green-color = rgb("ccffcc")
   #let red-color = rgb("ffcccc")
 
-  === Example: `clone-stream` states and transitions
+  === State machine of `clone-stream`
   #text(size: 8pt)[
-    Final #link("https://github.com/wvhulle/clone-stream/tree/main/src/states")[`clone-stream` states] (many states because of `Option` avoidance):
+    Many states because of `Option` avoidance in states:
+
+
     #align(center)[
       #diagram(
         node-stroke: 1pt,
@@ -1255,8 +1266,8 @@
       columns: (1fr, 1fr),
       gutter: 2em,
       [
-        - #box(rect(width: 0.8em, height: 0.8em, fill: yellow-color, stroke: 0.5pt)) Yellow: Initial state, reads from base stream
-        - #box(rect(width: 0.8em, height: 0.8em, fill: green-color, stroke: 0.5pt)) Green: Processing items (base or queue)
+        - #box(rect(width: 0.8em, height: 0.8em, fill: yellow-color, stroke: 0.5pt)) Yellow: Initial state, reads from input stream
+        - #box(rect(width: 0.8em, height: 0.8em, fill: green-color, stroke: 0.5pt)) Green: Processing items (input or queue)
       ],
       [
         - #box(rect(width: 0.8em, height: 0.8em, fill: red-color, stroke: 0.5pt)) Red: Pending state with stored waker
