@@ -611,8 +611,8 @@
     }
   }
   ```
-  1. `Pin<&mut Self>` blocks access to `self.in_stream`!
-  2. `poll_next_unpin` requires `Unpin`
+  1. `Pin<&mut Self>` blocks access to `self.in_stream`
+  2. `Poll::new()` requires `InSt: Unpin`
 ]
 
 
@@ -768,8 +768,8 @@
         rect((1, 3), (4, 5), fill: rgb("e6f3ff"), stroke: blue + 2pt)
         content((2.5, 5.2), text(size: 9pt, weight: "bold", "Stack"), anchor: "center")
         content((2.5, 4.7), text(size: 8pt, [`Box<InSt>`]), anchor: "center")
-        rect((1.3, 3.5), (3.7, 4.5), stroke: (dash: "dashed", paint: black, thickness: 1pt))
-        content((2.5, 4.), text(size: 8pt, [pointer \ `0X1234`]), anchor: "center")
+        rect((1.3, 3.5), (3.7, 4.5), fill: gray, stroke: (paint: black, thickness: 2pt))
+        content((2.5, 4.), text(size: 8pt, fill: black, [pointer \ `0X1234`]), anchor: "center")
 
         content((2.5, 3.3), text(size: 7pt, "✅ Safe to move"), anchor: "center")
 
@@ -798,7 +798,7 @@
 
     1. Put your `!Unpin` type on the heap with `Box::new()`\
       (Heap content stays at fixed address)
-    2. The output of `Box::new(st)` is just a pointer \
+    2. The output of `Box::new(tiger)` is just a pointer \
       (Moving pointers is safe)
     3. `Box<X>: Deref<Target = X>`, so `Box<InSt>` *behaves like `InSt`*\
   ]
@@ -823,16 +823,17 @@
       hexagon(draw, (2, 4), 4.5, rgb("ffeeee"), blue, text(fill: blue)[`Pin<&mut Double>`], (2, 6.2))
       circle((2, 4), radius: 1.5, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
       content((2, 5.7), text(size: 7pt, weight: "bold", text(fill: orange)[`&mut Double`]), anchor: "center")
-      circle((2, 4), radius: 0.5, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-      content((2, 4), text(size: 6pt, text(fill: green)[`InSt:` \ `!Unpin`]), anchor: "center")
-
       // Box wrapper around left structure
       rect(
         (2 - 1.8 / 2, 4 - 1.8 / 2),
         (2 + 1.8 / 2, 4 + 1.8 / 2),
-        fill: none,
+        fill: gray,
         stroke: (paint: black, thickness: 2pt),
       )
+      circle((2, 4), radius: 0.5, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((2, 4), text(size: 6pt, text(fill: green)[`InSt:` \ `!Unpin`]), anchor: "center")
+
+
       content((2, 5.2), text(size: 6pt, weight: "bold", text(fill: black)[`Box<InSt>`]), anchor: "center")
 
       // First arrow: Pin::get_mut()
@@ -846,15 +847,21 @@
 
       content((7.9, 3.5), text(fill: red, size: 6pt, [if `Double:`\ `Unpin`]), anchor: "center")
 
+
+      content((4.8, 5.9), text(size: 3em, "🐅"), anchor: "center")
+      // content((5.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
+      // Smooth curved arrow going into triangle center
+      arc((4.0, 5.8), start: 80deg, stop: 170deg, radius: 1.5, mark: (end: ">"), stroke: red + 2pt)
+      // Box outline
+
       // Middle: &mut Box<InSt>
       content((6.5, 5.2), text(size: 7pt, weight: "bold", text(fill: orange)[`&mut Double`]), anchor: "center")
       circle((6.5, 4), radius: 1, fill: rgb("fff0e6"), stroke: orange + 2pt)
       content((6.5, 4.7), text(size: 7pt, weight: "bold", text(fill: black)[`Box<InSt>`]), anchor: "center")
+      rect((6.5 - 0.45, 4 - 0.45), (6.5 + 0.45, 4 + 0.45), fill: gray, stroke: black + 1.5pt)
       circle((6.5, 4), radius: 0.3, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
       content((6.5, 4), text(size: 5pt, text(fill: green)[`InSt`]), anchor: "center")
 
-      // Box outline
-      rect((6.5 - 0.45, 4 - 0.45), (6.5 + 0.45, 4 + 0.45), fill: none, stroke: black + 1.5pt)
 
       // Second arrow: Pin::new()
       line((7.1, 4), (8.9, 4), mark: (end: ">"), stroke: green + 2pt)
@@ -868,11 +875,12 @@
       hexagon(draw, (9.5, 4.0), 2.5, rgb("ffeeee"), blue, "", (9.5, 5.8))
       content((9.5, 5.5), text(size: 7pt, weight: "bold", text(fill: blue)[`Pin<&mut InSt>`]), anchor: "center")
       content((9.5, 4.7), text(size: 7pt, weight: "bold", text(fill: black)[`&mut Box<InSt>`]), anchor: "center")
+
+      // Box wrapper around right structure
+      rect((9.5 - 0.45, 4.1 - 0.45), (9.5 + 0.45, 4.1 + 0.45), fill: gray, stroke: black + 1.5pt)
       circle((9.5, 4.1), radius: 0.3, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
       content((9.5, 4.1), text(size: 5pt, text(fill: green)[`InSt`]), anchor: "center")
 
-      // Box wrapper around right structure
-      rect((9.5 - 0.45, 4.1 - 0.45), (9.5 + 0.45, 4.1 + 0.45), fill: none, stroke: black + 1.5pt)
 
       // Third arrow: Stream::poll_next()
       line((11.0, 4), (11.7, 4), mark: (end: ">"), stroke: purple + 2pt)
