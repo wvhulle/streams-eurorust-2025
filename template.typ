@@ -95,13 +95,13 @@
       }
 
       #if duration != none {
-        text(size: 0.9em, fill: gray)[#duration]
+        text(size: 0.9em, fill: colors.accent)[#duration]
       }
 
       #if repository != none {
         v(2em)
-        text(size: 0.8em, fill: gray.darken(20%))[
-          Interactive version with clickable links:\
+        text(size: 0.8em, fill: colors.accent)[
+          Version with clickable links:\
           #link(repository)[#repository.replace("https://", "")]
         ]
       }

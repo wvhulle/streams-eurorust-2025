@@ -588,7 +588,7 @@
 
 
 #slide[
-  == Example 1: Doubling integer streams
+  == Example 1: Doubling integer streams (1-1)
 
 ]
 
@@ -820,15 +820,6 @@
       import draw: *
 
 
-      // Left side: Pin<&mut Self> with nested structure
-
-      // Annotation about Box making it Unpin
-      content(
-        (-0.5, 5.8),
-        text(size: 8pt, fill: black, [`Box<InSt>: Unpin` \ so `Double: Unpin`]),
-        anchor: "center",
-      )
-
       hexagon(draw, (2, 4), 4.5, rgb("ffeeee"), blue, text(fill: blue)[`Pin<&mut Double>`], (2, 6.2))
       circle((2, 4), radius: 1.5, fill: rgb("fff0e6"), stroke: orange + 1.5pt)
       content((2, 5.7), text(size: 7pt, weight: "bold", text(fill: orange)[`&mut Double`]), anchor: "center")
@@ -844,40 +835,48 @@
       )
       content((2, 5.2), text(size: 6pt, weight: "bold", text(fill: black)[`Box<InSt>`]), anchor: "center")
 
-      // Arrow and transformation labels
-      line((4.3, 4), (6.5, 4), mark: (end: ">"), stroke: blue + 2pt)
+      // First arrow: Pin::get_mut()
+      line((4.4, 4), (5.4, 4), mark: (end: ">"), stroke: green + 2pt)
       content(
-        (5.15, 4.5),
-        text(size: 8pt, weight: "bold", underline(stroke: 1pt, offset: 1.5pt, text(
-          fill: blue,
-        )[`Pin::get_mut()` \ `Pin::new()`])),
+        (4.9, 4.5),
+        text(size: 6pt, weight: "bold", text(fill: green)[`Pin::get_mut()`]),
         anchor: "center",
       )
-      content((5.15, 3.5), text(fill: red, size: 7pt, [if `Double<InSt>:` \ `Unpin`]), anchor: "center")
+      content((4.9, 3.5), text(fill: red, size: 6pt, [if `Double: Unpin`]), anchor: "center")
 
+      // Middle: &mut Box<InSt>
+      content((6.5, 5.2), text(size: 7pt, weight: "bold", text(fill: orange)[`&mut Double`]), anchor: "center")
+      circle((6.5, 4), radius: 1, fill: rgb("fff0e6"), stroke: orange + 2pt)
+      content((6.5, 4.7), text(size: 7pt, weight: "bold", text(fill: black)[`&mut Box<InSt>`]), anchor: "center")
+      circle((6.5, 4), radius: 0.3, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((6.5, 4), text(size: 5pt, text(fill: green)[`InSt`]), anchor: "center")
 
-      // Right side: &mut Box<InSt> with nested structure
-      hexagon(draw, (7.4, 4.0), 3, rgb("ffeeee"), blue, "", (8, 6.3))
-      content((7.4, 5.8), text(size: 8pt, weight: "bold", text(fill: blue)[`Pin<&mut InSt>`]), anchor: "center")
-      circle((7.4, 4.1), radius: 0.5, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
-      content((7.4, 4.1), text(size: 6pt, text(fill: green)[`InSt:` \ `!Unpin`]), anchor: "center")
+      // Box outline
+      rect((6.5 - 0.45, 4 - 0.45), (6.5 + 0.45, 4 + 0.45), fill: none, stroke: black + 1.5pt)
+
+      // Second arrow: Pin::new()
+      line((7.1, 4), (8.1, 4), mark: (end: ">"), stroke: green + 2pt)
+      content(
+        (7.9, 4.5),
+        text(size: 6pt, weight: "bold", text(fill: green)[`Pin::new()`]),
+        anchor: "center",
+      )
+
+      // Right side: Pin<&mut InSt>
+      hexagon(draw, (9.5, 4.0), 2.5, rgb("ffeeee"), blue, "", (9.5, 5.8))
+      content((9.5, 5.5), text(size: 7pt, weight: "bold", text(fill: blue)[`Pin<&mut InSt>`]), anchor: "center")
+      circle((9.5, 4.1), radius: 0.3, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
+      content((9.5, 4.1), text(size: 5pt, text(fill: green)[`InSt`]), anchor: "center")
 
       // Box wrapper around right structure
-      rect(
-        (7.4 - 1.6 / 2, 4.1 - 1.6 / 2),
-        (7.4 + 1.6 / 2, 4.1 + 1.6 / 2),
-        fill: none,
-        stroke: (paint: black, thickness: 2pt),
-      )
-      content((7.4, 5.1), text(size: 6pt, weight: "bold", text(fill: black)[`&mut  Box<InSt>`]), anchor: "center")
+      rect((9.5 - 0.45, 4.1 - 0.45), (9.5 + 0.45, 4.1 + 0.45), fill: none, stroke: black + 1.5pt)
 
-
-      // Arrow and transformation labels
-      line((9, 4), (10, 4), mark: (end: ">"), stroke: purple + 2pt)
+      // Third arrow: Stream::poll_next()
+      line((10.5, 4), (11.5, 4), mark: (end: ">"), stroke: purple + 2pt)
       content(
-        (9.5, 4.5),
-        text(size: 7pt, weight: "bold", text(fill: purple)[`Stream::poll_next()`]),
-        anchor: "north-west",
+        (11, 4.5),
+        text(size: 6pt, weight: "bold", text(fill: purple)[`poll_next()`]),
+        anchor: "center",
       )
     })
   ]
@@ -964,7 +963,7 @@
 
 #slide[
 
-  == Example 2: Cloning streams at run-time
+  == Example 2: Cloning streams at run-time (1-N)
 ]
 
 
@@ -999,7 +998,7 @@
   ]]
 
 #slide[
-  === Rough architecture of `clone-stream`
+  === Rough architecture of #link("https://crates.io/crates/clone-stream")[`clone-stream`]
   #align(center + horizon)[
     #diagram(
       node-corner-radius: 5pt,
@@ -1339,9 +1338,11 @@
   #let green-color = rgb("ccffcc")
   #let red-color = rgb("ffcccc")
 
-  === State machine of `clone-stream`
+  === #link(
+    "https://github.com/wvhulle/clone-stream/blob/main/src/states.rs",
+  )[State machine of `clone-stream`]
 
-  Each clone maintains its own state:
+  Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]:
 
 
   #align(center + horizon)[
