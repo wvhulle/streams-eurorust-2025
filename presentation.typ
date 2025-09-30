@@ -186,7 +186,7 @@
 
 
 #slide[
-  === What kind of streams exist?
+  === Kinds of streams
 
   #align(center)[
     #fletcher.diagram(
@@ -640,7 +640,7 @@
         content((1, 2), text(size: 6pt, fill: green, [`InSt`]), anchor: "center")
 
         // First arrow with .get_mut() label
-        line((2.5, 2), (3.5, 2), mark: (end: ">"), stroke: blue + 2pt)
+        line((2.7, 2), (3.5, 2), mark: (end: ">"), stroke: green + 2pt)
         content((3, 2.4), text(size: 7pt, fill: blue, [?]), anchor: "center")
 
         // Middle: Just InSt
@@ -648,7 +648,7 @@
         content((4, 2), text(size: 6pt, fill: green, [`InSt`]), anchor: "center")
 
         // Second arrow with Pin::new() label
-        line((4.4, 2), (5.5, 2), mark: (end: ">"), stroke: green + 2pt)
+        line((4.5, 2), (5.3, 2), mark: (end: ">"), stroke: green + 2pt)
         content((5, 2.4), text(size: 6pt, text(fill: blue)[?]), anchor: "center")
 
         // Right: Pin<&mut InSt>
@@ -842,12 +842,14 @@
         text(size: 6pt, weight: "bold", text(fill: green)[`Pin::get_mut()`]),
         anchor: "center",
       )
-      content((4.9, 3.5), text(fill: red, size: 6pt, [if `Double: Unpin`]), anchor: "center")
+      content((4.9, 3.5), text(fill: red, size: 6pt, [if `Double:` \ `Unpin`]), anchor: "center")
+
+      content((7.9, 3.5), text(fill: red, size: 6pt, [if `Double:`\ `Unpin`]), anchor: "center")
 
       // Middle: &mut Box<InSt>
       content((6.5, 5.2), text(size: 7pt, weight: "bold", text(fill: orange)[`&mut Double`]), anchor: "center")
       circle((6.5, 4), radius: 1, fill: rgb("fff0e6"), stroke: orange + 2pt)
-      content((6.5, 4.7), text(size: 7pt, weight: "bold", text(fill: black)[`&mut Box<InSt>`]), anchor: "center")
+      content((6.5, 4.7), text(size: 7pt, weight: "bold", text(fill: black)[`Box<InSt>`]), anchor: "center")
       circle((6.5, 4), radius: 0.3, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
       content((6.5, 4), text(size: 5pt, text(fill: green)[`InSt`]), anchor: "center")
 
@@ -855,7 +857,7 @@
       rect((6.5 - 0.45, 4 - 0.45), (6.5 + 0.45, 4 + 0.45), fill: none, stroke: black + 1.5pt)
 
       // Second arrow: Pin::new()
-      line((7.1, 4), (8.1, 4), mark: (end: ">"), stroke: green + 2pt)
+      line((7.1, 4), (8.9, 4), mark: (end: ">"), stroke: green + 2pt)
       content(
         (7.9, 4.5),
         text(size: 6pt, weight: "bold", text(fill: green)[`Pin::new()`]),
@@ -865,6 +867,7 @@
       // Right side: Pin<&mut InSt>
       hexagon(draw, (9.5, 4.0), 2.5, rgb("ffeeee"), blue, "", (9.5, 5.8))
       content((9.5, 5.5), text(size: 7pt, weight: "bold", text(fill: blue)[`Pin<&mut InSt>`]), anchor: "center")
+      content((9.5, 4.7), text(size: 7pt, weight: "bold", text(fill: black)[`&mut Box<InSt>`]), anchor: "center")
       circle((9.5, 4.1), radius: 0.3, fill: rgb("e6f3ff"), stroke: green + 1.5pt)
       content((9.5, 4.1), text(size: 5pt, text(fill: green)[`InSt`]), anchor: "center")
 
@@ -872,9 +875,9 @@
       rect((9.5 - 0.45, 4.1 - 0.45), (9.5 + 0.45, 4.1 + 0.45), fill: none, stroke: black + 1.5pt)
 
       // Third arrow: Stream::poll_next()
-      line((10.5, 4), (11.5, 4), mark: (end: ">"), stroke: purple + 2pt)
+      line((11.0, 4), (11.7, 4), mark: (end: ">"), stroke: purple + 2pt)
       content(
-        (11, 4.5),
+        (11.5, 4.5),
         text(size: 6pt, weight: "bold", text(fill: purple)[`poll_next()`]),
         anchor: "center",
       )
