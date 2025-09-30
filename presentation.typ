@@ -94,8 +94,7 @@
 
 #slide[
 
-  === Previous work
-
+  === `Stream`s in Rust are not new
 
 
   #align(center)[
@@ -157,70 +156,57 @@
   === What kind of streams exist?
 
   #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
-
-      let draw-layer(y, width, height, label, description, color, text-color: black) = {
-        rect((1, y), (1 + width, y + height), fill: color, stroke: black + 1pt, radius: 0.2)
-        content(
-          (1 + width / 2, y + height - 0.3),
-          text(size: 10pt, weight: "bold", fill: text-color, label),
-          anchor: "center",
-        )
-        content((1 + width / 2, y + 0.3), text(size: 8pt, fill: text-color, description), anchor: "center")
-      }
-
-      let draw-examples(y, examples) = {
-        let start-x = 8.5
-        for (i, example) in examples.enumerate() {
-          let x = start-x + calc.rem(i, 2) * 3
-          let row = calc.floor(i / 2)
-          content((x, y - row * 0.5), text(size: 7pt, example), anchor: "west")
+    #fletcher.diagram(
+      node-stroke: 1pt,
+      spacing: (1em, 2em),
+      {
+        let layer(pos, label, desc, fill, examples) = {
+          node(pos, fill: fill, stack(
+            dir: ttb,
+            spacing: 0.3em,
+            text(weight: "bold", size: 10pt, label),
+            text(size: 8pt, style: "italic", desc),
+            text(size: 7pt, examples.join(" • ")),
+          ))
         }
-      }
 
-      // Hardware layer (bottom)
-      draw-layer(.5, 7, 1.2, "Physical Leaf Streams", "Physical hardware constraints", rgb("ffeeee"))
-      draw-examples(1.4, ("GPIO sensors", "UART/Serial", "Hardware timers", "Network NICs"))
+        layer(
+          (0, 2),
+          "Derived streams",
+          "Pure software transformations",
+          rgb("e6f3ff"),
+          ("map()", "filter()", ".double()", "fork()"),
+        )
 
-      // OS layer (middle)
-      draw-layer(2.3, 7, 1.2, [Leaf Streams (real streams)], "OS/kernel constraints", rgb("fff3cd"))
-      draw-examples(3.1, ("File I/O", "TCP sockets", "Process pipes", "System timers"))
+        layer(
+          (0, 1),
+          "Leaf streams",
+          "OS/kernel constraints",
+          rgb("fff3cd"),
+          ("tokio::fs::File", "TcpListener", "UnixStream", "Interval"),
+        )
 
-      // Software layer (top)
-      draw-layer(4.1, 7, 1.2, "Non-Leaf Streams (toy streams)", "Pure software transformations", rgb("e6f3ff"))
-      draw-examples(5.0, ("map()", "filter()", "take()", "enumerate()"))
+        layer(
+          (0, 0),
+          "Physical streams",
+          "Electronic signals",
+          rgb("ffeeee"),
+          ("GPIO interrupts", "UART frames", "Network packets"),
+        )
 
-      // Arrows showing data flow upward
-      line((4.5, 1.7), (4.5, 2.3), mark: (end: ">"), stroke: orange + 2pt)
-      content((5.5, 2.0), text(size: 7pt, "OS abstraction"), anchor: "center")
+        edge((0, 0), (0, 1), "-|>", stroke: orange + 1pt, label: "OS abstraction")
+        edge((0, 1), (0, 2), "-|>", stroke: blue + 1pt, label: "Stream operators")
 
-      line((4.5, 3.5), (4.5, 4.1), mark: (end: ">"), stroke: blue + 2pt)
-      content((5.8, 3.8), text(size: 7pt, "Software transform"), anchor: "center")
-    })
+        node((-1, 1), [Requires an `async` runtime \ (See book by _Carl Fredrik Samson_)], stroke: none)
+        edge((-1, 1), (0, 1), "->", stroke: gray + 1pt)
+
+        node((-1, 2), [In this presentation], stroke: none)
+        edge((-1, 2), (0, 2), "->", stroke: gray + 1pt)
+      },
+    )
   ]
 
-  Only the bottom layer requires `async` - everything above could theoretically be synchronous! (See book by _Carl Fredrik Samson_)
 
-]
-
-#slide[
-  === A common leaf stream
-
-
-
-  ```rust
-  let mut tcp_stream = tokio::net::TcpListener::bind("127.0.0.1:8080")
-      .await?
-      .incoming();
-
-  use futures::stream::StreamExt; // Needed for .next()
-  while let Some(connection) = tcp_stream.next().await {
-      handle_client(connection?).await;
-  }
-  ```
-
-  The same pattern exists for all types of network middleware.
 
 ]
 
@@ -232,10 +218,10 @@
 
   #text(size: 8pt)[
     ```rust
-    let mut filtered_messages = Vec::new();
-    let mut count = 0;
-    let mut total_errors = 0;
-
+    let mut filtered_messages = Vec::new(); let mut count = 0; let mut = 0;
+    let mut tcp_stream = tokio::net::TcpListener::bind("127.0.0.1:8080")
+          .await?
+          .incoming();
     while let Some(connection) = tcp_stream.next().await {
         match connection {
             Ok(stream) => {
@@ -570,20 +556,17 @@
 #slide[
 
 
-  === Wrapping the original stream
-
-
+  === Wrapping the original stream by value
 
   ```rust
-  struct Double<InSt> {
-      in_stream: InSt,
-  }
-  impl<InSt> Double<InSt> {
+  struct Double<InSt> { in_stream: InSt, }
+
+  impl<InSt> Stream for Double<InSt> where Stream: Stream<Item = i32> {
+    type Item = InSt::Item;
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>> {
-              // ⚠️ Will not compile!
-              self.in_stream
-                  .poll_next_unpin(cx)
+              Pin::new(self.in_stream) // ⚠️ Will not compile!
+                  .poll_next(cx)
                   .map(|x| x * 2)
     }
   }
@@ -594,7 +577,7 @@
 
 
 #slide[
-  === *Projecting* the '_pinned_ wrapper'
+  === How to *project* to access `self.in_stream`?
   #text(size: 8pt)[
     #align(center + horizon)[
 
@@ -626,7 +609,7 @@
 
         // Second arrow with Pin::new() label
         line((4.4, 2), (5.5, 2), mark: (end: ">"), stroke: green + 2pt)
-        content((5, 2.4), text(size: 6pt, text(fill: blue)[`Pin::new()`]), anchor: "center")
+        content((5, 2.4), text(size: 6pt, text(fill: blue)[?]), anchor: "center")
 
         // Right: Pin<&mut InSt>
         hexagon(draw, (6.5, 2), 2, rgb("eeffee"), blue, text(fill: blue)[`Pin<&mut InSt>`], (6.5, 3.3))
@@ -788,7 +771,7 @@
 
 
 
-  === Putting it all together
+  === Putting it all together visually
 
   ... and wrapping it around the boxed stream:
 
@@ -802,7 +785,7 @@
       // Annotation about Box making it Unpin
       content(
         (-0.5, 5.8),
-        text(size: 8pt, fill: black, [`Box` makes \ `Box<InSt>: Unpin` \ `Double: Unpin`]),
+        text(size: 8pt, fill: black, [`Box<InSt>: Unpin` \ so `Double: Unpin`]),
         anchor: "center",
       )
 
@@ -825,7 +808,9 @@
       line((4.3, 4), (6.5, 4), mark: (end: ">"), stroke: blue + 2pt)
       content(
         (5.15, 4.5),
-        text(size: 8pt, weight: "bold", underline(stroke: 1pt, offset: 1.5pt, text(fill: blue)[`Pin::get_mut()`])),
+        text(size: 8pt, weight: "bold", underline(stroke: 1pt, offset: 1.5pt, text(
+          fill: blue,
+        )[`Pin::get_mut()` \ `Pin::new()`])),
         anchor: "center",
       )
       content((5.15, 3.5), text(fill: red, size: 7pt, [if `Double<InSt>:` \ `Unpin`]), anchor: "center")
@@ -864,13 +849,14 @@
 
 
 #slide[
-  === Finish `Stream` impl
-  We can call `get_mut()` to get `&mut Double<InSt>` safely since:
-  - `self` is of type `Pin<&mut Double<InSt>>`
-  - `Double<InSt>` is `Unpin`,
+  === Complete `Stream` trait implementation
 
 
   #text(size: 9pt)[
+    We can call `get_mut()` to get `&mut Double<InSt>` safely:
+
+
+
     ```rust
     impl<InSt> Stream for Double<InSt>
     where InSt: Stream<Item = i32>
@@ -878,12 +864,17 @@
         fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
             -> Poll<Option<Self::Item>>
         {
+            // this: &mut Double<InSt>
             let this = self.get_mut(); // Safe because Double is Unpin
-            Pin::new(&mut this.in_stream).poll_next(cx)
-            ...
+            match Pin::new(&mut this.in_stream).poll_next(cx) {
+                Poll::Ready(r) => Poll::Ready(r.map(|x| x * 2)),
+                Poll::Pending => Poll::Pending,
+            }
+
         }
     }
-    ```]
+    ```
+  ]
 ]
 
 
@@ -909,7 +900,7 @@
   impl<S> DoubleStream for S where S: Stream<Item = i32> {}
   ```
 
-  *Important*: The `DoubleStream` trait must be in scope to use `.double()`
+  *Important*: A blanket implementation should be provided by you!
 
 ]
 
@@ -922,7 +913,7 @@
   [dependencies]
   double-stream = "1.0"
   ```
-
+  The `DoubleStream` trait must be in scope to use `.double()`:
   ```rust
   use double_stream::DoubleStream;  // Trait in scope
 
@@ -941,22 +932,31 @@
 #slide[
   === Problem: most streams aren't `Clone`
 
-  Many useful streams can't be copied:
 
-  #text(size: 10pt)[
+  #text(size: 9pt)[
+    Latency may need to processed by different async tasks:
+
+
     ```rust
     let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
-    let lines = BufReader::new(tcp_stream).lines();
+    let latency = tcp_stream.latency(); // Stream<Item = Duration>
+    let latency_clone = latency.clone(); // Error! Can't clone stream
+    spawn(async move { process_for_alice(latency).await; });
+    spawn(async move { process_for_bob(latency_clone).await; });
+    ```
 
-    let copy = lines.clone(); // Error! Can't clone TCP stream
-    ```]
 
-  *But*: Sometime you need multiple consumers.
 
-  *Solution*: a crate #link("https://crates.io/crates/clone-stream")[`clone-stream`] makes any stream cloneable:
+    *Solution*: Create a _*stream operator*_ that clones streams.
 
-  Pre-existing stream cloning crate: `fork_stream`.
-]
+    (Requirement: `Stream<Item: Clone>`, so we can clone the items)
+
+    Approach:
+
+    1. Implement forking the input stream
+    2. Implement cloning on forked streams
+    3. Package as crate with blanket impl
+  ]]
 
 #slide[
   === Rough architecture of `clone-stream`
@@ -967,16 +967,16 @@
       spacing: (4em, 1.5em),
 
       // Main stream nodes
-      node((0, 1), [LinesStream], fill: rgb("e6f3ff"), stroke: black + 1pt),
+      node((0, 1), [`InputStream`], fill: rgb("e6f3ff"), stroke: black + 1pt),
       node((1, 1), [`Fork`], fill: rgb("f0ffe6"), stroke: green + 2pt),
-      node((2, 2), [Parser `Clone`], fill: rgb("ffeeee"), stroke: black + 1pt),
-      node((2, 0), [Logger `Clone`], fill: rgb("fff0e6"), stroke: black + 1pt),
+      node((2, 2), [Bob], fill: rgb("ffeeee"), stroke: black + 1pt),
+      node((2, 0), [Alice], fill: rgb("fff0e6"), stroke: black + 1pt),
 
       // MIDDLE
-      node((3, 1), [#strike['a']], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
-      node((3.5, 1), [#strike['b']], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
-      node((4, 1), ['c'], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
-      node((4.5, 1), ['d'], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.circle),
+      node((3, 1), [#strike['a']], fill: rgb("e0e0e0").lighten(80%), stroke: gray + 1pt, shape: fletcher.shapes.rect),
+      node((3.5, 1), [#strike['b']], fill: rgb("e0e0e0").lighten(80%), stroke: gray + 1pt, shape: fletcher.shapes.rect),
+      node((4, 1), ['c'], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.rect),
+      node((4.5, 1), ['d'], fill: rgb("e0e0e0"), stroke: gray + 1pt, shape: fletcher.shapes.rect),
 
 
       // BOTTOM
@@ -990,14 +990,14 @@
       node((3.5, -1), ['b'], fill: rgb("fff3cd"), stroke: orange + 1pt, shape: fletcher.shapes.circle),
 
       // Main flow edges
-      edge((0, 1), (1, 1), [.fork()], "->", stroke: blue + 2pt, label-pos: 0.4),
-      edge((1, 1), (2, 2), [.clone()], "->", stroke: purple + 2pt, bend: -20deg),
-      edge((1, 1), (2, 0), [.clone()], "->", stroke: purple + 2pt, bend: 20deg),
+      edge((0, 1), (1, 1), [`.fork()`], "->", stroke: blue + 2pt, label-pos: 0.4),
+      edge((1, 1), (2, 2), [`.clone()`], "->", stroke: purple + 2pt, bend: -20deg),
+      edge((1, 1), (2, 0), [`.clone()`], "->", stroke: purple + 2pt, bend: 20deg),
 
       // Data flow edges
 
       edge((2, 0), (3, -1), "->", stroke: orange + 1pt),
-      edge((1, 1), (3, 1), [queue], "-->", stroke: gray + 1pt),
+      edge((1, 1), (3, 1), text(fill: gray)[queue], "--", stroke: gray + 1pt),
       edge((2, 2), (3, 3), "->", stroke: orange + 1pt),
     )
   ]
@@ -1013,7 +1013,7 @@
 #slide[
 
   === Polling and waking flow
-  #set text(size: 8pt)
+  #set text(size: 7pt)
   #align(center)[
     #diagram(
       node-corner-radius: 5pt,
@@ -1022,7 +1022,7 @@
       // Input stream at bottom
       node(
         (1, 0),
-        [Input Stream],
+        [`InputStream`],
         fill: rgb("e6f3ff"),
         stroke: blue + 2pt,
       ),
@@ -1049,12 +1049,22 @@
       node((1, 1.5), [data 'x'], fill: rgb("fff3cd"), stroke: orange + 2pt),
 
       // Flow sequence with better spacing
-      edge((1, 0), (1, 1.5), [ready], "->", stroke: orange + 2pt),
-      edge((0, 3), (1, 0), [1. poll\ (not ready)], "->", stroke: gray + 1.5pt, bend: 50deg),
-      edge((2, 3), (1, 0), [2. poll\ (ready!)], "->", stroke: green + 2pt, bend: -50deg),
-      edge((2, 3), (0, 3), [3. wake Alice], "->", stroke: blue + 2pt, bend: 40deg),
-      edge((1, 1.5), (0, 3), [4. copy], "->", stroke: orange + 1.5pt, bend: -40deg),
-      edge((1, 1.5), (2, 3), [5. original], "->", stroke: orange + 1.5pt, bend: 40deg),
+
+      edge((0, 3), (1, 0), [1. `poll_next()`], "->", stroke: gray + 1.5pt, bend: 50deg, label-pos: 79%),
+      edge((1, 0), (0, 3), [2. `Pending`], "->", stroke: gray + 1.5pt, bend: -85deg, label-pos: 90%),
+
+
+      edge((2, 3), (1, 0), [3. `poll_next()`], "->", stroke: green + 2pt, bend: -50deg, label-pos: 70%),
+
+
+      edge((1, 0), (1, 1.5), [4. `Ready`], "->", stroke: orange + 2pt),
+
+
+      edge((2, 3), (0, 3), [5. `wake()` Alice], "->", stroke: green + 2pt, bend: 40deg),
+
+      edge((0, 3), (1, 1.5), [6. `poll_next()`], "->", stroke: green + 1.5pt, bend: -40deg, label-pos: 30%),
+      edge((1, 1.5), (0, 3), [7. `clone()`], "->", stroke: orange + 1.5pt, bend: -40deg, label-pos: 30%),
+      edge((1, 1.5), (2, 3), [8. original], "->", stroke: orange + 1.5pt, bend: 40deg, label-pos: 30%),
     )
   ]
 
@@ -1064,23 +1074,25 @@
 #slide[
   === Complexity grows with thousands of clones
 
-  Real-world challenges that require careful state management:
+  Careful state management:
 
 
   #grid(
     columns: (1fr, 1fr),
     column-gutter: 2em,
     [
-      *Dynamic clone lifecycle:*
-      - Clones created at runtime
-      - Clones dropped unexpectedly
-      - Avoid memory leaks
+      *Inherent async challenges:*
+      - Dynamic clone lifecycle
+      - Memory leaks from orphaned wakers
+      - Cleanup when tasks abort
+      - Task coordination complexity
     ],
     [
-      *Ordering guarantees:*
-      - All clones see same order
-      - No clone misses values
-      - Handle concurrent access
+      *Stream-specific challenges:*
+      - Ordering guarantees across clones
+      - Backpressure with slow consumers
+      - Sharing mutable state safely
+      - Avoiding duplicate items
     ],
   )
 
@@ -1089,9 +1101,6 @@
     #canvas(length: 1cm, {
       import draw: *
 
-      // Shared queue visualization
-      rect((1, 2), (7, 3), fill: rgb("f0f0f0"), stroke: black + 2pt)
-      content((4, 2.5), text(size: 9pt, weight: "bold", "Shared Queue (RwLock)"))
 
       // Multiple clones at different positions
       let clone-positions = ((0.5, 1), (2, 0.5), (4, 0.2), (6, 1.2), (7.5, 0.8))
@@ -1123,29 +1132,41 @@
         When you build your own:
 
         1. Pick an async run-time.
-        2. Write `Barrier`-based tests:
+        2. Define synchronization points with `Barrier`:
           ```rs
           let b1 = Arc::new(Barrier::new(3)); // First output
           let b2 = b1.clone(); // Second output
           let b3 = b1.clone(); // For input
 
-          // Apply your custom operator
-          let out_stream = create_test_stream()
-              .your_custom_operator();
+
           ```
 
-          Much better than using `sleep()`!
+        3. Apply your custom operator
+          ```rs
+          let stream1 = create_test_stream()
+              .your_custom_operator();
+          let stream2 = stream1.clone();
+          ```
+
+          Can be used for *benchmarks* too (use `criterion`).
+
+
+
       ],
       [
+        Do not use `sleep(1ms)` in tests! (Use bariers!)
+
         ```rs
         try_join_all([
             spawn(async move {
+                setup_task().await;
                 b1.wait().await;
-                read_from_stream(out_stream).await;
+                stream1.collect().await;
             }),
             spawn(async move {
+                setup_task().await;
                 b2.wait().await;
-                read_from_stream(out_stream).await;
+                stream2.collect().await;
             }),
             spawn(async move {
                 b3.wait().await;
@@ -1220,59 +1241,26 @@
   #let red-color = rgb("ffcccc")
 
   === State machine of `clone-stream`
-  #text(size: 8pt)[
-    Many states because of `Option` avoidance in states:
+
+  Simplified state machine for clone coordination:
 
 
-    #align(center)[
-      #diagram(
-        node-stroke: 1pt,
-        spacing: (3em, 1.5em),
+  #align(center + horizon)[
+    #diagram(
+      node-stroke: 1pt,
+      spacing: (4em, 2em),
 
-        // Top row: Ready states
-        node((0, 1), text(size: 7pt)[AwaitingFirstItem], fill: yellow-color, shape: pill),
-        node((1, 1), text(size: 7pt)[BaseStreamReady], fill: green-color, shape: pill),
-        node((2, 1), text(size: 7pt)[BaseStreamReady\ WithHistory], fill: green-color, shape: pill),
-        node((3, 1), text(size: 7pt)[ProcessingQueue], fill: green-color, shape: pill),
+      // Core states
+      node((0, 1), text(size: 8pt)[Waiting], fill: yellow-color, shape: pill),
+      node((2, 1), text(size: 8pt)[Ready], fill: green-color, shape: pill),
+      node((1, 0), text(size: 8pt)[Distributing], fill: red-color, stroke: red + 2pt, shape: pill),
 
-        // Bottom row: Pending states with wakers
-        node((0, 0), text(size: 7pt)[AwaitingBase\ 💤], fill: red-color, stroke: red + 2pt, shape: pill),
-        node(
-          (2, 0),
-          text(size: 7pt)[AwaitingBase\ WithHistory\ 💤],
-          fill: red-color,
-          stroke: red + 2pt,
-          shape: pill,
-        ),
-
-        // Main flow transitions
-        edge((0, 1), (1, 1), text(size: 6pt)[ready], "->"),
-        edge((1, 1), (2, 1), text(size: 6pt)[history], "->"),
-        edge((2, 1), (3, 1), text(size: 6pt)[queue], "->"),
-        edge((3, 1), (2, 1), text(size: 6pt)[done], "->", bend: 30deg),
-
-        // Pending transitions
-        edge((1, 1), (0, 0), text(size: 6pt)[pending], "->", bend: -20deg),
-        edge((2, 1), (2, 0), text(size: 6pt)[pending], "->", bend: 20deg),
-        edge((0, 0), (1, 1), text(size: 6pt)[ready], "->", bend: -20deg),
-        edge((0, 0), (3, 1), text(size: 6pt)[queue ready], "->", bend: 40deg),
-        edge((2, 0), (3, 1), text(size: 6pt)[queue ready], "->", bend: 0deg),
-        edge((2, 0), (2, 1), text(size: 6pt)[ready], "->", bend: 20deg),
-      )
-    ]
-
-
-    #grid(
-      columns: (1fr, 1fr),
-      gutter: 2em,
-      [
-        - #box(rect(width: 0.8em, height: 0.8em, fill: yellow-color, stroke: 0.5pt)) Yellow: Initial state, reads from input stream
-        - #box(rect(width: 0.8em, height: 0.8em, fill: green-color, stroke: 0.5pt)) Green: Processing items (input or queue)
-      ],
-      [
-        - #box(rect(width: 0.8em, height: 0.8em, fill: red-color, stroke: 0.5pt)) Red: Pending state with stored waker
-      ],
-    )]
+      // Main flow
+      edge((0, 1), (2, 1), text(size: 7pt)[data arrives], "->"),
+      edge((2, 1), (1, 0), text(size: 7pt)[clone & wake], "->", bend: -20deg),
+      edge((1, 0), (0, 1), text(size: 7pt)[done], "->", bend: -20deg),
+    )
+  ]
 
 
 ]
@@ -1289,17 +1277,18 @@
 #slide[
   === Before building your own operators
 
-  Is your operator 1-N, N-1, or 1-1? In case, of 1-1:
 
-  1. use `futures::stream::unfold`
-  2. use a generator from `async-stream` crate
+  1. For simple state machines: `futures::stream::unfold` constructor
+  2. Streams from scratch: `async-stream` crate with `yield`
 
   Otherwise, import an operator from:
 
   #grid(
     columns: (1fr, 1fr),
     stroke: black + 1pt,
+    fill: blue.lighten(90%),
     inset: 0.5em,
+
     gutter: 2em,
     [
       *Standard*: #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
@@ -1343,8 +1332,8 @@
       ],
       [
         *Use objective targets:*
-        - Correctness tests
-        - Representative benchmarks (use `criterion`)
+        - Correctness unit tests
+        - Statistically relevant benchmarks
       ],
     )
 
@@ -1393,54 +1382,6 @@
 #slide[
   == Bonus slides
 ]
-
-#slide[
-  === Why does Rust bring to the table?
-
-  Reactivity in garbage collected languages is *completely different* from Rust's ownership system
-
-  #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
-
-      // TypeScript side
-      rect((0.5, 1), (3.5, 4), fill: rgb("fff0e6"), stroke: orange + 2pt)
-      content((2, 3.5), text(size: 8pt, weight: "bold", "TypeScript"), anchor: "center")
-
-      // GC cleanup
-      circle((2, 2.8), radius: 0.4, fill: rgb("e6ffe6"), stroke: green + 2pt)
-      content((2, 2.8), text(size: 6pt, "GC"), anchor: "center")
-
-
-      // Data flowing freely - simplified dots
-      for i in range(3) {
-        let x = 1.4 + i * 0.3
-        circle((x, 2.0), radius: 0.08, fill: blue)
-      }
-      content((2, 1.4), text(size: 6pt, "Put anything\nanywhere"), anchor: "center")
-
-      // VS separator
-      content((4.5, 2.5), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
-
-      // Rust side
-      rect((5.5, 1), (8.5, 4), fill: rgb("ffe6e6"), stroke: red + 2pt)
-      content((7, 3.5), text(size: 8pt, weight: "bold", "Rust"), anchor: "center")
-
-      // Ownership constraints
-      rect((6.2, 2.6), (7.8, 3.2), fill: rgb("ffcccc"), stroke: red + 1pt)
-      content((7, 2.9), text(size: 6pt, "Ownership\nRules"), anchor: "center")
-
-      // Constrained data flow
-      line((6.2, 2.2), (6.8, 2.2), stroke: blue + 2pt)
-      line((6.8, 2.2), (7.2, 1.8), stroke: blue + 2pt, mark: (end: ">"))
-      line((7.2, 1.8), (7.8, 1.8), stroke: blue + 2pt)
-      content((7, 1.3), text(size: 6pt, "Explicit design\nrequired"), anchor: "center")
-    })
-  ]
-
-  This fundamental difference explains why stream patterns from other languages don't translate directly
-]
-
 
 
 #slide[
@@ -1700,7 +1641,7 @@
   }
   ```
 
-  #rect(inset: 5mm)[
+  #rect(inset: 5mm, fill: rgb("fff3cd"), stroke: 1pt)[
     What about Rust rule `self` needs to be `Deref<Target=Self>`?
   ]
 
@@ -1709,6 +1650,56 @@
 
   Problem? No, `Pin` is an exception in the compiler.
 ]
+
+
+
+#slide[
+  === Why does Rust bring to the table?
+
+  Reactivity in garbage collected languages is *completely different* from Rust's ownership system
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      // TypeScript side
+      rect((0.5, 1), (3.5, 4), fill: rgb("fff0e6"), stroke: orange + 2pt)
+      content((2, 3.5), text(size: 8pt, weight: "bold", "TypeScript"), anchor: "center")
+
+      // GC cleanup
+      circle((2, 2.8), radius: 0.4, fill: rgb("e6ffe6"), stroke: green + 2pt)
+      content((2, 2.8), text(size: 6pt, "GC"), anchor: "center")
+
+
+      // Data flowing freely - simplified dots
+      for i in range(3) {
+        let x = 1.4 + i * 0.3
+        circle((x, 2.0), radius: 0.08, fill: blue)
+      }
+      content((2, 1.4), text(size: 6pt, "Put anything\nanywhere"), anchor: "center")
+
+      // VS separator
+      content((4.5, 2.5), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
+
+      // Rust side
+      rect((5.5, 1), (8.5, 4), fill: rgb("ffe6e6"), stroke: red + 2pt)
+      content((7, 3.5), text(size: 8pt, weight: "bold", "Rust"), anchor: "center")
+
+      // Ownership constraints
+      rect((6.2, 2.6), (7.8, 3.2), fill: rgb("ffcccc"), stroke: red + 1pt)
+      content((7, 2.9), text(size: 6pt, "Ownership\nRules"), anchor: "center")
+
+      // Constrained data flow
+      line((6.2, 2.2), (6.8, 2.2), stroke: blue + 2pt)
+      line((6.8, 2.2), (7.2, 1.8), stroke: blue + 2pt, mark: (end: ">"))
+      line((7.2, 1.8), (7.8, 1.8), stroke: blue + 2pt)
+      content((7, 1.3), text(size: 6pt, "Explicit design\nrequired"), anchor: "center")
+    })
+  ]
+
+  This fundamental difference explains why stream patterns from other languages don't translate directly
+]
+
 
 
 #slide[
