@@ -25,6 +25,7 @@
   for i in range(6) {
     let start = vertices.at(i)
     let end = vertices.at(calc.rem(i + 1, 6))
+    draw.circle(start, radius: 0.08, fill: stroke-color, stroke: none) // Vertex point
     draw.line(start, end, stroke: stroke-color + 2pt)
   }
 
@@ -39,6 +40,7 @@
   event: "EuroRust 2025",
   location: "Paris, France",
   duration: "30 minutes + 10 minutes Q&A",
+  repository: "https://github.com/wvhulle/streams-eurorust-2025",
 )
 
 #slide[
@@ -101,26 +103,37 @@
     #canvas(length: 1cm, {
       import draw: *
 
-      let draw-timeline-entry(y, year, event, description, color) = {
+      let draw-timeline-entry(y, year, event, description, reference, ref-url, color) = {
         // Year label
         rect((1, y - 0.3), (3, y + 0.3), fill: color, stroke: black + 1pt, radius: 0.2)
         content((2, y), text(size: 8pt, weight: "bold", year), anchor: "center")
 
         // Event description
-        content((3.5, y + 0.1), text(size: 9pt, weight: "bold", event), anchor: "west")
-        content((3.5, y - 0.2), text(size: 7pt, description), anchor: "west")
+        content((3.5, y + 0.2), text(size: 9pt, weight: "bold", event), anchor: "west")
+        content((3.5, y - 0.03), text(size: 7pt, description), anchor: "west")
+        content((3.5, y - 0.24), link(ref-url, text(size: 6pt, style: "italic", fill: blue, reference)), anchor: "west")
 
         // Connection line from timeline to date box
         line((0.8, y), (1, y), stroke: gray + 1pt)
       }
 
       // Timeline entries (bottom to top = old to new)
-      draw-timeline-entry(5.5, "2019", "async/await in Rust", "Stream trait ecosystem matures", rgb("e6f3ff"))
+      draw-timeline-entry(
+        5.5,
+        "2019",
+        "async/await stabilized in Rust",
+        "Stable async streams in std",
+        "RFC 2394, Rust 1.39.0",
+        "https://rust-lang.github.io/rfcs/2394-async_await.html",
+        rgb("e6f3ff"),
+      )
       draw-timeline-entry(
         4.5,
         "2009",
         "Microsoft Reactive Extensions",
         "ReactiveX brings streams to mainstream",
+        "Erik Meijer, Microsoft",
+        "https://reactivex.io/",
         rgb("fff0e6"),
       )
       draw-timeline-entry(
@@ -128,6 +141,8 @@
         "1997",
         "Functional Reactive Programming",
         "Conal Elliott & Paul Hudak (Haskell)",
+        "ICFP '97, pp. 263-273",
+        "https://dl.acm.org/doi/10.1145/258948.258973",
         rgb("f0ffe6"),
       )
       draw-timeline-entry(
@@ -135,10 +150,28 @@
         "1978",
         "Communicating Sequential Processes",
         "Tony Hoare formalizes concurrent dataflow",
+        "CACM 21(8):666-677",
+        "https://dl.acm.org/doi/10.1145/359576.359585",
         rgb("ffe6f0"),
       )
-      draw-timeline-entry(1.5, "1973", "Unix Pipes", "Douglas McIlroy creates `|` operator", rgb("f0e6ff"))
-      draw-timeline-entry(0.5, "1960s", "Dataflow Programming", "Hardware-level stream processing", rgb("ffeeee"))
+      draw-timeline-entry(
+        1.5,
+        "1973",
+        "Unix Pipes",
+        "Douglas McIlroy creates `|` operator",
+        "Bell Labs, Unix v3-v4",
+        "https://www.cs.dartmouth.edu/~doug/reader.pdf",
+        rgb("f0e6ff"),
+      )
+      draw-timeline-entry(
+        0.5,
+        "1960s",
+        "Dataflow Programming",
+        "Hardware-level stream processing",
+        "Early dataflow architectures",
+        "https://en.wikipedia.org/wiki/Dataflow_programming",
+        rgb("ffeeee"),
+      )
 
       // Main timeline line (positioned to the left, not overlapping with date boxes)
       line((0.8, 0.3), (0.8, 5.7), stroke: gray + 2pt)
@@ -197,7 +230,11 @@
         edge((0, 0), (0, 1), "-|>", stroke: orange + 1pt, label: "OS abstraction")
         edge((0, 1), (0, 2), "-|>", stroke: blue + 1pt, label: "Stream operators")
 
-        node((-1, 1), [Requires an `async` runtime \ (See book by _Carl Fredrik Samson_)], stroke: none)
+        node(
+          (-1, 1),
+          [Requires an `async` runtime \ #text(size: 0.7em)[('leaf future' by _Carl Fredrik Samson_)]],
+          stroke: none,
+        )
         edge((-1, 1), (0, 1), "->", stroke: gray + 1pt)
 
         node((-1, 2), [In this presentation], stroke: none)
@@ -305,6 +342,8 @@
     #diagram(
       node-corner-radius: 5pt,
       spacing: (1.2em, 0.8em),
+      edge-stroke: 1.0pt,
+      node-outset: 2pt,
 
       // Iterator side - title
       node((0.5, 5), text(size: 11pt, weight: "bold")[Iterator (sync)], fill: none, stroke: none),
@@ -430,7 +469,8 @@
     #set text(size: 7pt)
     #diagram(
       node-corner-radius: 4pt,
-      spacing: (2.5em, 1.5em),
+      node-outset: 3pt,
+      spacing: (2.0em, 1.5em),
       edge-stroke: 1.5pt,
 
       // Top row: Rust operator names
@@ -741,7 +781,7 @@
         content((11.5, 5.0), text(size: 3em, "🐅"), anchor: "center")
         content((11.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
         // Smooth curved arrow going into triangle center
-        arc((10.5, 5.2), start: 60deg, stop: 160deg, radius: 1.5, mark: (end: ">"), stroke: red + 2pt)
+        arc((10.5, 5.2), start: 60deg, stop: 170deg, radius: 1.5, mark: (end: ">"), stroke: red + 2pt)
 
         // Heap - actual stream (triangle laying flat)
         line((6.0, 3), (10, 3), stroke: orange + 2pt) // base
@@ -964,6 +1004,7 @@
     #diagram(
       node-corner-radius: 5pt,
       edge-stroke: 2pt,
+      node-outset: 3pt,
       spacing: (4em, 1.5em),
 
       // Main stream nodes
@@ -1017,6 +1058,7 @@
   #align(center)[
     #diagram(
       node-corner-radius: 5pt,
+      node-outset: 3pt,
       spacing: (3em, 2.5em),
 
       // Input stream at bottom
@@ -1183,54 +1225,111 @@
 
 
 #slide[
-  === State machines for distributed systems
+  === State machines for physically-separated components
 
-  State machines are everywhere because *every program is a state machine* (Turing)
+  #align(center + horizon)[
+    #set text(size: 8pt)
+    #diagram(
+      node-stroke: 1pt,
+      node-outset: 0.5em,
 
-  #grid(
-    columns: (1fr, 1fr),
-    column-gutter: 3em,
-    [
-      #rect(
-        fill: blue.lighten(90%),
-        stroke: blue.lighten(50%),
-        radius: 8pt,
-        inset: 1.5em,
-        width: 100%,
+      edge-stroke: 1.5pt,
+      spacing: (3em, 2em),
+
+      // Start: Tests
+      node(
+        (1, 3),
         [
-          *Start with:*
-
-
-          - Required behavior (tests)
-          - Performance requirements
-
+          #stack(
+            dir: ttb,
+            spacing: 0.2em,
+            text(weight: "bold", size: 8pt)[1. Write sleepless tests],
+            text(size: 7pt)[• Order preservation],
+            text(size: 7pt)[• All items received],
+            text(size: 7pt)[• Use `Barrier`s, not `sleep()`],
+          )
         ],
-      )
-    ],
-    [
-      #rect(
-        fill: green.lighten(90%),
-        stroke: green.lighten(50%),
-        radius: 8pt,
-        inset: 1.5em,
-        width: 100%,
+        fill: rgb("e6f3ff"),
+      ),
+
+      // Analyze states
+      node(
+        (3, 3),
         [
-          *Then derive:*
-
-
-          - Minimal state set
-          - Clean transitions
-          - Minimise function calls
+          #stack(
+            dir: ttb,
+            spacing: 0.2em,
+            text(weight: "bold", size: 8pt)[2. Analyze states],
+            text(size: 7pt)[• Minimal state set],
+            text(size: 7pt)[• Clean transitions],
+            text(size: 7pt)[• Avoid `Option`s in states],
+          )
         ],
-      )
-    ],
-  )
+        fill: rgb("fff3cd"),
+      ),
 
+      // Implement
+      node(
+        (2, 2),
+        [
+          #stack(
+            dir: ttb,
+            spacing: 0.2em,
+            text(weight: "bold", size: 8pt)[3. Implement],
+            text(size: 7pt)[• State machine],
+            text(size: 7pt)[• Transitions],
+            text(size: 7pt)[• Waker management],
+          )
+        ],
+        fill: rgb("f0ffe6"),
+      ),
 
+      // Test iteration
+      node(
+        (1, 1),
+        [
+          #stack(
+            dir: ttb,
+            spacing: 0.2em,
+            text(weight: "bold", size: 8pt)[4. Run tests],
+            text(size: 7pt)[Tests pass?],
+          )
+        ],
+        fill: rgb("ffe6f0"),
+      ),
 
-  #align(center)[
-    "Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away." — _Antoine de Saint-Exupéry_
+      // Benchmarks
+      node(
+        (3, 1),
+        [
+          #stack(
+            dir: ttb,
+            spacing: 0.2em,
+            text(weight: "bold", size: 8pt)[5. Benchmarks],
+            text(size: 7pt)[• Use `criterion`],
+            text(size: 7pt)[• Measure performance],
+            text(size: 7pt)[• Optimize hotspots],
+          )
+        ],
+        fill: rgb("e6ffe6"),
+      ),
+
+      // Flow arrows
+      edge((1, 3), (3, 3), "->"),
+      edge((3, 3), (2, 2), "->", bend: -15deg),
+      edge((2, 2), (1, 1), "->", bend: -15deg),
+      edge((1, 1), (3, 1), text(size: 6pt)[✓ pass], "->"),
+
+      // Iteration loop
+      edge((1, 1), (2, 2), text(size: 6pt)[✗ fail], "->", bend: -30deg, stroke: red + 1pt),
+    )
   ]
+
+
+
+
+  "Perfection is achieved, not when there is nothing more to add, but when there is *nothing left to take away*." — _Antoine de Saint-Exupéry_
+
 
 ]
 
@@ -1242,23 +1341,84 @@
 
   === State machine of `clone-stream`
 
-  Simplified state machine for clone coordination:
+  Each clone maintains its own state:
 
 
   #align(center + horizon)[
     #diagram(
       node-stroke: 1pt,
-      spacing: (4em, 2em),
+      node-inset: 1em,
+      edge-stroke: 1pt,
+      node-outset: 0.5em,
+      spacing: (4em, 2.5em),
 
-      // Core states
-      node((0, 1), text(size: 8pt)[Waiting], fill: yellow-color, shape: pill),
-      node((2, 1), text(size: 8pt)[Ready], fill: green-color, shape: pill),
-      node((1, 0), text(size: 8pt)[Distributing], fill: red-color, stroke: red + 2pt, shape: pill),
+      // Core states from actual implementation
+      node(
+        (0, 1),
+        [
+          #stack(
+            dir: ttb,
+            spacing: 0.5em,
+            text(size: 8pt, weight: "bold")[PollingBaseStream],
+            text(size: 6pt, style: "italic")[Actively polling input stream],
+          )
+        ],
+        fill: green-color,
+        shape: pill,
+      ),
+      node(
+        (2, 1),
+        [
+          #stack(
+            dir: ttb,
+            spacing: 0.5em,
+            text(size: 8pt, weight: "bold")[ProcessingQueue],
+            text(size: 6pt, style: "italic")[Reading from shared buffer],
+          )
+        ],
+        fill: yellow-color,
+        shape: pill,
+      ),
+      node(
+        (1, 0),
+        [
+          #stack(
+            dir: ttb,
+            spacing: 0.5em,
+            text(size: 7pt, weight: "bold")[Pending],
+            text(size: 6pt, style: "italic")[Waiting with stored waker],
+          )
+        ],
+        fill: red-color,
+        stroke: red + 2pt,
+        shape: pill,
+      ),
 
-      // Main flow
-      edge((0, 1), (2, 1), text(size: 7pt)[data arrives], "->"),
-      edge((2, 1), (1, 0), text(size: 7pt)[clone & wake], "->", bend: -20deg),
-      edge((1, 0), (0, 1), text(size: 7pt)[done], "->", bend: -20deg),
+      // Main transitions
+      edge(
+        (0, 1),
+        (2, 1),
+        text(size: 6pt)[base ready,\ queue item],
+        "->",
+        label-pos: 0.5,
+        label-anchor: "north",
+        label-sep: 0em,
+      ),
+      edge((2, 1), (0, 1), text(size: 6pt)[queue empty,\ poll base], "->", bend: 40deg, label-pos: 0.3),
+
+      // Pending transitions
+      edge(
+        (0, 1),
+        (1, 0),
+        text(size: 6pt)[base pending],
+        "->",
+        bend: -15deg,
+        label-pos: 0.5,
+        label-sep: 0.5em,
+        label-anchor: "west",
+      ),
+      edge((1, 0), (0, 1), text(size: 6pt)[woken], "->", bend: -15deg, label-pos: 0.7, label-sep: 1em),
+      edge((1, 0), (2, 1), text(size: 6pt)[queue ready], "->", bend: 15deg, label-pos: 0.7),
     )
   ]
 
