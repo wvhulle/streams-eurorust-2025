@@ -12,26 +12,44 @@
 #let stroke-darken = 20%  // How much to darken fill colors for strokes
 
 // Color palette for semantic consistency (all colors in rgba format)
-#let stream-color = rgb("#ebfdfd")      // Light blue for streams/sources
-#let operator-color = rgb(255, 240, 230, 255)    // Light orange for operators/transforms
-#let data-color = rgb(255, 243, 205, 255)        // Light yellow for data/items
-#let pin-color = rgb(43, 103, 223, 255)          // Blue for Pin concepts
-#let state-color = rgb(240, 255, 230, 255)       // Light green for states/processes
-#let ui-color = rgb(240, 230, 255, 255)          // Light purple for UI/interface
-#let error-color = rgb("#f4b4b4")       // Light red for errors/warnings
-#let neutral-color = rgb(240, 240, 240, 255)     // Light gray for neutral elements
-#let text-color = rgb(0, 0, 0, 255)              // Black for primary text
-
-
-#let stream-accent = stream-color.saturate(50%).darken(50%)          // Dark green for text elements
-// Derived colors for strokes and arrows (darkened variants of base colors)
-#let operator-accent = operator-color.saturate(40%).darken(30%) // Dark orange for operator arrows/strokes
-#let data-accent = data-color.darken(40%)         // Dark yellow for data arrows/strokes
-#let pin-accent = pin-color.darken(40%)           // Dark blue for pin arrows/strokes
-#let state-accent = state-color.darken(40%)       // Dark green for state arrows/strokes
-#let ui-accent = ui-color.darken(40%)             // Dark purple for UI arrows/strokes
-#let error-accent = error-color.saturate(50%)        // Dark red for error arrows/strokes
-#let neutral-accent = neutral-color.darken(30%)   // Dark gray for neutral arrows/strokes
+#let colors = (
+  stream: (
+    base: rgb("#ebfdfd"), // Light blue for streams/sources
+    accent: rgb("#ebfdfd").saturate(50%).darken(50%), // Dark green for text elements
+  ),
+  operator: (
+    base: rgb(255, 240, 230, 255), // Light orange for operators/transforms
+    accent: rgb(255, 240, 230, 255).saturate(40%).darken(30%), // Dark orange for operator arrows/strokes
+  ),
+  data: (
+    base: rgb(255, 243, 205, 255), // Light yellow for data/items
+    accent: rgb(255, 243, 205, 255).darken(40%), // Dark yellow for data arrows/strokes
+  ),
+  pin: (
+    base: rgb(43, 103, 223, 255), // Blue for Pin concepts
+    accent: rgb(43, 103, 223, 255).darken(40%), // Dark blue for pin arrows/strokes
+  ),
+  state: (
+    base: rgb(240, 255, 230, 255), // Light green for states/processes
+    accent: rgb(240, 255, 230, 255).darken(40%), // Dark green for state arrows/strokes
+  ),
+  ui: (
+    base: rgb(240, 230, 255, 255), // Light purple for UI/interface
+    accent: rgb(240, 230, 255, 255).darken(40%), // Dark purple for UI arrows/strokes
+  ),
+  error: (
+    base: rgb("#f4b4b4"), // Light red for errors/warnings
+    accent: rgb("#f4b4b4").saturate(50%), // Dark red for error arrows/strokes
+  ),
+  neutral: (
+    base: rgb(240, 240, 240, 255), // Light gray for neutral elements
+    accent: rgb(240, 240, 240, 255).darken(30%), // Dark gray for neutral arrows/strokes
+  ),
+  text: (
+    base: rgb(0, 0, 0, 255), // Black for primary text
+    accent: rgb(0, 0, 0, 255), // Same as base for text
+  ),
+)
 
 // Note: cetz functions must be defined within canvas contexts
 // Standard hexagon function template for use in slides
@@ -110,7 +128,7 @@
       content((-1, 2.5), text(size: 7em, "🚗"), anchor: "center")
 
       // Arrow with data flow
-      line((0.8, 1.8), (3.2, 1.8), mark: (end: ">"), stroke: stream-accent + arrow-width)
+      line((0.8, 1.8), (3.2, 1.8), mark: (end: ">"), stroke: colors.stream.accent + arrow-width)
       content((1.8, 2.2), text(size: 7pt, "streaming data"), anchor: "center")
 
       // Central chaos fire
@@ -148,12 +166,12 @@
         content((3.5, y - 0.03), text(size: 7pt, description), anchor: "west")
         content(
           (3.5, y - 0.24),
-          link(ref-url, text(size: 6pt, style: "italic", fill: stream-accent, reference)),
+          link(ref-url, text(size: 6pt, style: "italic", fill: colors.stream.accent, reference)),
           anchor: "west",
         )
 
         // Connection line from timeline to date box
-        line((0.8, y), (1, y), stroke: neutral-accent + stroke-width)
+        line((0.8, y), (1, y), stroke: colors.neutral.accent + stroke-width)
       }
 
       // Timeline entries (bottom to top = old to new)
@@ -164,7 +182,7 @@
         "Stable async streams in std",
         "RFC 2394, Rust 1.39.0",
         "https://rust-lang.github.io/rfcs/2394-async_await.html",
-        stream-color.lighten(20%),
+        colors.stream.base.lighten(20%),
       )
       draw-timeline-entry(
         4.5,
@@ -173,7 +191,7 @@
         "ReactiveX brings streams to mainstream",
         "Erik Meijer, Microsoft",
         "https://reactivex.io/",
-        operator-color.lighten(30%),
+        colors.operator.base.lighten(30%),
       )
       draw-timeline-entry(
         3.5,
@@ -182,7 +200,7 @@
         "Conal Elliott & Paul Hudak (Haskell)",
         "ICFP '97, pp. 263-273",
         "https://dl.acm.org/doi/10.1145/258948.258973",
-        state-color.lighten(25%),
+        colors.state.base.lighten(25%),
       )
       draw-timeline-entry(
         2.5,
@@ -191,7 +209,7 @@
         "Tony Hoare formalizes concurrent dataflow",
         "CACM 21(8):666-677",
         "https://dl.acm.org/doi/10.1145/359576.359585",
-        ui-color.lighten(35%),
+        colors.ui.base.lighten(35%),
       )
       draw-timeline-entry(
         1.5,
@@ -200,7 +218,7 @@
         "Douglas McIlroy creates `|` operator",
         "Bell Labs, Unix v3-v4",
         "https://www.cs.dartmouth.edu/~doug/reader.pdf",
-        data-color.lighten(40%),
+        colors.data.base.lighten(40%),
       )
       draw-timeline-entry(
         0.5,
@@ -209,11 +227,11 @@
         "Hardware-level stream processing",
         "Early dataflow architectures",
         "https://en.wikipedia.org/wiki/Dataflow_programming",
-        error-color.lighten(20%),
+        colors.error.base.lighten(20%),
       )
 
       // Main timeline line (positioned to the left, not overlapping with date boxes)
-      line((0.8, 0.3), (0.8, 5.7), stroke: neutral-accent + arrow-width)
+      line((0.8, 0.3), (0.8, 5.7), stroke: colors.neutral.accent + arrow-width)
     })
   ]
 
@@ -249,7 +267,7 @@
           (0, 2),
           "Derived streams",
           "Pure software transformations",
-          operator-color,
+          colors.operator.base,
           ("map()", "filter()", ".double()", "fork()"),
         )
 
@@ -257,7 +275,7 @@
           (0, 1),
           "Leaf streams",
           "OS/kernel constraints",
-          stream-color,
+          colors.stream.base,
           ("tokio::fs::File", "TcpListener", "UnixStream", "Interval"),
         )
 
@@ -265,22 +283,22 @@
           (0, 0),
           "Physical streams",
           "Electronic signals",
-          state-color,
+          colors.state.base,
           ("GPIO interrupts", "UART frames", "Network packets"),
         )
 
-        edge((0, 0), (0, 1), "-|>", stroke: operator-accent + arrow-width, label: "OS abstraction")
-        edge((0, 1), (0, 2), "-|>", stroke: stream-accent + arrow-width, label: "Stream operators")
+        edge((0, 0), (0, 1), "-|>", stroke: colors.operator.accent + arrow-width, label: "OS abstraction")
+        edge((0, 1), (0, 2), "-|>", stroke: colors.stream.accent + arrow-width, label: "Stream operators")
 
         node(
           (-1, 1),
           [Requires an `async` runtime \ #text(size: 0.7em)[('leaf future' by _Carl Fredrik Samson_)]],
           stroke: none,
         )
-        edge((-1, 1), (0, 1), "->", stroke: neutral-accent + arrow-width)
+        edge((-1, 1), (0, 1), "->", stroke: colors.neutral.accent + arrow-width)
 
         node((-1, 2), [In this presentation], stroke: none)
-        edge((-1, 2), (0, 2), "->", stroke: neutral-accent + arrow-width)
+        edge((-1, 2), (0, 2), "->", stroke: colors.neutral.accent + arrow-width)
       },
     )
   ]
@@ -390,16 +408,16 @@
       node((0.5, 5), text(size: 11pt, weight: "bold")[Iterator (sync)], fill: none, stroke: none),
 
       // Iterator calls
-      node((0, 4), [next()], fill: stream-color, stroke: stream-accent + stroke-width),
-      node((0, 3), [next()], fill: stream-color, stroke: stream-accent + stroke-width),
-      node((0, 2), [next()], fill: stream-color, stroke: stream-accent + stroke-width),
-      node((0, 1), [next()], fill: stream-color, stroke: stream-accent + stroke-width),
+      node((0, 4), [next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((0, 3), [next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((0, 2), [next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((0, 1), [next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
 
       // Iterator results
-      node((1, 4), [Some(1)], fill: data-color, stroke: data-accent + stroke-width),
-      node((1, 1), [Some(2)], fill: data-color, stroke: data-accent + stroke-width),
-      node((1, 2), [Some(3)], fill: data-color, stroke: data-accent + stroke-width),
-      node((1, 3), [None], fill: data-color, stroke: data-accent + stroke-width),
+      node((1, 4), [Some(1)], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+      node((1, 1), [Some(2)], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+      node((1, 2), [Some(3)], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+      node((1, 3), [None], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
 
       // Iterator arrows
       edge((0, 4), (1, 4), "->"),
@@ -412,16 +430,16 @@
       node((3.5, 5), text(size: 10pt, weight: "bold")[Stream (low-level)], fill: none, stroke: none),
 
       // Stream calls
-      node((3, 4), [poll_next()], fill: stream-color, stroke: stream-accent + stroke-width),
-      node((3, 3), [poll_next()], fill: stream-color, stroke: stream-accent + stroke-width),
-      node((3, 2), [poll_next()], fill: stream-color, stroke: stream-accent + stroke-width),
-      node((3, 1), [poll_next()], fill: stream-color, stroke: stream-accent + stroke-width),
+      node((3, 4), [poll_next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((3, 3), [poll_next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((3, 2), [poll_next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((3, 1), [poll_next()], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
 
       // Stream results
-      node((4, 4), [Pending], fill: state-color, stroke: state-accent + stroke-width),
-      node((4, 3), [Ready(Some(1))], fill: data-color, stroke: data-accent + stroke-width),
-      node((4, 2), [Pending], fill: state-color, stroke: state-accent + stroke-width),
-      node((4, 1), [Ready(Some(2))], fill: data-color, stroke: data-accent + stroke-width),
+      node((4, 4), [Pending], fill: colors.state.base, stroke: colors.state.accent + stroke-width),
+      node((4, 3), [Ready(Some(1))], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+      node((4, 2), [Pending], fill: colors.state.base, stroke: colors.state.accent + stroke-width),
+      node((4, 1), [Ready(Some(2))], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
 
       // Stream arrows
       edge((3, 4), (4, 4), "->"),
@@ -434,16 +452,16 @@
       node((6.5, 5), text(size: 10pt, weight: "bold")[Stream (high-level)], fill: none, stroke: none),
 
       // Stream async calls
-      node((6, 4), [next().await], fill: ui-color, stroke: ui-accent + stroke-width),
-      node((6, 3), [next().await], fill: ui-color, stroke: ui-accent + stroke-width),
-      node((6, 2), [next().await], fill: ui-color, stroke: ui-accent + stroke-width),
-      node((6, 1), [next().await], fill: ui-color, stroke: ui-accent + stroke-width),
+      node((6, 4), [next().await], fill: colors.ui.base, stroke: colors.ui.accent + stroke-width),
+      node((6, 3), [next().await], fill: colors.ui.base, stroke: colors.ui.accent + stroke-width),
+      node((6, 2), [next().await], fill: colors.ui.base, stroke: colors.ui.accent + stroke-width),
+      node((6, 1), [next().await], fill: colors.ui.base, stroke: colors.ui.accent + stroke-width),
 
       // Stream async results
-      node((7, 4), [Some(1)], fill: data-color, stroke: data-accent + stroke-width),
-      node((7, 1), [Some(2)], fill: data-color, stroke: data-accent + stroke-width),
-      node((7, 2), [Some(3)], fill: data-color, stroke: data-accent + stroke-width),
-      node((7, 3), [None], fill: data-color, stroke: data-accent + stroke-width),
+      node((7, 4), [Some(1)], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+      node((7, 1), [Some(2)], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+      node((7, 2), [Some(3)], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+      node((7, 3), [None], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
 
       // Stream async arrows
       edge((6, 4), (7, 4), "->"),
@@ -518,114 +536,105 @@
       node(
         (0, 2),
         [`iter(0..10)`],
-        fill: stream-color,
-        stroke: stream-accent + stroke-width,
+        fill: colors.stream.base,
+        stroke: colors.stream.accent + stroke-width,
         shape: circle,
       ),
       node(
         (1, 2),
         [`map(*2)`],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
         shape: rect,
       ),
       node(
         (2, 2),
         [`filter(>4)`],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
         shape: rect,
       ),
       node(
         (3, 2),
         [`enumerate`],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
         shape: rect,
       ),
       node(
         (4, 2),
         [`take(3)`],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
         shape: rect,
       ),
       node(
         (5, 2),
         [`skip_while(<1)`],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
       ),
 
       // Middle row: Data values
       node(
         (0, 1),
         [0,1,2,3...],
-        fill: stream-color,
-        stroke: stream-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: circle,
       ),
       node(
         (1, 1),
         [0,2,4,6...],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: rect,
       ),
-      node((2, 1), [6,8,10...], fill: data-color, stroke: data-accent + stroke-width, shape: rect),
+      node((2, 1), [6,8,10...], fill: colors.data.base, stroke: colors.data.accent + stroke-width, shape: rect),
       node(
         (3, 1),
         [(0,6),(1,8)...],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: rect,
       ),
       node(
         (4, 1),
         [(0,6),(1,8),(2,10)],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: rect,
       ),
-      node((5, 1), [(1,8),(2,10)], fill: data-color, stroke: data-accent + stroke-width),
+      node((5, 1), [(1,8),(2,10)], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
+
 
       // Bottom row: Textual descriptions
       node(
         (0, 0),
         [source],
-        fill: stream-color,
-        stroke: stream-accent + stroke-width,
         shape: circle,
       ),
       node(
         (1, 0),
         [multiply by 2],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
         shape: rect,
       ),
       node(
         (2, 0),
         [keep if > 4],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
         shape: rect,
       ),
       node(
         (3, 0),
         [add index],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
         shape: rect,
       ),
       node(
         (4, 0),
         [take first 3],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
         shape: rect,
       ),
-      node((5, 0), [skip while < 1], fill: operator-color, stroke: operator-accent + stroke-width),
+      node((5, 0), [skip while < 1]),
 
       // Linear flow edges (top row)
       edge((0, 2), (1, 2), "->"),
@@ -634,19 +643,19 @@
       edge((3, 2), (4, 2), "->"),
       edge((4, 2), (5, 2), "->"),
 
-      // Data flow edges (middle row)
-      edge((0, 1), (1, 1), "->", stroke: (dash: "dashed")),
-      edge((1, 1), (2, 1), "->", stroke: (dash: "dashed")),
-      edge((2, 1), (3, 1), "->", stroke: (dash: "dashed")),
-      edge((3, 1), (4, 1), "->", stroke: (dash: "dashed")),
-      edge((4, 1), (5, 1), "->", stroke: (dash: "dashed")),
+      // // Data flow edges (middle row)
+      // edge((0, 1), (1, 1), "->", stroke: (dash: "dashed")),
+      // edge((1, 1), (2, 1), "->", stroke: (dash: "dashed")),
+      // edge((2, 1), (3, 1), "->", stroke: (dash: "dashed")),
+      // edge((3, 1), (4, 1), "->", stroke: (dash: "dashed")),
+      // edge((4, 1), (5, 1), "->", stroke: (dash: "dashed")),
 
-      // Description flow edges (bottom row)
-      edge((0, 0), (1, 0), "->", stroke: (dash: "dotted")),
-      edge((1, 0), (2, 0), "->", stroke: (dash: "dotted")),
-      edge((2, 0), (3, 0), "->", stroke: (dash: "dotted")),
-      edge((3, 0), (4, 0), "->", stroke: (dash: "dotted")),
-      edge((4, 0), (5, 0), "->", stroke: (dash: "dotted")),
+      // // Description flow edges (bottom row)
+      // edge((0, 0), (1, 0), "->", stroke: (dash: "dotted")),
+      // edge((1, 0), (2, 0), "->", stroke: (dash: "dotted")),
+      // edge((2, 0), (3, 0), "->", stroke: (dash: "dotted")),
+      // edge((3, 0), (4, 0), "->", stroke: (dash: "dotted")),
+      // edge((4, 0), (5, 0), "->", stroke: (dash: "dotted")),
 
       // Vertical connections from operators to data
       edge((0, 2), (0, 1), "-", stroke: (dash: "dashed")),
@@ -760,36 +769,64 @@
           (1, 2),
           3,
 
-          pin-color,
-          text(fill: pin-color, size: 8pt, weight: "bold")[`Pin<&mut Double>`],
+          colors.pin.base,
+          text(fill: colors.pin.base, size: 8pt, weight: "bold")[`Pin<&mut Double>`],
           (1, 3.5),
         )
-        circle((1, 2), radius: 0.8, fill: operator-color, stroke: operator-accent + stroke-width)
-        content((1, 3), text(size: 7pt, weight: "bold", [`&mut Double`], fill: operator-accent), anchor: "center")
-        circle((1, 2), radius: 0.4, fill: stream-color, stroke: stream-accent + stroke-width)
-        content((1, 2), text(size: 6pt, fill: stream-accent, [`InSt`]), anchor: "center")
+        circle((1, 2), radius: 0.8, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
+        content(
+          (1, 3),
+          text(size: 7pt, weight: "bold", [`&mut Double`], fill: colors.operator.accent),
+          anchor: "center",
+        )
+        circle((1, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
+        content((1, 2), text(size: 6pt, fill: colors.stream.accent, [`InSt`]), anchor: "center")
 
         // First arrow with .get_mut() label
-        line((2.7, 2), (3.5, 2), mark: (end: ">"), stroke: state-accent + arrow-width)
-        content((3, 2.4), text(size: 7pt, fill: stream-accent, [?]), anchor: "center")
+        line((2.7, 2), (3.5, 2), mark: (end: ">"), stroke: colors.state.accent + arrow-width)
+        content((3, 2.4), text(size: 7pt, fill: colors.stream.accent, [?]), anchor: "center")
 
         // Middle: Just InSt
-        circle((4, 2), radius: 0.4, fill: stream-color, stroke: stream-accent + stroke-width)
-        content((4, 2), text(size: 6pt, fill: stream-accent, [`InSt`]), anchor: "center")
+        circle((4, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
+        content((4, 2), text(size: 6pt, fill: colors.stream.accent, [`InSt`]), anchor: "center")
 
         // Second arrow with Pin::new() label
-        line((4.5, 2), (5.3, 2), mark: (end: ">"), stroke: state-accent + arrow-width)
-        content((5, 2.4), text(size: 6pt, text(fill: stream-accent)[?]), anchor: "center")
+        line((4.5, 2), (5.3, 2), mark: (end: ">"), stroke: colors.state.accent + arrow-width)
+        content((5, 2.4), text(size: 6pt, text(fill: colors.stream.accent)[?]), anchor: "center")
 
         // Right: Pin<&mut InSt>
-        hexagon(draw, (6.5, 2), 2, pin-color, text(fill: pin-color)[`Pin<&mut InSt>`], (6.5, 3.3))
-        circle((6.5, 2), radius: 0.4, fill: stream-color, stroke: stream-accent + stroke-width)
-        content((6.5, 2), text(size: 6pt, fill: stream-accent)[`InSt`], anchor: "center")
+        hexagon(draw, (6.5, 2), 2, colors.pin.base, text(fill: colors.pin.base)[`Pin<&mut InSt>`], (6.5, 3.3))
+        circle((6.5, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
+        content((6.5, 2), text(size: 6pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
 
         // Third arrow with next().await label
-        line((7.5, 2), (8.5, 2), mark: (end: ">"), stroke: ui-accent + arrow-width)
-        content((8, 2.4), text(size: 6pt, fill: ui-accent, [`Stream::poll_next()`]), anchor: "north-west")
+        line((7.5, 2), (8.5, 2), mark: (end: ">"), stroke: colors.stream.accent + arrow-width)
+        content((8, 2.4), text(size: 6pt, fill: colors.stream.accent, [`Stream::poll_next()`]), anchor: "north-west")
       })
+
+      #v(1em)
+
+      // Color legend
+      #grid(
+        columns: (auto, auto, auto),
+        column-gutter: 2em,
+        row-gutter: 0.8em,
+
+        // Pin colors
+        rect(width: 1.2em, height: 0.8em, fill: colors.pin.base, stroke: colors.pin.accent + 0.8pt),
+        text(size: 8pt)[Pin types],
+        [],
+
+        // Operator colors
+        rect(width: 1.2em, height: 0.8em, fill: colors.operator.base, stroke: colors.operator.accent + 0.8pt),
+        text(size: 8pt)[Operators/structs],
+        [],
+
+        // Stream colors
+        rect(width: 1.2em, height: 0.8em, fill: colors.stream.base, stroke: colors.stream.accent + 0.8pt),
+        text(size: 8pt)[Streams/inner types],
+        [],
+      )
 
     ]
   ]]
@@ -817,12 +854,12 @@
             content((1, 1.6), text(size: 6pt, "✅ Can move"), anchor: "center")
 
             // Pin::new() arrow (left to right)
-            line((1.8, 2.7), (7.2, 2.7), mark: (end: ">"), stroke: stream-accent + arrow-width)
+            line((1.8, 2.7), (7.2, 2.7), mark: (end: ">"), stroke: colors.stream.accent + arrow-width)
             content((4.5, 3.0), text(size: 7pt, weight: "bold", [`Pin::new()`]), anchor: "center")
             content((4.5, 2.4), text(size: 6pt, "Always safe"), anchor: "center")
 
             // Pin::get_mut() arrow (right to left)
-            line((7.2, 1.7), (1.8, 1.7), mark: (end: ">"), stroke: state-accent + arrow-width)
+            line((7.2, 1.7), (1.8, 1.7), mark: (end: ">"), stroke: colors.state.accent + arrow-width)
             content((4.5, 2.0), text(size: 7pt, weight: "bold", [`Pin::get_mut()`]), anchor: "center")
             content((4.5, 1.4), text(size: 6pt, [if `T: Unpin`]), anchor: "center")
 
@@ -831,8 +868,8 @@
               draw,
               (8.5, 2.3),
               2.5,
-              pin-color,
-              text(fill: pin-color)[`Pin<&mut Bird>`],
+              colors.pin.base,
+              text(fill: colors.pin.base)[`Pin<&mut Bird>`],
               (8.5, 3.7),
             )
             content((8.5, 2.6), text(size: 2em, "🐦"), anchor: "center")
@@ -852,14 +889,14 @@
             content((1, 1.6), text(size: 6pt, "⚠️ Dangerous to move"), anchor: "center")
 
             // Cross mark (blocked operation)
-            line((2.5, 2.8), (6.5, 1.8), stroke: error-accent + arrow-width)
-            line((2.5, 1.8), (6.5, 2.8), stroke: error-accent + arrow-width)
+            line((2.5, 2.8), (6.5, 1.8), stroke: colors.error.accent + arrow-width)
+            line((2.5, 1.8), (6.5, 2.8), stroke: colors.error.accent + arrow-width)
 
-            content((4.5, 1.5), text(size: 6pt, fill: error-accent, [❌ Not safe]), anchor: "center")
+            content((4.5, 1.5), text(size: 6pt, fill: colors.error.accent, [❌ Not safe]), anchor: "center")
 
             content(
               (4.5, 2.5),
-              text(size: 9pt, weight: "bold", fill: text-color, [`Pin::get_mut()` \ `Pin::new()`]),
+              text(size: 9pt, weight: "bold", fill: colors.text.base, [`Pin::get_mut()` \ `Pin::new()`]),
               anchor: "center",
             )
 
@@ -868,8 +905,8 @@
               draw,
               (8.5, 2.3),
               2.5,
-              pin-color,
-              text(fill: pin-color)[`Pin<&mut Tiger>`],
+              colors.pin.base,
+              text(fill: colors.pin.base)[`Pin<&mut Tiger>`],
               (8.5, 3.7),
             )
             content((8.5, 2.8), text(size: 3em, "🐅"), anchor: "center")
@@ -896,8 +933,8 @@
         rect(
           (1, 3),
           (4, 5),
-          fill: stream-color,
-          stroke: stream-accent + stroke-width,
+          fill: colors.ui.base,
+          stroke: colors.ui.accent + stroke-width,
           radius: node-radius,
         )
         content((2.5, 5.2), text(size: 9pt, weight: "bold", "Stack"), anchor: "center")
@@ -905,28 +942,35 @@
         rect(
           (1.3, 3.5),
           (3.7, 4.5),
-          fill: neutral-color,
-          stroke: neutral-accent + stroke-width,
+          fill: colors.neutral.base,
+          stroke: colors.neutral.accent + stroke-width,
           radius: node-radius,
         )
-        content((2.5, 4.), text(size: 8pt, fill: text-color, [pointer \ `0X1234`]), anchor: "center")
+        content((2.5, 4.), text(size: 8pt, fill: colors.text.base, [pointer \ `0X1234`]), anchor: "center")
 
         content((2.5, 3.3), text(size: 7pt, "✅ Safe to move"), anchor: "center")
 
         // Arrow to heap
-        line((3.5, 4), (7.3, 3.7), mark: (end: ">"), stroke: operator-accent + arrow-width)
+        line((3.5, 4), (7.3, 3.7), mark: (end: ">"), stroke: colors.operator.accent + arrow-width)
         content((5.25, 4.3), text(size: 8pt, [dereferences to]), anchor: "center")
 
         // Tiger pointing into heap
         content((11.5, 5.0), text(size: 3em, "🐅"), anchor: "center")
         content((11.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
         // Smooth curved arrow going into triangle center
-        arc((10.5, 5.2), start: 60deg, stop: 170deg, radius: 1.5, mark: (end: ">"), stroke: error-accent + arrow-width)
+        arc(
+          (10.5, 5.2),
+          start: 60deg,
+          stop: 170deg,
+          radius: 1.5,
+          mark: (end: ">"),
+          stroke: colors.error.accent + arrow-width,
+        )
 
         // Heap - actual stream (triangle laying flat)
-        line((6.0, 3), (10, 3), stroke: operator-accent + stroke-width) // base
-        line((6.0, 3), (8, 5), stroke: operator-accent + stroke-width) // left side
-        line((10, 3), (8, 5), stroke: operator-accent + stroke-width) // right side
+        line((6.0, 3), (10, 3), stroke: colors.operator.accent + stroke-width) // base
+        line((6.0, 3), (8, 5), stroke: colors.operator.accent + stroke-width) // left side
+        line((10, 3), (8, 5), stroke: colors.operator.accent + stroke-width) // right side
 
         content((8, 5.3), text(size: 9pt, weight: "bold", "Heap"), anchor: "center")
         content((8.4, 3.8), text(size: 6pt, [`0X1234`]), anchor: "center")
@@ -960,83 +1004,94 @@
       import draw: *
 
 
-      hexagon(draw, (2, 4), 4.5, pin-color, text(fill: pin-color)[`Pin<&mut Double>`], (2, 6.2))
-      circle((2, 4), radius: 1.5, fill: operator-color, stroke: operator-accent + stroke-width)
-      content((2, 5.7), text(size: 7pt, weight: "bold", fill: operator-accent)[`&mut Double`], anchor: "center")
+      hexagon(draw, (2, 4), 4.5, colors.pin.base, text(fill: colors.pin.base)[`Pin<&mut Double>`], (2, 6.2))
+      circle((2, 4), radius: 1.5, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
+      content((2, 5.7), text(size: 7pt, weight: "bold", fill: colors.operator.accent)[`&mut Double`], anchor: "center")
       // Box wrapper around left structure
       rect(
         (2 - 1.8 / 2, 4 - 1.8 / 2),
         (2 + 1.8 / 2, 4 + 1.8 / 2),
-        fill: neutral-color,
-        stroke: (paint: black, thickness: stroke-width),
+        fill: colors.neutral.base,
+        stroke: (paint: colors.neutral.accent, thickness: stroke-width),
       )
-      circle((2, 4), radius: 0.5, fill: stream-color, stroke: stream-accent + stroke-width)
-      content((2, 4), text(size: 6pt, fill: stream-accent)[`InSt:` \ `!Unpin`], anchor: "center")
+      circle((2, 4), radius: 0.5, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
+      content((2, 4), text(size: 6pt, fill: colors.stream.accent)[`InSt:` \ `!Unpin`], anchor: "center")
 
 
-      content((2, 5.2), text(size: 6pt, weight: "bold", text(fill: text-color)[`Box<InSt>`]), anchor: "center")
+      content((2, 5.2), text(size: 6pt, weight: "bold", text(fill: colors.text.base)[`Box<InSt>`]), anchor: "center")
 
       // First arrow: Pin::get_mut()
-      line((4.4, 4), (5.4, 4), mark: (end: ">"), stroke: state-accent + arrow-width)
+      line((4.4, 4), (5.4, 4), mark: (end: ">"), stroke: colors.state.accent + arrow-width)
       content(
         (4.9, 4.5),
-        text(size: 6pt, weight: "bold", fill: stream-accent)[`Pin::get_mut()`],
+        text(size: 6pt, weight: "bold", fill: colors.stream.accent)[`Pin::get_mut()`],
         anchor: "center",
       )
-      content((4.9, 3.5), text(fill: error-accent, size: 6pt, [if `Double:` \ `Unpin`]), anchor: "center")
+      content((4.9, 3.5), text(fill: colors.error.accent, size: 6pt, [if `Double:` \ `Unpin`]), anchor: "center")
 
-      content((7.9, 3.5), text(fill: error-accent, size: 6pt, [if `Double:`\ `Unpin`]), anchor: "center")
+      content((7.9, 3.5), text(fill: colors.error.accent, size: 6pt, [if `Double:`\ `Unpin`]), anchor: "center")
 
 
       content((4.8, 5.9), text(size: 3em, "🐅"), anchor: "center")
       // content((5.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
       // Smooth curved arrow going into triangle center
-      arc((4.0, 5.8), start: 80deg, stop: 170deg, radius: 1.5, mark: (end: ">"), stroke: error-accent + arrow-width)
+      arc(
+        (4.0, 5.8),
+        start: 80deg,
+        stop: 170deg,
+        radius: 1.5,
+        mark: (end: ">"),
+        stroke: colors.error.accent + arrow-width,
+      )
       // Box outline
 
       // Middle: &mut Box<InSt>
-      content((6.5, 5.2), text(size: 7pt, weight: "bold", fill: operator-accent)[`&mut Double`], anchor: "center")
-      circle((6.5, 4), radius: 1, fill: operator-color, stroke: operator-accent + stroke-width)
-      content((6.5, 4.7), text(size: 7pt, weight: "bold", fill: text-color)[`Box<InSt>`], anchor: "center")
+      content(
+        (6.5, 5.2),
+        text(size: 7pt, weight: "bold", fill: colors.operator.accent)[`&mut Double`],
+        anchor: "center",
+      )
+      circle((6.5, 4), radius: 1, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
+      content((6.5, 4.7), text(size: 7pt, weight: "bold", fill: colors.text.base)[`Box<InSt>`], anchor: "center")
       rect(
         (6.5 - 0.45, 4 - 0.45),
         (6.5 + 0.45, 4 + 0.45),
-        fill: neutral-color,
-        stroke: neutral-accent + stroke-width,
+        fill: colors.neutral.base,
+        stroke: colors.neutral.accent + stroke-width,
       )
-      circle((6.5, 4), radius: 0.3, fill: stream-color, stroke: stream-accent + stroke-width)
-      content((6.5, 4), text(size: 5pt, fill: stream-accent)[`InSt`], anchor: "center")
+      circle((6.5, 4), radius: 0.3, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
+      content((6.5, 4), text(size: 5pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
 
 
       // Second arrow: Pin::new()
-      line((7.1, 4), (8.9, 4), mark: (end: ">"), stroke: state-accent + arrow-width)
+      line((7.1, 4), (8.9, 4), mark: (end: ">"), stroke: colors.state.accent + arrow-width)
       content(
         (7.9, 4.5),
-        text(size: 6pt, weight: "bold", fill: stream-accent)[`Pin::new()`],
+        text(size: 6pt, weight: "bold", fill: colors.stream.accent)[`Pin::new()`],
         anchor: "center",
       )
 
       // Right side: Pin<&mut InSt>
-      hexagon(draw, (9.5, 4.0), 2.5, pin-color, "", (9.5, 5.8))
-      content((9.5, 5.5), text(size: 7pt, weight: "bold", fill: pin-color)[`Pin<&mut InSt>`], anchor: "center")
-      content((9.5, 4.7), text(size: 7pt, weight: "bold", fill: text-color)[`&mut Box<InSt>`], anchor: "center")
+      hexagon(draw, (9.5, 4.0), 2.5, colors.pin.base, "", (9.5, 5.8))
+      content((9.5, 5.5), text(size: 7pt, weight: "bold", fill: colors.pin.base)[`Pin<&mut InSt>`], anchor: "center")
+      content((9.5, 4.7), text(size: 7pt, weight: "bold", fill: colors.text.base)[`&mut Box<InSt>`], anchor: "center")
 
       // Box wrapper around right structure
       rect(
         (9.5 - 0.45, 4.1 - 0.45),
         (9.5 + 0.45, 4.1 + 0.45),
-        fill: neutral-color,
-        stroke: neutral-accent + stroke-width,
+        fill: colors.neutral.base,
+        stroke: colors.neutral.accent + stroke-width,
       )
-      circle((9.5, 4.1), radius: 0.3, fill: stream-color, stroke: stream-accent + stroke-width)
-      content((9.5, 4.1), text(size: 5pt, fill: stream-accent)[`InSt`], anchor: "center")
+      circle((9.5, 4.1), radius: 0.3, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
+      content((9.5, 4.1), text(size: 5pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
 
 
       // Third arrow: Stream::poll_next()
-      line((11.0, 4), (11.7, 4), mark: (end: ">"), stroke: ui-accent + arrow-width)
+      line((11.0, 4), (11.7, 4), mark: (end: ">"), stroke: colors.stream.accent + arrow-width)
       content(
         (11.5, 4.5),
-        text(size: 6pt, weight: "bold", fill: ui-accent)[`poll_next()`],
+        text(size: 6pt, weight: "bold", fill: colors.stream.accent)[`Stream::poll_next()`],
         anchor: "center",
       )
     })
@@ -1160,46 +1215,47 @@
 
 #slide[
   === Rough architecture of #link("https://crates.io/crates/clone-stream")[`clone-stream`]
+  #set text(size: 9pt)
   #align(center + horizon)[
     #diagram(
       node-corner-radius: node-radius,
       edge-stroke: arrow-width,
       node-outset: node-outset,
-      spacing: (4em, 1.5em),
+      spacing: (6em, 1em),
 
       // Main stream nodes
-      node((0, 1), [`InputStream`], fill: stream-color, stroke: stream-accent + stroke-width),
-      node((1, 1), [`Fork`], fill: operator-color, stroke: operator-accent + stroke-width),
-      node((2, 2), [Bob], fill: state-color, stroke: state-accent + stroke-width),
-      node((2, 0), [Alice], fill: ui-color, stroke: ui-accent + stroke-width),
+      node((0, 1), [`InputStream`], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((1, 1), [`Fork`], fill: colors.operator.base, stroke: colors.operator.accent + stroke-width),
+      node((2, 2), [Bob], fill: colors.state.base, stroke: colors.state.accent + stroke-width),
+      node((2, 0), [Alice], fill: colors.ui.base, stroke: colors.ui.accent + stroke-width),
 
       // MIDDLE
       node(
         (3, 1),
         [#strike['a']],
-        fill: neutral-color.lighten(90%),
-        stroke: neutral-accent + stroke-width,
+        fill: colors.neutral.base.lighten(90%),
+        stroke: colors.neutral.accent + stroke-width,
         shape: fletcher.shapes.rect,
       ),
       node(
         (3.5, 1),
         [#strike['b']],
-        fill: neutral-color.lighten(90%),
-        stroke: neutral-accent + stroke-width,
+        fill: colors.neutral.base.lighten(90%),
+        stroke: colors.neutral.accent + stroke-width,
         shape: fletcher.shapes.rect,
       ),
       node(
         (4, 1),
         ['c'],
-        fill: neutral-color.darken(10%),
-        stroke: neutral-accent + stroke-width,
+        fill: colors.neutral.base.darken(10%),
+        stroke: colors.neutral.accent + stroke-width,
         shape: fletcher.shapes.rect,
       ),
       node(
         (4.5, 1),
         ['d'],
-        fill: neutral-color.darken(10%),
-        stroke: neutral-accent + stroke-width,
+        fill: colors.neutral.base.darken(10%),
+        stroke: colors.neutral.accent + stroke-width,
         shape: fletcher.shapes.rect,
       ),
 
@@ -1208,22 +1264,22 @@
       node(
         (3, 3),
         ['a'],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: fletcher.shapes.circle,
       ),
       node(
         (3.5, 3),
         ['b'],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: fletcher.shapes.circle,
       ),
       node(
         (4, 3),
         ['c'],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: fletcher.shapes.circle,
       ),
 
@@ -1232,28 +1288,44 @@
       node(
         (3, -1),
         ['a'],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: fletcher.shapes.circle,
       ),
       node(
         (3.5, -1),
         ['b'],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
         shape: fletcher.shapes.circle,
       ),
 
       // Main flow edges
-      edge((0, 1), (1, 1), [`.fork()`], "->", stroke: stream-accent + arrow-width, label-pos: 0.4),
-      edge((1, 1), (2, 2), [`.clone()`], "->", stroke: ui-accent + arrow-width, bend: -20deg),
-      edge((1, 1), (2, 0), [`.clone()`], "->", stroke: ui-accent + arrow-width, bend: 20deg),
+      edge((0, 1), (1, 1), [`.fork()`], "->", stroke: colors.stream.accent + arrow-width, label-pos: 0.4),
+      edge((1, 1), (2, 2), [`.clone()`], "->", stroke: colors.ui.accent + arrow-width, bend: -20deg),
+      edge((1, 1), (2, 0), [`.clone()`], "->", stroke: colors.ui.accent + arrow-width, bend: 20deg),
 
       // Data flow edges
 
-      edge((2, 0), (3, -1), "->", stroke: operator-accent + stroke-width),
-      edge((1, 1), (3, 1), text(fill: neutral-color)[queue], "--", stroke: neutral-accent + stroke-width),
-      edge((2, 2), (3, 3), "->", stroke: operator-accent + stroke-width),
+      edge((2, 0), (3, -1), "->", stroke: colors.operator.accent + stroke-width),
+      edge((1, 1), (3, 1), text(fill: colors.neutral.base)[queue], "--", stroke: colors.neutral.accent + stroke-width),
+      edge((2, 2), (3, 3), "->", stroke: colors.operator.accent + stroke-width),
+    )
+  ]
+
+  // Horizontal color legend
+  #align(center)[
+    #grid(
+      columns: (auto, auto, auto, auto, auto, auto, auto, auto),
+      column-gutter: 1.5em,
+
+      rect(width: 1em, height: 0.6em, fill: colors.stream.base, stroke: colors.stream.accent + 0.5pt), [Streams],
+
+      rect(width: 1em, height: 0.6em, fill: colors.operator.base, stroke: colors.operator.accent + 0.5pt), [Operators],
+
+      rect(width: 1em, height: 0.6em, fill: colors.state.base, stroke: colors.state.accent + 0.5pt), [Consumers],
+
+      rect(width: 1em, height: 0.6em, fill: colors.data.base, stroke: colors.data.accent + 0.5pt), [Data],
     )
   ]
 ]
@@ -1280,16 +1352,16 @@
       node(
         (1, 0),
         [`InputStream`],
-        fill: stream-color,
-        stroke: stream-accent + stroke-width,
+        fill: colors.stream.base,
+        stroke: colors.stream.accent + stroke-width,
       ),
 
       // Alice - sleeping after first poll
       node(
         (0, 3),
         [Alice\ 💤 Sleeping],
-        fill: ui-color,
-        stroke: ui-accent + stroke-width,
+        fill: colors.ui.base,
+        stroke: colors.ui.accent + stroke-width,
         shape: fletcher.shapes.circle,
       ),
 
@@ -1297,13 +1369,13 @@
       node(
         (2, 3),
         [Bob\ 🔍 Polling],
-        fill: state-color,
-        stroke: stream-accent + stroke-width,
+        fill: colors.state.base,
+        stroke: colors.stream.accent + stroke-width,
         shape: fletcher.shapes.circle,
       ),
 
       // Data item that will be shared
-      node((1, 1.5), [data 'x'], fill: data-color, stroke: data-accent + stroke-width),
+      node((1, 1.5), [data 'x'], fill: colors.data.base, stroke: colors.data.accent + stroke-width),
 
       // Flow sequence with better spacing
 
@@ -1312,27 +1384,43 @@
         (1, 0),
         [1. `poll_next()`],
         "->",
-        stroke: neutral-accent + stroke-width,
+        stroke: colors.neutral.accent + stroke-width,
         bend: 50deg,
         label-pos: 79%,
       ),
-      edge((1, 0), (0, 3), [2. `Pending`], "->", stroke: neutral-accent + stroke-width, bend: -85deg, label-pos: 90%),
+      edge(
+        (1, 0),
+        (0, 3),
+        [2. `Pending`],
+        "->",
+        stroke: colors.neutral.accent + stroke-width,
+        bend: -85deg,
+        label-pos: 90%,
+      ),
 
 
-      edge((2, 3), (1, 0), [3. `poll_next()`], "->", stroke: state-accent + arrow-width, bend: -50deg, label-pos: 70%),
+      edge(
+        (2, 3),
+        (1, 0),
+        [3. `poll_next()`],
+        "->",
+        stroke: colors.state.accent + arrow-width,
+        bend: -50deg,
+        label-pos: 70%,
+      ),
 
 
-      edge((1, 0), (1, 1.5), [4. `Ready`], "->", stroke: operator-accent + arrow-width),
+      edge((1, 0), (1, 1.5), [4. `Ready`], "->", stroke: colors.operator.accent + arrow-width),
 
 
-      edge((2, 3), (0, 3), [5. `wake()` Alice], "->", stroke: state-accent + arrow-width, bend: 40deg),
+      edge((2, 3), (0, 3), [5. `wake()` Alice], "->", stroke: colors.state.accent + arrow-width, bend: 40deg),
 
       edge(
         (0, 3),
         (1, 1.5),
         [6. `poll_next()`],
         "->",
-        stroke: stream-accent + stroke-width,
+        stroke: colors.stream.accent + stroke-width,
         bend: -40deg,
         label-pos: 30%,
       ),
@@ -1341,11 +1429,19 @@
         (0, 3),
         [7. `clone()`],
         "->",
-        stroke: operator-accent + stroke-width,
+        stroke: colors.operator.accent + stroke-width,
         bend: -40deg,
         label-pos: 30%,
       ),
-      edge((1, 1.5), (2, 3), [8. original], "->", stroke: operator-accent + stroke-width, bend: 40deg, label-pos: 30%),
+      edge(
+        (1, 1.5),
+        (2, 3),
+        [8. original],
+        "->",
+        stroke: colors.operator.accent + stroke-width,
+        bend: 40deg,
+        label-pos: 30%,
+      ),
     )
   ]
 
@@ -1387,7 +1483,7 @@
       let clone-positions = ((0.5, 1), (2, 0.5), (4, 0.2), (6, 1.2), (7.5, 0.8))
       for (i, pos) in clone-positions.enumerate() {
         let (x, y) = pos
-        circle((x, y), radius: 0.2, fill: if i < 2 { pin-color } else { state-color })
+        circle((x, y), radius: 0.2, fill: if i < 2 { colors.pin.base } else { colors.state.base })
         content((x, y - 0.5), text(size: 6pt, "C" + str(i + 1)), anchor: "center")
       }
 
@@ -1486,8 +1582,8 @@
             - Use `Barrier`s, not `sleep()`
           ]))
         ],
-        fill: stream-color,
-        stroke: stream-accent + stroke-width,
+        fill: colors.stream.base,
+        stroke: colors.stream.accent + stroke-width,
       ),
 
       // Analyze states
@@ -1501,8 +1597,8 @@
             - Avoid `Option`s in states
           ]))
         ],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
       ),
 
       // Implement
@@ -1516,8 +1612,8 @@
             - Waker management
           ]))
         ],
-        fill: state-color,
-        stroke: state-accent + stroke-width,
+        fill: colors.state.base,
+        stroke: colors.state.accent + stroke-width,
       ),
 
       // Test iteration
@@ -1529,8 +1625,8 @@
             Tests pass?
           ]))
         ],
-        fill: ui-color,
-        stroke: ui-accent + stroke-width,
+        fill: colors.ui.base,
+        stroke: colors.ui.accent + stroke-width,
       ),
 
       // Benchmarks
@@ -1544,8 +1640,8 @@
             - Optimize hotspots
           ]))
         ],
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
       ),
 
       // Flow arrows
@@ -1558,7 +1654,7 @@
       edge(
         (1, 1),
         (2, 2),
-        stroke: error-accent + stroke-width,
+        stroke: colors.error.accent + stroke-width,
         text(size: 6pt)[✗ fail],
         "->",
         bend: -30deg,
@@ -1568,8 +1664,6 @@
 
 
 
-
-  "Perfection is achieved, not when there is nothing more to add, but when there is *nothing left to take away*." — _Antoine de Saint-Exupéry_
 
 
 ]
@@ -1604,8 +1698,8 @@
             text(size: 6pt, style: "italic")[Actively polling input stream],
           )
         ],
-        fill: state-color,
-        stroke: state-accent + stroke-width,
+        fill: colors.state.base,
+        stroke: colors.state.accent + stroke-width,
       ),
       node(
         (2, 1),
@@ -1617,8 +1711,8 @@
             text(size: 6pt, style: "italic")[Reading from shared buffer],
           )
         ],
-        fill: data-color,
-        stroke: data-accent + stroke-width,
+        fill: colors.data.base,
+        stroke: colors.data.accent + stroke-width,
       ),
       node(
         (1, 0),
@@ -1630,8 +1724,8 @@
             text(size: 6pt, style: "italic")[Waiting with stored waker],
           )
         ],
-        fill: ui-color,
-        stroke: ui-accent + stroke-width,
+        fill: colors.ui.base,
+        stroke: colors.ui.accent + stroke-width,
       ),
 
       // Main transitions
@@ -1661,6 +1755,7 @@
       edge((1, 0), (2, 1), text(size: 6pt)[queue ready], "->", bend: 15deg, label-pos: 0.7),
     )
   ]
+
 
 
 ]
@@ -1737,13 +1832,11 @@
 
     #v(2em)
 
-    #align(center)[
-      "When you have a hammer, everything looks like a nail." _— Abraham Maslow_
 
+    "When you have a hammer, everything looks like a nail." _— Abraham Maslow_
 
+    "Perfection is achieved, not when there is nothing more to add, but when there is *nothing left to take away*." — _Antoine de Saint-Exupéry_
 
-
-    ]
   ]]
 
 
@@ -1849,20 +1942,20 @@
       columns: (auto, 1fr, 1fr, 2fr),
       rows: (auto, auto, auto, auto, auto),
       gutter: 2em,
-      [], [*Future*], [*Stream*], [*Meaning*],
+      [], [*`Future`*], [*`Stream`*], [*Meaning*],
       [*Regular*],
       [#draw-arrow(multiple: false, fused: false, blue)],
       [#draw-arrow(multiple: true, fused: false, green)],
       [May continue],
 
-      [*Fused*], [*FusedFuture*], [*FusedStream*], [`is_terminated()` method],
+      [*Fused*], [*`FusedFuture`*], [*`FusedStream`*], [`is_terminated()` method],
 
       [*Fused*],
       [#draw-arrow(multiple: false, fused: true, blue)],
       [#draw-arrow(multiple: true, fused: true, green)],
       [Done permanently],
 
-      [*Fused value*], [Pending], [Ready(None)], [Final value],
+      [*Fused value*], [`Pending`], [`Ready(None)`], [Final value],
     )
   ]
 ]
@@ -1937,33 +2030,33 @@
       spacing: (6em, 2em),
       {
         // Stream source
-        node((0, 1), [`Stream`], fill: stream-color, stroke: stream-accent + stroke-width)
+        node((0, 1), [`Stream`], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
 
         // Data items
         node(
           (1, 1),
           ['a'],
-          fill: data-color,
-          stroke: data-accent + stroke-width,
+          fill: colors.data.base,
+          stroke: colors.data.accent + stroke-width,
           shape: fletcher.shapes.circle,
         )
         node(
           (1.5, 1),
           ['b'],
-          fill: data-color,
-          stroke: data-accent + stroke-width,
+          fill: colors.data.base,
+          stroke: colors.data.accent + stroke-width,
           shape: fletcher.shapes.circle,
         )
         node(
           (2, 1),
           ['c'],
-          fill: data-color,
-          stroke: data-accent + stroke-width,
+          fill: colors.data.base,
+          stroke: colors.data.accent + stroke-width,
           shape: fletcher.shapes.circle,
         )
 
         // Sink destination
-        node((3, 1), [`Sink`], fill: ui-color, stroke: ui-accent + stroke-width)
+        node((3, 1), [`Sink`], fill: colors.ui.base, stroke: colors.ui.accent + stroke-width)
 
         // Flow arrows with labels
         edge((0, 1), (1, 1), "-")
@@ -2023,23 +2116,23 @@
       rect(
         (0.5, 0.5),
         (7.5, 2),
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
         radius: node-radius,
       )
       content((4, 1.6), text(size: 9pt, weight: "bold", "Leaf Streams (Real Drivers)"), anchor: "center")
       content((4, 1.1), text(size: 7pt, "TCP, Files, Timers, Hardware, Channels"), anchor: "center")
 
       // Data flow upward
-      line((4, 2.2), (4, 2.8), stroke: operator-accent + arrow-width, mark: (end: ">"))
+      line((4, 2.2), (4, 2.8), stroke: colors.operator.accent + arrow-width, mark: (end: ">"))
       content((5.2, 2.5), text(size: 7pt, "Data pushed up"), anchor: "center")
 
       // Stream trait interface at top
       rect(
         (1, 3),
         (7, 4),
-        fill: stream-color,
-        stroke: stream-accent + stroke-width,
+        fill: colors.stream.base,
+        stroke: colors.stream.accent + stroke-width,
         radius: node-radius,
       )
       content((4, 3.7), text(size: 9pt, weight: "bold", "Stream Trait Interface"), anchor: "center")
@@ -2066,7 +2159,7 @@
   }
   ```
 
-  #rect(inset: 5mm, fill: data-color, stroke: data-accent + stroke-width, radius: node-radius)[
+  #rect(inset: 5mm, fill: colors.data.base, stroke: colors.data.accent + stroke-width, radius: node-radius)[
     What about Rust rule `self` needs to be `Deref<Target=Self>`?
   ]
 
@@ -2091,21 +2184,21 @@
       rect(
         (0.5, 1),
         (3.5, 4),
-        fill: operator-color,
-        stroke: operator-accent + stroke-width,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
         radius: node-radius,
       )
       content((2, 3.5), text(size: 8pt, weight: "bold", "TypeScript"), anchor: "center")
 
       // GC cleanup
-      circle((2, 2.8), radius: 0.4, fill: state-color, stroke: state-accent + stroke-width)
+      circle((2, 2.8), radius: 0.4, fill: colors.state.base, stroke: colors.state.accent + stroke-width)
       content((2, 2.8), text(size: 6pt, "GC"), anchor: "center")
 
 
       // Data flowing freely - simplified dots
       for i in range(3) {
         let x = 1.4 + i * 0.3
-        circle((x, 2.0), radius: 0.08, fill: stream-accent)
+        circle((x, 2.0), radius: 0.08, fill: colors.stream.accent)
       }
       content((2, 1.4), text(size: 6pt, "Put anything\nanywhere"), anchor: "center")
 
@@ -2116,8 +2209,8 @@
       rect(
         (5.5, 1),
         (8.5, 4),
-        fill: ui-color,
-        stroke: ui-accent + stroke-width,
+        fill: colors.ui.base,
+        stroke: colors.ui.accent + stroke-width,
         radius: node-radius,
       )
       content((7, 3.5), text(size: 8pt, weight: "bold", "Rust"), anchor: "center")
@@ -2126,16 +2219,16 @@
       rect(
         (6.2, 2.6),
         (7.8, 3.2),
-        fill: ui-color,
-        stroke: ui-accent + stroke-width,
+        fill: colors.ui.base,
+        stroke: colors.ui.accent + stroke-width,
         radius: node-radius,
       )
       content((7, 2.9), text(size: 6pt, "Ownership\nRules"), anchor: "center")
 
       // Constrained data flow
-      line((6.2, 2.2), (6.8, 2.2), stroke: stream-accent + arrow-width)
-      line((6.8, 2.2), (7.2, 1.8), stroke: stream-accent + arrow-width, mark: (end: ">"))
-      line((7.2, 1.8), (7.8, 1.8), stroke: stream-accent + arrow-width)
+      line((6.2, 2.2), (6.8, 2.2), stroke: colors.stream.accent + arrow-width)
+      line((6.8, 2.2), (7.2, 1.8), stroke: colors.stream.accent + arrow-width, mark: (end: ">"))
+      line((7.2, 1.8), (7.8, 1.8), stroke: colors.stream.accent + arrow-width)
       content((7, 1.3), text(size: 6pt, "Explicit design\nrequired"), anchor: "center")
     })
   ]
