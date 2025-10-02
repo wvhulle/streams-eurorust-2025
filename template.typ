@@ -6,7 +6,7 @@
 // Styling variables for consistent diagrams
 #let node-radius = 5pt
 #let stroke-width = 1pt
-#let arrow-width = 1pt
+#let arrow-width = 1.5pt
 #let node-outset = 3pt
 #let stroke-darken = 20%  // How much to darken fill colors for strokes
 
@@ -50,7 +50,7 @@
   ),
   neutral: (
     base: rgb(240, 240, 240, 255), // Light gray for neutral elements
-    accent: rgb("#949494"), // Dark gray for neutral arrows/strokes
+    accent: rgb("#5c5c5c"), // Dark gray for neutral arrows/strokes
   ),
 )
 

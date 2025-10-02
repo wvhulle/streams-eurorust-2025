@@ -38,25 +38,17 @@
 
 
 #slide[
-  === My interest in stream processing (with Rust)
-
-  *The problem:* Processing incoming (streaming) data from moving vehicles
-
-  - Inconsistent error handling
-  - Complex nested control flow, hard to read
-  - Difficult to test individual parts
-
-
+  === Processing data from moving vehicles
 
   #align(center)[
     #show text: it => [
       #set align(center + horizon)
-      #box(baseline: -0.2em)[#it]
+      #box(baseline: -0.3em)[#it]
     ]
     #{
       let emoji-node(pos, emoji, color, name) = node(
         pos,
-        if emoji == "🚗" { box(baseline: -0.4em)[#emoji] } else { emoji },
+        emoji,
         fill: color.base,
         stroke: color.accent + stroke-width,
         name: name,
@@ -70,7 +62,7 @@
         edge-stroke: arrow-width,
         spacing: (2em, 1em),
         {
-          emoji-node((-2, 1), "🚗", colors.neutral, <vehicle>)
+          emoji-node((-2, 1), text(size: 4em)[🚗], colors.neutral, <vehicle>)
           flow-edge(<vehicle>, <video>, colors.neutral)
           flow-edge(<vehicle>, <audio>, colors.neutral)
           flow-edge(<vehicle>, <data>, colors.neutral)
@@ -84,7 +76,7 @@
           emoji-node((0, 0), "📊", colors.stream, <data>)
           flow-edge(<data>, <control>, colors.operator)
 
-          emoji-node((3, 1), "🎛️", colors.state, <control>)
+          emoji-node((3, 1), text(size: 2em)[🎛️], colors.state, <control>)
         },
       )
     }
@@ -92,106 +84,6 @@
 
 
 ]
-
-
-
-#slide[
-
-  === `Stream`s in Rust are not new
-
-
-  #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
-
-      let draw-timeline-entry(y, year, event, description, reference, ref-url, color) = {
-        // Year label
-        rect(
-          (1, y - 0.3),
-          (3, y + 0.3),
-          fill: color,
-          stroke: color.darken(stroke-darken) + stroke-width,
-          radius: node-radius,
-        )
-        content((2, y), text(size: 8pt, weight: "bold", year), anchor: "center")
-
-        // Event description
-        content((3.5, y + 0.2), text(size: 9pt, weight: "bold", event), anchor: "west")
-        content((3.5, y - 0.03), text(size: 7pt, description), anchor: "west")
-        content(
-          (3.5, y - 0.24),
-          link(ref-url, text(size: 6pt, style: "italic", fill: colors.stream.accent, reference)),
-          anchor: "west",
-        )
-
-        // Connection line from timeline to date box
-        line((0.8, y), (1, y), stroke: colors.neutral.accent + stroke-width)
-      }
-
-      // Timeline entries (bottom to top = old to new)
-      draw-timeline-entry(
-        5.5,
-        "2019",
-        "async/await stabilized in Rust",
-        "Stable async streams in std",
-        "RFC 2394, Rust 1.39.0",
-        "https://rust-lang.github.io/rfcs/2394-async_await.html",
-        colors.stream.base.lighten(20%),
-      )
-      draw-timeline-entry(
-        4.5,
-        "2009",
-        "Microsoft Reactive Extensions",
-        "ReactiveX brings streams to mainstream",
-        "Erik Meijer, Microsoft",
-        "https://reactivex.io/",
-        colors.operator.base.lighten(30%),
-      )
-      draw-timeline-entry(
-        3.5,
-        "1997",
-        "Functional Reactive Programming",
-        "Conal Elliott & Paul Hudak (Haskell)",
-        "ICFP '97, pp. 263-273",
-        "https://dl.acm.org/doi/10.1145/258948.258973",
-        colors.state.base.lighten(25%),
-      )
-      draw-timeline-entry(
-        2.5,
-        "1978",
-        "Communicating Sequential Processes",
-        "Tony Hoare formalizes concurrent dataflow",
-        "CACM 21(8):666-677",
-        "https://dl.acm.org/doi/10.1145/359576.359585",
-        colors.ui.base.lighten(35%),
-      )
-      draw-timeline-entry(
-        1.5,
-        "1973",
-        "Unix Pipes",
-        "Douglas McIlroy creates `|` operator",
-        "Bell Labs, Unix v3-v4",
-        "https://www.cs.dartmouth.edu/~doug/reader.pdf",
-        colors.data.base.lighten(40%),
-      )
-      draw-timeline-entry(
-        0.5,
-        "1960s",
-        "Dataflow Programming",
-        "Hardware-level stream processing",
-        "Early dataflow architectures",
-        "https://en.wikipedia.org/wiki/Dataflow_programming",
-        colors.error.base.lighten(20%),
-      )
-
-      // Main timeline line (positioned to the left, not overlapping with date boxes)
-      line((0.8, 0.3), (0.8, 5.7), stroke: colors.neutral.accent + arrow-width)
-    })
-  ]
-
-
-]
-
 
 
 
@@ -210,7 +102,7 @@
         let layer(pos, label, desc, fill, examples) = {
           node(pos, fill: fill, stroke: fill.darken(stroke-darken) + stroke-width, stack(
             dir: ttb,
-            spacing: 0.3em,
+            spacing: 0.6em,
 
             text(weight: "bold", size: 10pt, label),
             text(size: 8pt, style: "italic", desc),
@@ -223,7 +115,7 @@
           "Derived streams",
           "Pure software transformations",
           colors.operator.base,
-          ("map()", "filter()", ".double()", "fork()"),
+          ([`map()`], [`filter()`], [*`double()`*], [*`fork()`*]),
         )
 
         layer(
@@ -231,7 +123,7 @@
           "Leaf streams",
           "OS/kernel constraints",
           colors.stream.base,
-          ("tokio::fs::File", "TcpListener", "UnixStream", "Interval"),
+          ([`tokio::fs::File`], [`TcpListener`], [`UnixStream`], [`Interval`]),
         )
 
         layer(
@@ -313,7 +205,7 @@
     }
     ```]
 
-  *Problems:* testing, coordination, control flow jumping around
+  *Problems:* hard to read, trace or test!
 ]
 
 
@@ -413,6 +305,32 @@
         result-node((4, 2), "Pending", colors.state, <stream-result3>),
         result-node((4, 1), "Ready(Some(2))", colors.data, <stream-result4>),
 
+        node(
+          stroke: 1pt + colors.stream.accent,
+          fill: colors.stream.base.lighten(70%),
+          inset: 1em,
+          shape: rect,
+          radius: 8pt,
+          enclose: (
+            <stream-call1>,
+            <stream-call2>,
+            <stream-call3>,
+            <stream-call4>,
+            <stream-result1>,
+            <stream-result2>,
+            <stream-result3>,
+            <stream-result4>,
+            <async-call1>,
+            <async-call2>,
+            <async-call3>,
+            <async-call4>,
+            <async-result1>,
+            <async-result2>,
+            <async-result3>,
+            <async-result4>,
+          ),
+        ),
+
         // Stream high-level side
         title-node((6.5, 5), text(size: 10pt, weight: "bold")[Stream (high-level)]),
 
@@ -429,6 +347,7 @@
         result-node((7, 1), "Some(2)", colors.data, <async-result2>),
         result-node((7, 2), "Some(3)", colors.data, <async-result3>),
         result-node((7, 3), "None", colors.data, <async-result4>),
+
 
         // Summary labels
         title-node((0.5, 0), text(size: 8pt)[✓ Always returns immediately]),
@@ -471,13 +390,13 @@
 
 
 #slide[
-  == Consumption of streams
+  == Using the `Stream` API
 ]
 
 #slide[
-  === Building pipelines
+  === Pipelines with `futures::StreamExt`
 
-  The basic stream operators of #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]:
+  All basic stream operators are in #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
 
   #align(center)[
     #set text(size: 7pt)
@@ -671,39 +590,42 @@
 
 
 #slide[
-  === The lesser-known `futures::ready` function
+  === The lesser-known #link("https://doc.rust-lang.org/std/future/fn.ready.html")[`std::future::ready`] function
 
-  Filter needs an *async closure* (or closure returning `Future`):
+  The `futures::StreamExt::filter` expects an *async closure* (or closure returning `Future`):
   #text(size: 9pt)[
     #grid(
       columns: (1fr, 1fr),
       gutter: 1em,
       [
 
-        *Option 1*: Async block
+        *Option 1*: Async block (not `Unpin`!)
         ```rust
         stream.filter(|&x| async move {
           x % 2 == 0
         })
         ```
 
-        *Option 2*: Async closure (Rust 2025+)
+        *Option 2*: Async closure (not `Unpin`!)
         ```rs
         stream.filter(async |&x| x % 2 == 0)
         ```
       ],
       [
-        *Option 3*: Wrap sync output with `std::future::ready()`
-        ```rust
-        stream.filter(|&x| ready(x % 2 == 0))
-        ```
+        #rect(fill: colors.stream.base, stroke: colors.stream.accent + stroke-width, radius: node-radius)[
+          *Option 3* (recommended): Wrap sync output with `std::future::ready()`
+          ```rust
+          stream.filter(|&x| ready(x % 2 == 0))
+          ```
 
-        `ready(value)` creates a `Future` that immediately resolves to `value`.
+          - `ready(value)` creates a `Future` that immediately resolves to `value`.
+
+          - `ready(value)` is `Unpin` and *keeps pipelines `Unpin`*: *_easier to work with_*, see later.
+        ]
       ],
     )]
 
 
-  *Bonus*: `future::ready()` is `Unpin`, helping to keep the entire stream pipeline `Unpin` (if the input stream was `Unpin`)!
 ]
 
 
@@ -723,18 +645,19 @@
   ```rust
   struct Double<InSt> { in_stream: InSt, }
 
-  impl<InSt> Stream for Double<InSt> where Stream: Stream<Item = i32> {
+  impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> {
     type Item = InSt::Item;
+    // Self = Double<InSt>
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>> {
-              Pin::new(self.in_stream) // ⚠️ Will not compile!
-                  .poll_next(cx)
+              // Project onto self.in_stream...
+              Pin::new(&mut self.in_stream) // Not possible!
+                  .poll_next(cx) // Unreachable ...
                   .map(|x| x * 2)
     }
   }
   ```
-  1. `Pin<&mut Self>` blocks access to `self.in_stream`
-  2. `Poll::new()` requires `InSt: Unpin`
+  `Pin<&mut Self>` *blocks access to `self.in_stream`*!
 ]
 
 
@@ -767,7 +690,7 @@
 
         // First arrow with .get_mut() label
         line((2.7, 2), (3.5, 2), mark: (end: "barbed"), stroke: colors.state.accent + arrow-width)
-        content((3, 2.4), text(size: 7pt, fill: colors.stream.accent, [?]), anchor: "center")
+        content((3, 2.4), text(size: 7pt, fill: colors.pin.accent, [?]), anchor: "center")
 
         // Middle: Just InSt
         circle((4, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
@@ -775,7 +698,7 @@
 
         // Second arrow with Pin::new() label
         line((4.5, 2), (5.3, 2), mark: (end: "barbed"), stroke: colors.state.accent + arrow-width)
-        content((5, 2.4), text(size: 6pt, text(fill: colors.stream.accent)[?]), anchor: "center")
+        content((5, 2.4), text(size: 6pt, text(fill: colors.pin.accent)[?]), anchor: "center")
 
         // Right: Pin<&mut InSt>
         hexagon(draw, (6.5, 2), 2, colors.pin.base, text(fill: colors.pin.accent)[`Pin<&mut InSt>`], (6.5, 3.3))
@@ -834,7 +757,7 @@
             // Left: Free bird (can move)
             content((1, 2.5), text(size: 2em, "🐦"), anchor: "center")
             content((1, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
-            content((1, 1.6), text(size: 6pt, "✅ Can move"), anchor: "center")
+            content((1, 1.6), text(size: 6pt, "✅ Safe to move"), anchor: "center")
 
             // Pin::new() arrow (left to right)
             line((1.8, 2.7), (7.2, 2.7), mark: (end: "barbed"), stroke: colors.pin.base + arrow-width)
@@ -852,7 +775,7 @@
               text(size: 7pt, weight: "bold", fill: colors.pin.accent, [`Pin::get_mut()`]),
               anchor: "center",
             )
-            content((4.5, 1.4), text(size: 6pt, [if `T: Unpin`]), anchor: "center")
+            content((4.5, 1.4), text(size: 6pt, [if `Bird: Unpin`]), anchor: "center")
 
             // Right: Pin<&mut Bird> with caged bird
             hexagon(
@@ -914,7 +837,7 @@
 
 
 #slide[
-  === Why `Box<T>: Unpin`?
+  === Put your `!Unpin` type on the heap
   #text(size: 8pt)[
     #align(center)[
       #canvas(length: 1.2cm, {
@@ -929,7 +852,7 @@
           radius: node-radius,
         )
         content((2.5, 5.2), text(size: 9pt, weight: "bold", "Stack"), anchor: "center")
-        content((2.5, 4.7), text(size: 8pt, [`Box<InSt>`]), anchor: "center")
+        content((2.5, 4.7), text(size: 8pt, [`Box::new(in_stream)`]), anchor: "center")
         rect(
           (1.9, 3.5),
           (3, 4.5),
@@ -969,13 +892,12 @@
       })
     ]
 
-
-    1. Put your `!Unpin` type on the heap with `Box::new()`\
-      (Heap content stays at fixed address)
-    2. The output of `Box::new(tiger)` is just a pointer \
-      (Moving pointers is safe)
-    3. `Box<X>: Deref<Target = X>`, so `Box<InSt>` *behaves like `InSt`*\
+    1. The output of `Box::new(tiger)` is just a pointer \
+      Moving pointers is safe, so *`Box: Unpin`*
+    2. Box behaves like what it contains: *`Box<X>: Deref<Target = X>`*
   ]
+
+  Result:
   ```rs
   struct Double {in_stream: Box<InSt>}: Unpin
   ```
@@ -997,7 +919,7 @@
       hexagon(draw, (2, 4), 4.5, colors.pin.base, text(fill: colors.pin.accent)[`Pin<&mut Double>`], (2, 6.2))
       circle((2, 4), radius: 1.5, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
       content((2, 5.7), text(size: 7pt, weight: "bold", fill: colors.operator.accent)[`&mut Double`], anchor: "center")
-      content((2, 5.2), text(size: 6pt, weight: "bold")[`Box<InSt>`], anchor: "center")
+      content((2, 5.2), text(size: 6pt, weight: "bold")[`&mut Box<InSt>`], anchor: "center")
 
       // Inner stream representation
       rect(
@@ -1014,7 +936,7 @@
       arc(
         (4.0, 5.8),
         start: 80deg,
-        stop: 170deg,
+        stop: 178deg,
         radius: 1.5,
         mark: (end: "barbed"),
         stroke: colors.error.accent + arrow-width,
@@ -1027,7 +949,7 @@
         text(size: 7pt, weight: "bold", fill: colors.operator.accent)[`&mut Double`],
         anchor: "center",
       )
-      content((6.5, 4.7), text(size: 7pt, weight: "bold")[`Box<InSt>`], anchor: "center")
+      content((6.5, 4.7), text(size: 7pt, weight: "bold")[`&mut Box<InSt>`], anchor: "center")
 
       rect(
         (6.5 - 0.45, 4 - 0.45),
@@ -1095,16 +1017,16 @@
         fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
             -> Poll<Option<Self::Item>>
         {
-            // this: &mut Double<InSt>
-            let this = self.get_mut(); // Safe because Double is Unpin
-            match Pin::new(&mut this.in_stream).poll_next(cx) {
-                Poll::Ready(r) => Poll::Ready(r.map(|x| x * 2)),
-                Poll::Pending => Poll::Pending,
-            }
-
+            // We can project because `Self: Unpin`
+            let this: &mut Double<InSt> = self.get_mut();
+            // `this` is a conventional name for projection
+            Pin::new(&mut this.in_stream)
+                .poll_next(cx)
+                .map(|r| r.map(|x| x * 2))
         }
     }
     ```
+
   ]
 ]
 
@@ -1115,7 +1037,7 @@
 #slide[
   === Distributing your operator
 
-  Create an extension trait to add `.double()` method to any integer stream:
+  Define a constructor and turn it into a method of an *extension trait*:
 
   ```rust
   trait DoubleStream: Stream {
@@ -1123,34 +1045,33 @@
       where Self: Sized + Stream<Item = i32>,
       { Double::new(self) }
   }
-  ```
-
-  Add a *blanket `impl`* that automatically implements `DoubleStream` for any `Stream<Item = i32>`:
-
-  ```rs
+  // A blanket implementation should be provided by you!
   impl<S> DoubleStream for S where S: Stream<Item = i32> {}
   ```
 
-  *Important*: A blanket implementation should be provided by you!
+  Now, users *don't need to know how* `Double` is implemented, just
+
+  1. import your extension trait: `DoubleStream`
+  2. call `.double()` on any compatible stream
 
 ]
 
 #slide[
-  === Users just add dependency + import
+  === Using your extension trait
 
-  Super simple for users to adopt your custom operators:
+  Package your extension trait inside a crate, e.g. `double-stream`, publish it and import it:
 
   ```toml
   [dependencies]
   double-stream = "1.0"
   ```
-  The `DoubleStream` trait must be in scope to use `.double()`:
+  Once `DoubleStream` is in scope, use `.double()` on any compatible stream (stream with `Item = i32`):
   ```rust
   use double_stream::DoubleStream;  // Trait in scope
 
   let doubled = stream::iter(1..=5).double();  // Now works!
   ```
-  *Compositionality of traits* (versus traditional OOP) shines!
+  Rust's *_orphan rules_ protects publishers and consumers*!
 ]
 
 #slide[
@@ -1164,30 +1085,28 @@
   === Problem: most streams aren't `Clone`
 
 
-  #text(size: 9pt)[
-    Latency may need to processed by different async tasks:
+  Latency may need to processed by different async tasks:
 
 
-    ```rust
-    let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
-    let latency = tcp_stream.latency(); // Stream<Item = Duration>
-    let latency_clone = latency.clone(); // Error! Can't clone stream
-    spawn(async move { process_for_alice(latency).await; });
-    spawn(async move { process_for_bob(latency_clone).await; });
-    ```
+  ```rust
+  let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
+  let latency = tcp_stream.latency(); // Stream<Item = Duration>
+  let latency_clone = latency.clone(); // Error! Can't clone stream
+  spawn(async move { process_for_alice(latency).await; });
+  spawn(async move { process_for_bob(latency_clone).await; });
+  ```
 
 
 
-    *Solution*: Create a _*stream operator*_ that clones streams.
+  *Solution*: Create a _*stream operator*_ that clones streams.
 
-    (Requirement: `Stream<Item: Clone>`, so we can clone the items)
+  (Requirement: `Stream<Item: Clone>`, so we can clone the items)
 
-    Approach:
+  Approach:
 
-    1. Implement forking the input stream
-    2. Implement cloning on forked streams
-    3. Package as crate with blanket impl
-  ]]
+  1. Implement forking the input stream
+  2. Implement cloning on forked streams
+]
 
 #slide[
   === Rough architecture of #link("https://crates.io/crates/clone-stream")[`clone-stream`]
@@ -1471,34 +1390,33 @@
 
         3. Apply your custom operator
           ```rs
-          let stream1 = create_test_stream()
+          let out_stream1 = create_test_stream(in_stream)
               .your_custom_operator();
-          let stream2 = stream1.clone();
+          let out_stream2 = out_stream1.clone();
           ```
 
-          Can be used for *benchmarks* too (use `criterion`).
+        4. Send your inputs and outputs to separate tasks
 
 
 
       ],
       [
-        Do not use `sleep(1ms)` in tests! (Use bariers!)
-
+        5. Do not use `sleep` and await all tasks.
         ```rs
         try_join_all([
             spawn(async move {
                 setup_task().await;
                 b1.wait().await;
-                stream1.collect().await;
+                out_stream1.collect().await;
             }),
             spawn(async move {
                 setup_task().await;
                 b2.wait().await;
-                stream2.collect().await;
+                out_stream2.collect().await;
             }),
             spawn(async move {
                 b3.wait().await;
-                send_to_stream().await;
+                send_input(in_stream).await;
             })
         ]).await.unwrap();
         ```
@@ -1785,6 +1703,108 @@
 #slide[
   == Bonus slides
 ]
+
+
+
+
+#slide[
+
+  === `Stream`s in Rust are not new
+
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+      let draw-timeline-entry(y, year, event, description, reference, ref-url, color) = {
+        // Year label
+        rect(
+          (1, y - 0.3),
+          (3, y + 0.3),
+          fill: color,
+          stroke: color.darken(stroke-darken) + stroke-width,
+          radius: node-radius,
+        )
+        content((2, y), text(size: 8pt, weight: "bold", year), anchor: "center")
+
+        // Event description
+        content((3.5, y + 0.2), text(size: 9pt, weight: "bold", event), anchor: "west")
+        content((3.5, y - 0.03), text(size: 7pt, description), anchor: "west")
+        content(
+          (3.5, y - 0.24),
+          link(ref-url, text(size: 6pt, style: "italic", fill: colors.stream.accent, reference)),
+          anchor: "west",
+        )
+
+        // Connection line from timeline to date box
+        line((0.8, y), (1, y), stroke: colors.neutral.accent + stroke-width)
+      }
+
+      // Timeline entries (bottom to top = old to new)
+      draw-timeline-entry(
+        5.5,
+        "2019",
+        "async/await stabilized in Rust",
+        "Stable async streams in std",
+        "RFC 2394, Rust 1.39.0",
+        "https://rust-lang.github.io/rfcs/2394-async_await.html",
+        colors.stream.base.lighten(20%),
+      )
+      draw-timeline-entry(
+        4.5,
+        "2009",
+        "Microsoft Reactive Extensions",
+        "ReactiveX brings streams to mainstream",
+        "Erik Meijer, Microsoft",
+        "https://reactivex.io/",
+        colors.operator.base.lighten(30%),
+      )
+      draw-timeline-entry(
+        3.5,
+        "1997",
+        "Functional Reactive Programming",
+        "Conal Elliott & Paul Hudak (Haskell)",
+        "ICFP '97, pp. 263-273",
+        "https://dl.acm.org/doi/10.1145/258948.258973",
+        colors.state.base.lighten(25%),
+      )
+      draw-timeline-entry(
+        2.5,
+        "1978",
+        "Communicating Sequential Processes",
+        "Tony Hoare formalizes concurrent dataflow",
+        "CACM 21(8):666-677",
+        "https://dl.acm.org/doi/10.1145/359576.359585",
+        colors.ui.base.lighten(35%),
+      )
+      draw-timeline-entry(
+        1.5,
+        "1973",
+        "Unix Pipes",
+        "Douglas McIlroy creates `|` operator",
+        "Bell Labs, Unix v3-v4",
+        "https://www.cs.dartmouth.edu/~doug/reader.pdf",
+        colors.data.base.lighten(40%),
+      )
+      draw-timeline-entry(
+        0.5,
+        "1960s",
+        "Dataflow Programming",
+        "Hardware-level stream processing",
+        "Early dataflow architectures",
+        "https://en.wikipedia.org/wiki/Dataflow_programming",
+        colors.error.base.lighten(20%),
+      )
+
+      // Main timeline line (positioned to the left, not overlapping with date boxes)
+      line((0.8, 0.3), (0.8, 5.7), stroke: colors.neutral.accent + arrow-width)
+    })
+  ]
+
+
+]
+
+
 
 
 #slide[
