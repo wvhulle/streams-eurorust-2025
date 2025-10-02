@@ -1,8 +1,86 @@
 #let colors = (
   accent: rgb("#05004E"),
   code-bg: rgb("#fcfcf5"),
-  bg-accent: rgb("#b2edd7"),
 )
+
+// Styling variables for consistent diagrams
+#let node-radius = 5pt
+#let stroke-width = 1pt
+#let arrow-width = 1pt
+#let node-outset = 3pt
+#let stroke-darken = 20%  // How much to darken fill colors for strokes
+
+// Color palette for semantic consistency (all colors in rgba format)
+#let colors = (
+  title: (
+    base: rgb("#b2edd7"),
+    accent: rgb("#b2edd7").saturate(50%).darken(50%), // Dark green for text elements
+  ),
+  stream: (
+    base: rgb("#ebfdfd"), // Light blue for streams/sources
+    accent: rgb("#ebfdfd").saturate(50%).darken(50%), // Dark green for text elements
+  ),
+  code: (
+    base: rgb("#fcfcf5"),
+    accent: rgb("#fcfcf5").darken(30%), // Dark gray for code elements
+  ),
+  operator: (
+    base: rgb(255, 240, 230, 255), // Light orange for operators/transforms
+    accent: rgb(255, 240, 230, 255).saturate(40%).darken(30%), // Dark orange for operator arrows/strokes
+  ),
+  data: (
+    base: rgb(255, 243, 205, 255), // Light yellow for data/items
+    accent: rgb(255, 243, 205, 255).darken(40%), // Dark yellow for data arrows/strokes
+  ),
+  pin: (
+    base: rgb(43, 103, 223, 255), // Blue for Pin concepts
+    accent: rgb(43, 103, 223, 255).darken(40%), // Dark blue for pin arrows/strokes
+  ),
+  state: (
+    base: rgb(240, 255, 230, 255), // Light green for states/processes
+    accent: rgb(240, 255, 230, 255).darken(40%), // Dark green for state arrows/strokes
+  ),
+  ui: (
+    base: rgb(240, 230, 255, 255), // Light purple for UI/interface
+    accent: rgb(240, 230, 255, 255).darken(40%), // Dark purple for UI arrows/strokes
+  ),
+  error: (
+    base: rgb("#ffdede"), // Light red for errors/warnings
+    accent: rgb("#f4b4b4").saturate(50%), // Dark red for error arrows/strokes
+  ),
+  neutral: (
+    base: rgb(240, 240, 240, 255), // Light gray for neutral elements
+    accent: rgb("#949494"), // Dark gray for neutral arrows/strokes
+  ),
+)
+
+// Note: cetz functions must be defined within canvas contexts
+// Standard hexagon function template for use in slides
+
+// Reusable hexagon function that takes draw module as parameter
+#let hexagon(draw, center, size, stroke-color, label, label-pos) = {
+  let (cx, cy) = center
+  let radius = size / 2
+
+  // Calculate hexagon vertices (6 points around circle)
+  let vertices = ()
+  for i in range(6) {
+    let angle = i * 60deg
+    let x = cx + radius * calc.cos(angle)
+    let y = cy + radius * calc.sin(angle)
+    vertices.push((x, y))
+  }
+
+  // Draw hexagon outline using line() calls
+  for i in range(6) {
+    let start = vertices.at(i)
+    let end = vertices.at(calc.rem(i + 1, 6))
+    draw.circle(start, radius: 0.08, fill: stroke-color, stroke: none) // Vertex point
+    draw.line(start, end, stroke: stroke-color + stroke-width)
+  }
+
+  draw.content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
+}
 
 #let presentation-template(
   title: none,
@@ -26,10 +104,10 @@
     size: 1.0em,
   )
   show raw.where(block: true): it => block(
-    fill: colors.code-bg,
+    fill: colors.code.base,
     inset: 1em,
-    stroke: 0.5pt + colors.accent,
-    radius: 0pt,
+    stroke: stroke-width + colors.code.accent,
+    radius: node-radius,
     it,
   )
   show raw.where(block: false): it => text(size: 1.15em, weight: 500, it)
@@ -39,36 +117,38 @@
     let total-pages = counter(page).final().first()
 
     if page-num == 1 or page-num == total-pages {
-      rect(width: 100%, height: 100%, fill: colors.bg-accent)
+      rect(width: 100%, height: 100%, fill: colors.title.base)
     }
   })
 
   // Headings
   show heading.where(level: 1): align.with(center + horizon)
   show heading.where(level: 2): it => {
+    v(4em)
+    set text(fill: colors.title.accent, size: 1.3em)
     place(
       top + left,
       dx: -1.5cm,
       dy: -1.5cm,
-      rect(width: 1.5cm, height: 100% + 3cm, fill: colors.bg-accent),
+      rect(width: 1.5cm, height: 100% + 3cm, fill: colors.title.base),
     )
     place(
       top + left,
       dx: 0cm,
       dy: -1.5cm,
-      line(start: (0pt, 0pt), end: (0pt, 100% + 3cm), stroke: 2pt + colors.accent),
+      line(start: (0pt, 0pt), end: (0pt, 100% + 3cm), stroke: 2pt + colors.title.accent),
     )
     pad(left: 1.5em, align(center + horizon, it))
   }
   show heading.where(level: 3): it => {
     set text(style: "italic", size: 1.2em)
-    underline(stroke: 1.5pt + colors.accent, offset: 0.2em, it)
+    underline(stroke: 1.5pt + colors.title.accent, offset: 0.2em, it)
     v(0.5em)
   }
 
   // Content styling
-  show link: underline.with(stroke: 1pt + colors.accent, offset: 0.15em)
-  show table: set table(fill: colors.code-bg, stroke: 0.5pt + colors.accent)
+  show link: underline.with(stroke: 1pt + colors.code.accent, offset: 0.15em)
+  show table: set table(fill: colors.code.base, stroke: 0.5pt + colors.code.accent)
   show table.cell: set text(size: 10pt)
   show table.header: set text(weight: "bold")
 
@@ -95,12 +175,12 @@
       }
 
       #if duration != none {
-        text(size: 0.9em, fill: colors.accent)[#duration]
+        text(size: 0.9em, fill: colors.neutral.accent)[#duration]
       }
 
       #if repository != none {
         v(2em)
-        text(size: 0.8em, fill: colors.accent)[
+        text(size: 0.8em, fill: colors.neutral.accent)[
           Version with clickable links:\
           #link(repository)[#repository.replace("https://", "")]
         ]
