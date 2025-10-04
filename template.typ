@@ -6,7 +6,7 @@
 // Styling variables for consistent diagrams
 #let node-radius = 5pt
 #let stroke-width = 1pt
-#let arrow-width = 1.5pt
+#let arrow-width = 1pt
 #let node-outset = 3pt
 #let stroke-darken = 20%  // How much to darken fill colors for strokes
 
@@ -26,15 +26,15 @@
   ),
   operator: (
     base: rgb(255, 240, 230, 255), // Light orange for operators/transforms
-    accent: rgb(255, 240, 230, 255).saturate(40%).darken(30%), // Dark orange for operator arrows/strokes
+    accent: rgb(255, 240, 230, 255).saturate(40%).darken(50%), // Dark orange for operator arrows/strokes
   ),
   data: (
     base: rgb(255, 243, 205, 255), // Light yellow for data/items
     accent: rgb(255, 243, 205, 255).darken(40%), // Dark yellow for data arrows/strokes
   ),
   pin: (
-    base: rgb(43, 103, 223, 255), // Blue for Pin concepts
-    accent: rgb(43, 103, 223, 255).darken(40%), // Dark blue for pin arrows/strokes
+    base: rgb("#dde8ff"), // Blue for Pin concepts
+    accent: rgb("#386bd2"), // Dark blue for pin arrows/strokes
   ),
   state: (
     base: rgb(240, 255, 230, 255), // Light green for states/processes
@@ -58,7 +58,7 @@
 // Standard hexagon function template for use in slides
 
 // Reusable hexagon function that takes draw module as parameter
-#let hexagon(draw, center, size, stroke-color, label, label-pos) = {
+#let hexagon(draw, center, size, stroke-color, label, label-pos, fill-color: none) = {
   let (cx, cy) = center
   let radius = size / 2
 
@@ -71,11 +71,26 @@
     vertices.push((x, y))
   }
 
+  // Fill hexagon if color provided
+  if fill-color != none {
+    draw.merge-path(fill: fill-color, stroke: none, {
+      for i in range(6) {
+        let vertex = vertices.at(i)
+        if i == 0 {
+          draw.line(vertex, vertex)
+        } else {
+          draw.line((), vertex)
+        }
+      }
+      draw.line((), vertices.at(0))
+    })
+  }
+
   // Draw hexagon outline using line() calls
   for i in range(6) {
     let start = vertices.at(i)
     let end = vertices.at(calc.rem(i + 1, 6))
-    draw.circle(start, radius: 0.08, fill: stroke-color, stroke: none) // Vertex point
+    draw.circle(start, radius: 0.08, fill: stroke-color, stroke: none)
     draw.line(start, end, stroke: stroke-color + stroke-width)
   }
 

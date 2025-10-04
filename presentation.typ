@@ -76,7 +76,7 @@
           emoji-node((0, 0), "📊", colors.stream, <data>)
           flow-edge(<data>, <control>, colors.operator)
 
-          emoji-node((3, 1), text(size: 2em)[🎛️], colors.state, <control>)
+          emoji-node((3, 1), text(size: 2em)[🎛️], colors.neutral, <control>)
         },
       )
     }
@@ -99,8 +99,8 @@
       edge-stroke: arrow-width,
       spacing: (1em, 2em),
       {
-        let layer(pos, label, desc, fill, examples) = {
-          node(pos, fill: fill, stroke: fill.darken(stroke-darken) + stroke-width, stack(
+        let layer(pos, label, desc, fill, examples, stroke) = {
+          node(pos, fill: fill, stroke: stroke + stroke-width, stack(
             dir: ttb,
             spacing: 0.6em,
 
@@ -112,10 +112,11 @@
 
         layer(
           (0, 2),
-          "Derived streams",
+          "Stream operators",
           "Pure software transformations",
           colors.operator.base,
-          ([`map()`], [`filter()`], [*`double()`*], [*`fork()`*]),
+          ([`map()`], [*`double()`*], [*`fork()`*], [*`latency()`*], [*`hysteresis()`*]),
+          colors.operator.accent,
         )
 
         layer(
@@ -124,14 +125,16 @@
           "OS/kernel constraints",
           colors.stream.base,
           ([`tokio::fs::File`], [`TcpListener`], [`UnixStream`], [`Interval`]),
+          colors.stream.accent,
         )
 
         layer(
           (0, 0),
           "Physical streams",
           "Electronic signals",
-          colors.state.base,
+          colors.data.base,
           ("GPIO interrupts", "UART frames", "Network packets"),
+          colors.data.accent,
         )
 
         edge((0, 0), (0, 1), "->", stroke: colors.operator.accent + arrow-width, label: "OS abstraction")
@@ -139,13 +142,32 @@
 
         node(
           (-1, 1),
-          [Requires an `async` runtime \ #text(size: 0.7em)[('leaf future' by _Carl Fredrik Samson_)]],
+          [Requires an `async` runtime \ #text(size: 0.7em)[(see 'leaf future' by _Carl Fredrik Samson_)]],
           stroke: none,
         )
         edge((-1, 1), (0, 1), "->", stroke: colors.neutral.accent + arrow-width)
 
         node((-1, 2), [In this presentation], stroke: none)
         edge((-1, 2), (0, 2), "->", stroke: colors.neutral.accent + arrow-width)
+
+
+        node(
+          (1, 0),
+          fill: none,
+          stroke: none,
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.data.base, stroke: colors.data.accent)) Data]
+
+        node(
+          (1, 1),
+          fill: none,
+          stroke: none,
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.stream.base, stroke: colors.stream.accent)) Streams]
+
+        node(
+          (1, 2),
+          fill: none,
+          stroke: none,
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.operator.base, stroke: colors.operator.accent))   Operators]
       },
     )
   ]
@@ -675,9 +697,10 @@
           (1, 2),
           3,
 
-          colors.pin.base,
+          colors.pin.accent,
           text(fill: colors.pin.accent, size: 8pt, weight: "bold")[`Pin<&mut Double>`],
           (1, 3.5),
+          fill-color: colors.pin.base,
         )
         circle((1, 2), radius: 0.8, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
         content(
@@ -701,7 +724,15 @@
         content((5, 2.4), text(size: 6pt, text(fill: colors.pin.accent)[?]), anchor: "center")
 
         // Right: Pin<&mut InSt>
-        hexagon(draw, (6.5, 2), 2, colors.pin.base, text(fill: colors.pin.accent)[`Pin<&mut InSt>`], (6.5, 3.3))
+        hexagon(
+          draw,
+          (6.5, 2),
+          2,
+          colors.pin.accent,
+          text(fill: colors.pin.accent)[`Pin<&mut InSt>`],
+          (6.5, 3.3),
+          fill-color: colors.pin.base,
+        )
         circle((6.5, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
         content((6.5, 2), text(size: 6pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
 
@@ -760,7 +791,7 @@
             content((1, 1.6), text(size: 6pt, "✅ Safe to move"), anchor: "center")
 
             // Pin::new() arrow (left to right)
-            line((1.8, 2.7), (7.2, 2.7), mark: (end: "barbed"), stroke: colors.pin.base + arrow-width)
+            line((1.8, 2.7), (7.2, 2.7), mark: (end: "barbed"), stroke: colors.pin.accent + arrow-width)
             content(
               (4.5, 3.0),
               text(size: 7pt, weight: "bold", fill: colors.pin.accent, [`Pin::new()`]),
@@ -769,7 +800,7 @@
             content((4.5, 2.4), text(size: 6pt, "Always safe"), anchor: "center")
 
             // Pin::get_mut() arrow (right to left)
-            line((7.2, 1.7), (1.8, 1.7), mark: (end: "barbed"), stroke: colors.pin.base + arrow-width)
+            line((7.2, 1.7), (1.8, 1.7), mark: (end: "barbed"), stroke: colors.pin.accent + arrow-width)
             content(
               (4.5, 2.0),
               text(size: 7pt, weight: "bold", fill: colors.pin.accent, [`Pin::get_mut()`]),
@@ -782,9 +813,10 @@
               draw,
               (8.5, 2.3),
               2.5,
-              colors.pin.base,
+              colors.pin.accent,
               text(fill: colors.pin.accent)[`Pin<&mut Bird>`],
               (8.5, 3.7),
+              fill-color: colors.pin.base,
             )
             content((8.5, 2.6), text(size: 2em, "🐦"), anchor: "center")
             content((8.5, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
@@ -819,9 +851,10 @@
               draw,
               (8.5, 2.3),
               2.5,
-              colors.pin.base,
+              colors.pin.accent,
               text(fill: colors.pin.accent)[`Pin<&mut Tiger>`],
               (8.5, 3.7),
+              fill-color: colors.pin.base,
             )
             content((8.5, 2.8), text(size: 3em, "🐅"), anchor: "center")
             content((8.5, 2.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
@@ -916,7 +949,15 @@
       import draw: *
 
       // Left: Pin<&mut Double> with large wrapper - simplified but clear
-      hexagon(draw, (2, 4), 4.5, colors.pin.base, text(fill: colors.pin.accent)[`Pin<&mut Double>`], (2, 6.2))
+      hexagon(
+        draw,
+        (2, 4),
+        4.5,
+        colors.pin.accent,
+        text(fill: colors.pin.accent)[`Pin<&mut Double>`],
+        (2, 6.2),
+        fill-color: colors.pin.base,
+      )
       circle((2, 4), radius: 1.5, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
       content((2, 5.7), text(size: 7pt, weight: "bold", fill: colors.operator.accent)[`&mut Double`], anchor: "center")
       content((2, 5.2), text(size: 6pt, weight: "bold")[`&mut Box<InSt>`], anchor: "center")
@@ -961,8 +1002,12 @@
       content((6.5, 4), text(size: 5pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
 
       // Right: Pin<&mut InSt>
-      hexagon(draw, (9.5, 4.0), 2.5, colors.pin.base, "", (9.5, 5.8))
-      content((9.5, 5.5), text(size: 7pt, weight: "bold", fill: colors.pin.accent)[`Pin<&mut InSt>`], anchor: "center")
+      hexagon(draw, (9.5, 4.0), 2.5, colors.pin.accent, "", (9.5, 5.8), fill-color: colors.pin.base)
+      content(
+        (9.5, 5.4),
+        text(size: 7pt, weight: "bold", fill: colors.pin.accent)[`Pin<&mut InSt>`],
+        anchor: "center",
+      )
       content((9.5, 4.7), text(size: 7pt, weight: "bold")[`&mut Box<InSt>`], anchor: "center")
 
       rect(
