@@ -1769,7 +1769,8 @@
 #slide[
 
   #set text(size: 8pt)
-
+  === Recommendations
+  #v(-3em)
   #align(center + horizon)[
     #diagram(
       node-stroke: stroke-width + colors.stream.accent,
@@ -1780,15 +1781,15 @@
 
 
       node((1, 0), [Transform a `Stream`?], name: <transform-stream>),
-      edge(<transform-stream>, <declarative>, [No, create], "-}>"),
-      edge(<transform-stream>, <simple-transform>, [Yes], "-}>"),
+      edge(<transform-stream>, <declarative>, [Without `Pin`], "-}>"),
+      edge(<transform-stream>, <simple-transform>, [With `Pin`], "-}>"),
 
-      node((0, 1), [Simple? \ e.g. N-1, 1-1], name: <simple-transform>),
+      node((0, 1), [Standard? \ e.g. N-1, 1-1], name: <simple-transform>),
 
       edge(<simple-transform>, <rxjs-like>, [No], "-}>"),
       node((-0.5, 2), [`futures`], name: <futures-lib>),
       edge(<simple-transform>, <futures-lib>, [Yes], "-}>"),
-      node((0.6, 2), [RxJs-like], name: <rxjs-like>),
+      node((0.6, 2), [RxJs-like \ e.g. 1-N], name: <rxjs-like>),
 
       node((-0.5, 3), [`futures-rx`], name: <futures-rx-lib>),
       edge(<rxjs-like>, <futures-rx-lib>, [Yes], "-}>"),
@@ -1796,7 +1797,13 @@
       node((0.6, 3), [On \ crates.io], name: <on-cratesio>),
       edge(<rxjs-like>, <on-cratesio>, [No], "-}>"),
 
-      node((0, 4), [Build your \ own trait], name: <build-own-trait>),
+      node(
+        (0, 4),
+        [Build your \ own trait],
+        name: <build-own-trait>,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
+      ),
       edge(<on-cratesio>, <build-own-trait>, [No], "-}>"),
       node((1, 4), [Import \ extension trait], name: <import-extension-trait>),
       edge(<on-cratesio>, <import-extension-trait>, [Yes], "-}>"),
@@ -1804,7 +1811,7 @@
       edge(<declarative>, <simple-declarative>, "-}>", [Yes]),
       edge(<declarative>, <async-stream-lib>, [No]),
 
-      node((1.5, 2), [simple?], name: <simple-declarative>),
+      node((1.5, 2), [simple state], name: <simple-declarative>),
       edge(<simple-declarative>, <unfold-fn>, [Yes], "-}>"),
       node((1.2, 3), [`unfold`], name: <unfold-fn>),
 
