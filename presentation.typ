@@ -263,6 +263,32 @@
 
 
 #slide[
+  === A lazy interface
+
+  Similar to `Future`, but yields multiple items over time (when queried / *pulled*):
+
+
+
+  ```rust
+  trait Stream {
+      type Item;
+
+      fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+          -> Poll<Option<Self::Item>>;
+  }
+  ```
+
+  Returns `Poll` enum:
+
+  1. `Poll::Pending`: not ready (like `Future`)
+  2. `Poll::Ready(_)`:
+    - `Ready(Some(item))`: new data is made available
+    - `Ready(None)`: currently exhausted (not necessarily the end)
+]
+
+
+
+#slide[
   === Moving from `Iterator` to `Stream`
 
   #align(center + horizon)[
@@ -379,30 +405,6 @@
     }
   ]
 
-]
-
-#slide[
-  === A lazy interface
-
-  Similar to `Future`, but yields multiple items over time (when queried / *pulled*):
-
-
-
-  ```rust
-  trait Stream {
-      type Item;
-
-      fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-          -> Poll<Option<Self::Item>>;
-  }
-  ```
-
-  Returns `Poll` enum:
-
-  1. `Poll::Pending`: not ready (like `Future`)
-  2. `Poll::Ready(_)`:
-    - `Ready(Some(item))`: new data is made available
-    - `Ready(None)`: currently exhausted (not necessarily the end)
 ]
 
 
@@ -654,8 +656,28 @@
 
 
 #slide[
-  == Example 1: Doubling integer streams (1-1)
+  == Example 1: One-to-One Operator
 
+]
+
+#slide[
+  === Doubling stream operator
+
+  #align(center + horizon)[
+    #diagram(
+      node-stroke: stroke-width,
+      node-corner-radius: node-radius,
+      edge-stroke: arrow-width,
+      spacing: 6em,
+
+      node((0, 0), [Input\ Stream], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      node((1, 0), [`Double`], fill: colors.operator.base, stroke: colors.operator.accent + stroke-width, shape: pill),
+      node((2, 0), [Output\ Stream], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+
+      edge((0, 0), (1, 0), [1, 2, 3, ...], "-}>", stroke: colors.data.accent + arrow-width),
+      edge((1, 0), (2, 0), [2, 4, 6, ...], "-}>", stroke: colors.data.accent + arrow-width),
+    )
+  ]
 ]
 
 
@@ -1101,33 +1123,63 @@
 
 ]
 
-#slide[
-  === Using your extension trait
-
-  Package your extension trait inside a crate, e.g. `double-stream`, publish it and import it:
-
-  ```toml
-  [dependencies]
-  double-stream = "1.0"
-  ```
-  Once `DoubleStream` is in scope, use `.double()` on any compatible stream (stream with `Item = i32`):
-  ```rust
-  use double_stream::DoubleStream;  // Trait in scope
-
-  let doubled = stream::iter(1..=5).double();  // Now works!
-  ```
-  Rust's *_orphan rules_ protects publishers and consumers*!
-]
 
 #slide[
 
-  == Example 2: Cloning streams at run-time (1-N)
+  == Example 2: One-to-N  Operator
 ]
 
 
 
+
+
 #slide[
-  === Problem: most streams aren't `Clone`
+  === Complexity 1-N operators
+
+  Challenges for `Stream` operators are combined from:
+
+
+  #grid(
+    columns: (1fr, 1fr),
+    column-gutter: 2em,
+    [
+      *Inherent `Future` challenges:*
+      - Clean up orphaned wakers
+      - Cleanup when tasks abort
+      - Task coordination complexity
+    ],
+    [
+      *Inherent `Iterator` challenges:*
+      - Ordering guarantees across consumers
+      - Backpressure with slow consumers
+      - Sharing mutable state safely
+      - Avoiding duplicate items
+    ],
+  )
+
+
+  #align(center)[
+    #canvas(length: 1cm, {
+      import draw: *
+
+
+      // Multiple clones at different positions
+      let clone-positions = ((0.5, 1), (2, 0.5), (4, 0.2), (6, 1.2), (7.5, 0.8))
+      for (i, pos) in clone-positions.enumerate() {
+        let (x, y) = pos
+        circle((x, y), radius: 0.2, fill: if i < 2 { colors.pin.base } else { colors.state.base })
+        content((x, y - 0.5), text(size: 6pt, "C" + str(i + 1)), anchor: "center")
+      }
+
+      content((4, 1), text(size: 8pt, "Thousands of clones..."), anchor: "center")
+    })
+  ]
+
+]
+
+
+#slide[
+  === Sharing latency between tasks
 
 
   Latency may need to processed by different async tasks:
@@ -1136,22 +1188,40 @@
   ```rust
   let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
   let latency = tcp_stream.latency(); // Stream<Item = Duration>
-  let latency_clone = latency.clone(); // Error! Can't clone stream
-  spawn(async move { process_for_alice(latency).await; });
-  spawn(async move { process_for_bob(latency_clone).await; });
+  spawn(async move { display_ui(latency).await; });
+  spawn(async move { engage_breaks(latency).await; }); // Error!
   ```
 
+  *Error*: `latency` is moved into the first task,   so the second task can't access it.
 
-
-  *Solution*: Create a _*stream operator*_ that clones streams.
-
-  (Requirement: `Stream<Item: Clone>`, so we can clone the items)
-
-  Approach:
-
-  1. Implement forking the input stream
-  2. Implement cloning on forked streams
 ]
+
+#slide[
+  === Cloning streams with an operator
+
+  *Solution*: Create a _*stream operator*_ `fork()` makes the input stream `Clone`.
+
+
+
+  ```rust
+  let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
+
+  // Fork makes the input stream cloneable
+  let ui_latency = tcp_stream.latency().fork();
+
+  let breaks_latency_clone = ui_latency.clone();
+  // Warning! Needs to be implemented
+
+  spawn(async move { display_ui(ui_latency).await; });
+  spawn(async move { engage_breaks(breaks_latency_clone).await; });
+  ```
+
+  *Requirement*: `Stream<Item: Clone>`, so we can clone the items (`Duration` is `Clone`)
+
+
+]
+
+
 
 #slide[
   === Rough architecture of #link("https://crates.io/crates/clone-stream")[`clone-stream`]
@@ -1363,54 +1433,59 @@
 ]
 
 
-#slide[
-  === Complexity grows with thousands of clones
 
-  Careful state management:
+#slide(title: [`Barrier`s for task synchronization])[
+
+  #set text(size: 8pt)
+
+  For performance reasons, you may want to *ignore unpolled consumers* (init required) in 1-to-N stream operators.
+
+  Synchronisation after the "init" phase is done with a single `Barrier` ot type $N + 1$.
+
+  ```rs
+  let b1 = Arc::new(Barrier::new(3)); // For input task
+  let b2 = b1.clone(); // First output
+  let b3 = b1.clone(); // For second output
+  ```
+
+  #align(center + horizon)[
+
+    #diagram(
+      node-stroke: stroke-width,
+      node-corner-radius: node-radius,
+      node-outset: node-outset,
+      edge-stroke: arrow-width,
+      spacing: (1em, 1em),
+      {
+        node((0, 0), align(left)[*Send task*], stroke: none)
+        node((0, 1), align(left)[*Consume 1*], stroke: none)
+        node((0, 2), align(left)[*Consume 2*], stroke: none)
+
+        edge((1, 0), (10, 0), stroke: colors.neutral.accent + 1.5pt, "->")
+        edge((1, 1), (10, 1), stroke: colors.neutral.accent + 1.5pt, "->")
+        edge((1, 2), (10, 2), stroke: colors.neutral.accent + 1.5pt, "->")
+
+        node((4, 1), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt)
+        node((4, 1.6), text(size: 7pt)[`b2.wait().await`], stroke: none)
+
+        node((6, 2), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt)
+        node((6, 2.6), text(size: 7pt)[`b3.wait().await`], stroke: none)
+
+        node((6, 0), [•], fill: colors.state.base, stroke: colors.state.accent + 1.5pt)
+        node((6, -0.6), text(size: 7pt)[Barrier crossed], stroke: none)
+        node((6, 0.5), text(size: 7pt)[`b1.wait().await`], stroke: none)
 
 
-  #grid(
-    columns: (1fr, 1fr),
-    column-gutter: 2em,
-    [
-      *Inherent async challenges:*
-      - Dynamic clone lifecycle
-      - Memory leaks from orphaned wakers
-      - Cleanup when tasks abort
-      - Task coordination complexity
-    ],
-    [
-      *Stream-specific challenges:*
-      - Ordering guarantees across clones
-      - Backpressure with slow consumers
-      - Sharing mutable state safely
-      - Avoiding duplicate items
-    ],
-  )
-
-
-  #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
-
-
-      // Multiple clones at different positions
-      let clone-positions = ((0.5, 1), (2, 0.5), (4, 0.2), (6, 1.2), (7.5, 0.8))
-      for (i, pos) in clone-positions.enumerate() {
-        let (x, y) = pos
-        circle((x, y), radius: 0.2, fill: if i < 2 { colors.pin.base } else { colors.state.base })
-        content((x, y - 0.5), text(size: 6pt, "C" + str(i + 1)), anchor: "center")
-      }
-
-      content((4, 1), text(size: 8pt, "Thousands of clones..."), anchor: "center")
-    })
+        edge((6, 0), (6, 2), stroke: (paint: colors.state.accent, dash: "dashed", thickness: 1pt), "-")
+      },
+    )
   ]
-
 ]
 
 
+
 #slide[
-  === Meaningful operator testing
+  === Including `Barrier`s in your unit tests
 
   #text(size: 8pt)[
 
@@ -1423,14 +1498,12 @@
       [
         When you build your own:
 
-        1. Pick an async run-time.
+        1. Pick a `Barrier` crate (tokio / #link("https://crates.io/crates/async-lock")[async-lock]).
         2. Define synchronization points with `Barrier`:
           ```rs
           let b1 = Arc::new(Barrier::new(3));
           let b2 = b1.clone(); // Second output
           let b3 = b1.clone(); // For input
-
-
           ```
 
         3. Apply your custom operator
@@ -1474,7 +1547,87 @@
 
 
 #slide[
-  === State machines for physically-separated components
+
+  === #link(
+    "https://github.com/wvhulle/clone-stream/blob/main/src/states.rs",
+  )[Eventual state machine of `clone-stream`]
+  #set text(size: 8pt)
+  Enforcing simplicity, *correctness and performance*, I ended up with this minimal (simplified) state machine.
+
+
+
+
+
+
+  #align(center + horizon)[
+    #{
+      let state-node(pos, title, desc, color, name) = node(
+        pos,
+        stack(
+          dir: ttb,
+          spacing: 0.5em,
+          text(size: 8pt, weight: "bold")[#title],
+          text(size: 6pt, style: "italic")[#desc],
+        ),
+        fill: color.base,
+        stroke: color.accent + stroke-width,
+        name: name,
+      )
+
+      let transition(from, to, label, ..args) = edge(
+        from,
+        to,
+        text(size: 6pt)[#label],
+        "->",
+        ..args,
+      )
+
+      diagram(
+        node-stroke: stroke-width,
+        node-corner-radius: node-radius,
+        node-inset: 1em,
+        edge-stroke: arrow-width,
+        node-outset: node-outset,
+        spacing: (4em, 1.5em),
+
+        // Core states from actual implementation
+        state-node((0, 1), "PollingBaseStream", "Actively polling input stream", colors.state, <polling-base-stream>),
+        transition(
+          <polling-base-stream>,
+          <processing-queue>,
+          [base ready,\ queue item],
+          label-pos: 0.5,
+          label-anchor: "north",
+          label-sep: 0em,
+        ),
+        transition(
+          <polling-base-stream>,
+          <pending>,
+          "base pending",
+          bend: -15deg,
+          label-pos: 0.5,
+          label-sep: 0.5em,
+          label-anchor: "west",
+        ),
+
+        state-node((2, 1), "ProcessingQueue", "Reading from shared buffer", colors.data, <processing-queue>),
+        transition(<processing-queue>, <polling-base-stream>, [queue empty,\ poll base], bend: 40deg, label-pos: 0.3),
+
+        state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.ui, <pending>),
+        transition(<pending>, <polling-base-stream>, "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
+        transition(<pending>, <processing-queue>, "queue ready", bend: 15deg, label-pos: 0.7),
+      )
+    }
+  ]
+
+
+  Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]:
+]
+
+
+
+#slide[
+  === Steps for developing robust operators
 
   #align(center + horizon)[
     #{
@@ -1510,8 +1663,8 @@
         workflow-step(
           (1, 3),
           "1",
-          "Write 'sleepless' tests",
-          ("Order preservation", "All items received", "Use `Barrier`s, not `sleep()`"),
+          "Write tests",
+          ("Order preservation", "All items received", [Use `Barrier`s, not `sleep()`]),
           colors.stream,
           <write-tests>,
         ),
@@ -1521,7 +1674,7 @@
           (3, 3),
           "2",
           "Analyze states",
-          ("Minimal state set", "Clean transitions", "Avoid `Option`s in states"),
+          ("Minimal state set", "Add tracing / logging", [Avoid `Option`s in states]),
           colors.data,
           <analyze-states>,
         ),
@@ -1531,7 +1684,7 @@
           (2, 2),
           "3",
           "Implement",
-          ("State machine", "Transitions", "Waker management"),
+          ("Start with N=1,2", "Waker management"),
           colors.state,
           <implement>,
         ),
@@ -1544,8 +1697,8 @@
         workflow-step(
           (3, 1),
           "5",
-          "Benchmarks",
-          ("Use `criterion`", "Measure performance", "Optimize hotspots"),
+          "Performance",
+          ("Add benchmarks", "Add profiling", "Find hotspots"),
           colors.operator,
           <benchmarks>,
         ),
@@ -1560,82 +1713,6 @@
 ]
 
 
-#slide[
-
-  === #link(
-    "https://github.com/wvhulle/clone-stream/blob/main/src/states.rs",
-  )[State machine of `clone-stream`]
-
-  Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]:
-
-
-  #align(center + horizon)[
-    #{
-      let state-node(pos, title, desc, color, name) = node(
-        pos,
-        stack(
-          dir: ttb,
-          spacing: 0.5em,
-          text(size: 8pt, weight: "bold")[#title],
-          text(size: 6pt, style: "italic")[#desc],
-        ),
-        fill: color.base,
-        stroke: color.accent + stroke-width,
-        name: name,
-      )
-
-      let transition(from, to, label, ..args) = edge(
-        from,
-        to,
-        text(size: 6pt)[#label],
-        "->",
-        ..args,
-      )
-
-      diagram(
-        node-stroke: stroke-width,
-        node-corner-radius: node-radius,
-        node-inset: 1em,
-        edge-stroke: arrow-width,
-        node-outset: node-outset,
-        spacing: (4em, 2.5em),
-
-        // Core states from actual implementation
-        state-node((0, 1), "PollingBaseStream", "Actively polling input stream", colors.state, <polling-base-stream>),
-        transition(
-          <polling-base-stream>,
-          <processing-queue>,
-          [base ready,\ queue item],
-          label-pos: 0.5,
-          label-anchor: "north",
-          label-sep: 0em,
-        ),
-        transition(
-          <polling-base-stream>,
-          <pending>,
-          "base pending",
-          bend: -15deg,
-          label-pos: 0.5,
-          label-sep: 0.5em,
-          label-anchor: "west",
-        ),
-
-        state-node((2, 1), "ProcessingQueue", "Reading from shared buffer", colors.data, <processing-queue>),
-        transition(<processing-queue>, <polling-base-stream>, [queue empty,\ poll base], bend: 40deg, label-pos: 0.3),
-
-        state-node((1, 0), "Pending", "Waiting with stored waker", colors.ui, <pending>),
-        transition(<pending>, <polling-base-stream>, "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
-        transition(<pending>, <processing-queue>, "queue ready", bend: 15deg, label-pos: 0.7),
-      )
-    }
-  ]
-
-
-
-]
-
-
-
 
 #slide[
   == General principles
@@ -1644,47 +1721,13 @@
 
 
 #slide[
-  === Before building your own operators
-
-
-  1. For simple state machines: `futures::stream::unfold` constructor
-  2. Streams from scratch: `async-stream` crate with `yield`
-
-  Otherwise, import an operator from:
-
-  #grid(
-    columns: (1fr, 1fr),
-    inset: 0.5em,
-
-    gutter: 2em,
-    [
-      *Standard*: #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
-
-      - 5.7k ⭐, 342 contributors
-      - Since 2016, actively maintained
-      - Latest: v0.3.31 (Oct 2024)
-    ],
-    [
-      *RxJs-style*: #link("https://crates.io/crates/futures-rx")[`futures-rx`]
-
-      - Reactive operators & specialized cases
-      - 8 ⭐, small project
-      - Since Dec 2024, very new
-      - Fills gaps in `futures::StreamExt`
-    ],
-  )
-
-  Build custom operators *only when no existing operator fits*!
-]
-
-
-#slide[
-  === Last recommendation
+  === Principles
 
 
   #align(horizon)[
     #grid(
-      columns: (1fr, 1fr, 1fr),
+      columns: (1fr, 1fr),
+      rows: auto,
       gutter: 2em,
       [
         *Don't overuse streams:*
@@ -1697,23 +1740,81 @@
         - Descriptive names
         - Split long functions
       ],
+
       [
-        *Use objective targets:*
-        - Correctness unit tests
-        - Statistically relevant benchmarks
+        *Meaningful objective targets:*
+        - Simple, clear unit tests
+        - Relevant benchmarks
+      ],
+      [
+        *Simple state machines:*
+        1. Fewer `Option`s
+        2. Fewer states
+
+
       ],
     )
 
     #v(2em)
 
 
-    "When you have a hammer, everything looks like a nail." _— Abraham Maslow_
 
     "Perfection is achieved, not when there is nothing more to add, but when there is *nothing left to take away*." — _Antoine de Saint-Exupéry_
 
   ]]
 
 
+
+
+#slide[
+
+  #set text(size: 8pt)
+
+  #align(center + horizon)[
+    #diagram(
+      node-stroke: stroke-width + colors.stream.accent,
+      node-corner-radius: node-radius,
+      edge-stroke: arrow-width,
+      mark-scale: 80%,
+      node-fill: colors.stream.base,
+
+
+      node((1, 0), [Transform a `Stream`?], name: <transform-stream>),
+      edge(<transform-stream>, <declarative>, [No, create], "-}>"),
+      edge(<transform-stream>, <simple-transform>, [Yes], "-}>"),
+
+      node((0, 1), [Simple? \ e.g. N-1, 1-1], name: <simple-transform>),
+
+      edge(<simple-transform>, <rxjs-like>, [No], "-}>"),
+      node((-0.5, 2), [`futures`], name: <futures-lib>),
+      edge(<simple-transform>, <futures-lib>, [Yes], "-}>"),
+      node((0.6, 2), [RxJs-like], name: <rxjs-like>),
+
+      node((-0.5, 3), [`futures-rx`], name: <futures-rx-lib>),
+      edge(<rxjs-like>, <futures-rx-lib>, [Yes], "-}>"),
+
+      node((0.6, 3), [On \ crates.io], name: <on-cratesio>),
+      edge(<rxjs-like>, <on-cratesio>, [No], "-}>"),
+
+      node((0, 4), [Build your \ own trait], name: <build-own-trait>),
+      edge(<on-cratesio>, <build-own-trait>, [No], "-}>"),
+      node((1, 4), [Import \ extension trait], name: <import-extension-trait>),
+      edge(<on-cratesio>, <import-extension-trait>, [Yes], "-}>"),
+      node((2, 1), [Declarative], name: <declarative>),
+      edge(<declarative>, <simple-declarative>, "-}>", [Yes]),
+      edge(<declarative>, <async-stream-lib>, [No]),
+
+      node((1.5, 2), [simple?], name: <simple-declarative>),
+      edge(<simple-declarative>, <unfold-fn>, [Yes], "-}>"),
+      node((1.2, 3), [`unfold`], name: <unfold-fn>),
+
+      node((2.5, 2), [`async-stream`], name: <async-stream-lib>),
+      edge(<simple-declarative>, <async-runtime>, [No], "-}>"),
+
+      node((2, 3), [async \ runtime], name: <async-runtime>),
+    )
+  ]
+]
 
 
 
