@@ -8,7 +8,7 @@
     == Using the `Stream` API
   ]
 
-  slide(title: "Pipelines with `futures::StreamExt`")[
+  slide(title: [Pipelines with `futures::StreamExt`])[
     #set text(size: 7pt)
     All basic stream operators are in #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
 
@@ -89,7 +89,7 @@
           ```
         ],
         [
-          #rect(fill: colors.stream, stroke: colors.stream + stroke-width, radius: node-radius)[
+          #rect(fill: colors.stream, stroke: accent(colors.stream) + stroke-width, radius: node-radius)[
             *Option 3* (recommended): Wrap sync output with `std::future::ready()`
             ```rust
             stream.filter(|&x| ready(x % 2 == 0))

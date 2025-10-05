@@ -88,21 +88,21 @@
           name: <legend-data>,
           fill: none,
           stroke: none,
-        )[ #box(width: 1em, height: 1em, rect(fill: colors.data, stroke: colors.data)) Data]
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.data, stroke: accent(colors.data))) Data]
 
         node(
           (1, 1),
           name: <legend-streams>,
           fill: none,
           stroke: none,
-        )[ #box(width: 1em, height: 1em, rect(fill: colors.stream, stroke: colors.stream)) Streams]
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.stream, stroke: accent(colors.stream))) Streams]
 
         node(
           (1, 0),
           name: <legend-operators>,
           fill: none,
           stroke: none,
-        )[ #box(width: 1em, height: 1em, rect(fill: colors.operator, stroke: colors.operator))   Operators]
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.operator, stroke: accent(colors.operator))) Operators]
       },
     )
   ]

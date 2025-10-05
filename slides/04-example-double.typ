@@ -53,7 +53,7 @@
     ```
   ]
 
-  slide(title: "Naive implementation of `poll_next`")[
+  slide(title: [Naive implementation of `poll_next`])[
     Focus on the implementation of the `poll_next` method
 
     (Remember that `Self = Double<InSt>` with field `in_stream: InSt`):
@@ -71,45 +71,31 @@
     `Pin<&mut Self>` *blocks access to `self.in_stream`*!
   ]
 
-  slide(title: "How to access `self.in_stream`?")[
+  slide(title: [How to access `self.in_stream`?])[
     #text(size: 8pt)[
       #align(center + horizon)[
 
         #canvas(length: 1.2cm, {
           import draw: *
 
-          hexagon(
-            draw,
-            (1, 2),
-            3,
-            color: colors.pin,
-          )[`Pin<&mut Double>`]
-          styled-circle(draw, (1, 2), colors.operator, radius: 0.8)
-          content(
-            (1, 3),
-            text(size: 7pt, weight: "bold", [`&mut Double`], fill: colors.operator),
-            anchor: "center",
-          )
-          styled-circle(draw, (1, 2), colors.stream, radius: 0.4, label: [`InSt`])
+          hexagon(draw, (1, 2), 3, color: colors.pin)[`Pin<&mut Double>`]
+          styled-circle(draw, (1, 2), colors.operator, radius: 0.8)[`&mut Double`]
+
+          styled-circle(draw, (1, 2), colors.stream, radius: 0.4)[`InSt`]
 
           styled-line(draw, (2.7, 2), (3.5, 2), colors.state, mark: (end: "barbed"))
           styled-content(draw, (3, 2.4), colors.pin, [?], size: 7pt)
 
-          styled-circle(draw, (4, 2), colors.stream, radius: 0.4, label: [`InSt`])
+          styled-circle(draw, (4, 2), colors.stream, radius: 0.4)[`InSt`]
 
           styled-line(draw, (4.5, 2), (5.3, 2), colors.state, mark: (end: "barbed"))
           styled-content(draw, (5, 2.4), colors.pin, [?], size: 6pt)
 
-          hexagon(
-            draw,
-            (6.5, 2),
-            2,
-            color: colors.pin,
-          )[`Pin<&mut InSt>`]
-          styled-circle(draw, (6.5, 2), colors.stream, radius: 0.4, label: [`InSt`])
+          hexagon(draw, (6.5, 2), 2, color: colors.pin)[`Pin<&mut InSt>`]
+          styled-circle(draw, (6.5, 2), colors.stream, radius: 0.4)[`InSt`]
 
           styled-line(draw, (7.5, 2), (8.5, 2), colors.stream, mark: (end: "barbed"))
-          styled-content(draw, (8, 2.4), colors.stream, [`Stream::poll_next()`], size: 6pt, anchor: "north-west")
+          styled-content(draw, (8, 2.4), colors.stream, size: 6pt, anchor: "north-west")[`Stream::poll_next()`]
         })
 
         #v(1em)
@@ -119,15 +105,15 @@
           column-gutter: 2em,
           row-gutter: 0.8em,
 
-          rect(width: 1.2em, height: 0.8em, fill: colors.pin, stroke: colors.pin.darken(70%) + 0.8pt),
+          rect(width: 1.2em, height: 0.8em, fill: colors.pin, stroke: accent(colors.pin) + 0.8pt),
           text(size: 8pt)[Pin types],
           [],
 
-          rect(width: 1.2em, height: 0.8em, fill: colors.operator, stroke: colors.operator.darken(70%) + 0.8pt),
+          rect(width: 1.2em, height: 0.8em, fill: colors.operator, stroke: accent(colors.operator) + 0.8pt),
           text(size: 8pt)[Operators/structs],
           [],
 
-          rect(width: 1.2em, height: 0.8em, fill: colors.stream, stroke: colors.stream.darken(70%) + 0.8pt),
+          rect(width: 1.2em, height: 0.8em, fill: colors.stream, stroke: accent(colors.stream) + 0.8pt),
           text(size: 8pt)[Streams/inner types],
           [],
         )
@@ -145,26 +131,18 @@
         [
           #canvas(length: 1cm, {
             import draw: *
+            let bird-color = colors.data.darken(100%)
+            styled-content(draw, (1, 2.5), bird-color, size: 2em)[🐦]
+            styled-content(draw, (1, 2.0), bird-color, size: 8pt, weight: "bold")[`Unpin` Bird]
+            styled-content(draw, (1, 1.6), bird-color, size: 6pt)[Safe to move]
 
-            content((1, 2.5), text(size: 2em, "🐦"), anchor: "center")
-            content((1, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
-            content((1, 1.6), text(size: 6pt, "✅ Safe to move"), anchor: "center")
+            styled-line(draw, (1.8, 2.7), (7.2, 2.7), colors.pin, mark: (end: "barbed"))
+            styled-content(draw, (4.5, 3.0), colors.pin, size: 7pt, weight: "bold")[`Pin::new()`]
+            styled-content(draw, (4.5, 2.4), colors.pin, size: 6pt)[Always safe]
 
-            line((1.8, 2.7), (7.2, 2.7), mark: (end: "barbed"), stroke: colors.pin + arrow-width)
-            content(
-              (4.5, 3.0),
-              text(size: 7pt, weight: "bold", fill: colors.pin, [`Pin::new()`]),
-              anchor: "center",
-            )
-            content((4.5, 2.4), text(size: 6pt, "Always safe"), anchor: "center")
-
-            line((7.2, 1.7), (1.8, 1.7), mark: (end: "barbed"), stroke: colors.pin + arrow-width)
-            content(
-              (4.5, 2.0),
-              text(size: 7pt, weight: "bold", fill: colors.pin, [`Pin::get_mut()`]),
-              anchor: "center",
-            )
-            content((4.5, 1.4), text(size: 6pt, [if `Bird: Unpin`]), anchor: "center")
+            styled-line(draw, (7.2, 1.7), (1.8, 1.7), colors.pin, mark: (end: "barbed"))
+            styled-content(draw, (4.5, 2.0), colors.pin, size: 7pt, weight: "bold")[`Pin::get_mut()`]
+            styled-content(draw, (4.5, 1.4), colors.pin, size: 6pt)[if `Bird: Unpin`]
 
             hexagon(
               draw,
@@ -172,25 +150,25 @@
               2.5,
               color: colors.pin,
             )[`Pin<&mut Bird>`]
-            content((8.5, 2.6), text(size: 2em, "🐦"), anchor: "center")
-            content((8.5, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
-            content((8.5, 1.6), text(size: 6pt, [Can be\ uncaged]), anchor: "center")
+            styled-content(draw, (8.5, 2.6), bird-color, size: 2em)[🐦]
+            styled-content(draw, (8.5, 2.0), bird-color, size: 8pt, weight: "bold")[`Unpin` Bird]
+            styled-content(draw, (8.5, 1.6), bird-color, size: 6pt)[Can be\ uncaged]
           })
         ],
 
         [
           #canvas(length: 1cm, {
             import draw: *
+            let tiger-color = colors.neutral.darken(100%)
+            styled-content(draw, (1, 2.8), tiger-color, size: 3em)[🐅]
+            styled-content(draw, (1, 2.0), tiger-color, size: 8pt, weight: "bold")[`!Unpin` Tiger]
+            styled-content(draw, (1, 1.6), tiger-color, size: 6pt)[Dangerous to move]
 
-            content((1, 2.8), text(size: 3em, "🐅"), anchor: "center")
-            content((1, 2.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
-            content((1, 1.6), text(size: 6pt, "⚠️ Dangerous to move"), anchor: "center")
+            styled-line(draw, (2.5, 2.8), (6.5, 1.8), colors.error)
+            styled-line(draw, (2.5, 1.8), (6.5, 2.8), colors.error)
 
-            line((2.5, 2.8), (6.5, 1.8), stroke: colors.error + arrow-width)
-            line((2.5, 1.8), (6.5, 2.8), stroke: colors.error + arrow-width)
-
-            styled-content(draw, (4.5, 1.5), colors.error, [❌ Not safe], size: 6pt)
-            content((4.5, 2.5), text(size: 9pt, weight: "bold", [`Pin::get_mut()` \ `Pin::new()`]), anchor: "center")
+            styled-content(draw, (4.5, 1.5), colors.error, size: 6pt)[❌ Not safe]
+            styled-content(draw, (4.5, 2.5), colors.pin, size: 9pt, weight: "bold")[`Pin::get_mut()` \ `Pin::new()`]
 
             hexagon(
               draw,
@@ -198,9 +176,9 @@
               2.5,
               color: colors.pin,
             )[`Pin<&mut Tiger>`]
-            content((8.5, 2.8), text(size: 3em, "🐅"), anchor: "center")
-            content((8.5, 2.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
-            content((8.5, 1.6), text(size: 6pt, [Can't be\ uncaged]), anchor: "center")
+            styled-content(draw, (8.5, 2.8), tiger-color, size: 3em)[🐅]
+            styled-content(draw, (8.5, 2.0), tiger-color, size: 8pt, weight: "bold")[`!Unpin` Tiger]
+            styled-content(draw, (8.5, 1.6), tiger-color, size: 6pt)[Can't be\ uncaged]
           })
         ],
       )
@@ -214,15 +192,12 @@
       #canvas(length: 1.2cm, {
         import draw: *
 
-        rect((1, 3), (4, 5), fill: colors.ui, stroke: colors.ui + stroke-width, radius: node-radius)
-        content((2.5, 5.2), text(size: 9pt, weight: "bold", "Stack"), anchor: "center")
-        content((2.5, 4.7), text(size: 8pt, [`Box::new(in_stream)`]), anchor: "center")
-        rect((1.9, 3.5), (3, 4.5), fill: colors.neutral, stroke: colors.neutral + stroke-width)
-        content((2.5, 4.), text(size: 8pt, [pointer \ `0X1234`]), anchor: "center")
+        styled-rect(draw, (1, 3), (4, 5), colors.ui, radius: node-radius)[Stack]
+        styled-rect(draw, (1.9, 3.5), (3, 4.5), colors.neutral)[pointer `0X1234`]
         content((2.5, 3.3), text(size: 7pt, "✅ Safe to move"), anchor: "center")
 
-        line((3.1, 4), (7.3, 3.7), mark: (end: "barbed"), stroke: colors.operator + arrow-width)
-        content((5.25, 4.3), text(size: 8pt, [dereferences to]), anchor: "center")
+        styled-line(draw, (3.1, 4), (7.3, 3.7), colors.operator, mark: (end: "barbed"))
+        content((5.25, 4.3), text(size: 7pt, [`Box::new(in_stream)` \ dereferences to]), anchor: "center")
 
         content((11.5, 5.0), text(size: 3em, "🐅"), anchor: "center")
         content((11.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
@@ -232,12 +207,12 @@
           stop: 170deg,
           radius: 1.5,
           mark: (end: "barbed"),
-          stroke: colors.error + arrow-width,
+          stroke: accent(colors.error) + arrow-width,
         )
 
-        line((6.0, 3), (10, 3), stroke: colors.operator + stroke-width)
-        line((6.0, 3), (8, 5), stroke: colors.operator + stroke-width)
-        line((10, 3), (8, 5), stroke: colors.operator + stroke-width)
+        styled-line(draw, (6.0, 3), (10, 3), colors.operator)
+        styled-line(draw, (6.0, 3), (8, 5), colors.operator)
+        styled-line(draw, (10, 3), (8, 5), colors.operator)
 
         content((8, 5.3), text(size: 9pt, weight: "bold", "Heap"), anchor: "center")
         content((8.4, 3.8), text(size: 6pt, [`0X1234`]), anchor: "center")
@@ -271,7 +246,7 @@
           4.5,
           color: colors.pin,
         )[`Pin<&mut Double>`]
-        styled-circle(draw, (2, 4), colors.operator, radius: 1.5, label: [`&mut Double`])
+        styled-circle(draw, (2, 4), colors.operator, radius: 1.5)[`&mut Double`]
 
 
         styled-rect(
@@ -279,9 +254,8 @@
           (2 - 0.9, 4 - 0.9),
           (2 + 0.9, 4 + 0.9),
           colors.neutral,
-          label: [`&mut Box<InSt>`],
-        )
-        styled-circle(draw, (2, 4), colors.stream, radius: 0.5, label: [`InSt: !Unpin`], label-size: 6pt)
+        )[`&mut Box<InSt>`]
+        styled-circle(draw, (2, 4), colors.stream, radius: 0.5, label-size: 6pt)[`InSt: !Unpin`]
 
         content((4.8, 5.9), text(size: 3em, "🐅"), anchor: "center")
         arc(
@@ -290,10 +264,10 @@
           stop: 178deg,
           radius: 1.5,
           mark: (end: "barbed"),
-          stroke: colors.error.saturate(50%) + arrow-width,
+          stroke: accent(colors.error) + arrow-width,
         )
 
-        styled-circle(draw, (6.5, 4), colors.operator, radius: 1, label: [`&mut Double`])
+        styled-circle(draw, (6.5, 4), colors.operator, radius: 1)[`&mut Double`]
 
 
         styled-rect(
@@ -301,9 +275,8 @@
           (6.5 - 0.45, 4 - 0.45),
           (6.5 + 0.45, 4 + 0.45),
           colors.neutral,
-          label: [`&mut Box<InSt>`],
-        )
-        styled-circle(draw, (6.5, 4), colors.stream, radius: 0.3, label-size: 5pt)
+        )[`&mut Box<InSt>`]
+        styled-circle(draw, (6.5, 4), colors.stream, radius: 0.3, label-size: 5pt)[]
 
         hexagon(draw, (9.5, 4.0), 2.5, color: colors.pin)[`Pin<&mut InSt>`]
 
@@ -314,8 +287,8 @@
           (9.5 - 0.45, 4 - 0.45),
           (9.5 + 0.45, 4 + 0.45),
           colors.neutral,
-        )
-        styled-circle(draw, (9.5, 4), colors.stream, radius: 0.3, label-size: 5pt)
+        )[]
+        styled-circle(draw, (9.5, 4), colors.stream, radius: 0.3, label-size: 5pt)[]
 
         styled-line(draw, (4.4, 4), (5.4, 4), colors.state, mark: (end: "barbed"))
         styled-content(

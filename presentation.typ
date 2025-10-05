@@ -14,7 +14,7 @@
 
 #show: presentation-template.with(
   title: "Make Your Own Stream Operators",
-  subtitle: "Advanced stream processing in Rust",
+  subtitle: "Transforming asynchronous data streams in Rust",
   author: "Willem Vanhulle",
   event: "EuroRust 2025",
   location: "Paris, France",

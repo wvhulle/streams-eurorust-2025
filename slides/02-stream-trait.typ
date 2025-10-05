@@ -28,7 +28,7 @@
       - `Ready(None)`: currently exhausted (not necessarily the end)
   ]
 
-  slide(title: "Moving from `Iterator` to `Stream`")[
+  slide(title: [Moving from `Iterator` to `Stream`])[
     #{
       set text(size: 7pt)
       styled-diagram(
@@ -36,38 +36,38 @@
 
         title-node((0.5, 5), text(size: 11pt, weight: "bold")[Iterator (sync)]),
 
-        colored-node((0, 4), color: colors.stream, name: <iter-call1>)["next()"],
+        colored-node((0, 4), color: colors.stream, name: <iter-call1>)[`next()`],
         styled-edge(<iter-call1>, <iter-result1>),
-        colored-node((0, 3), color: colors.stream, name: <iter-call2>)["next()"],
+        colored-node((0, 3), color: colors.stream, name: <iter-call2>)[`next()`],
         styled-edge(<iter-call2>, <iter-result4>),
-        colored-node((0, 2), color: colors.stream, name: <iter-call3>)["next()"],
+        colored-node((0, 2), color: colors.stream, name: <iter-call3>)[`next()`],
         styled-edge(<iter-call3>, <iter-result3>),
-        colored-node((0, 1), color: colors.stream, name: <iter-call4>)["next()"],
+        colored-node((0, 1), color: colors.stream, name: <iter-call4>)[`next()`],
         styled-edge(<iter-call4>, <iter-result2>),
 
-        colored-node((1, 4), color: colors.data, name: <iter-result1>)["Some(1)"],
-        colored-node((1, 1), color: colors.data, name: <iter-result2>)["Some(2)"],
-        colored-node((1, 2), color: colors.data, name: <iter-result3>)["Some(3)"],
-        colored-node((1, 3), color: colors.data, name: <iter-result4>)["None"],
+        colored-node((1, 4), color: colors.data, name: <iter-result1>)[`Some(1)`],
+        colored-node((1, 1), color: colors.data, name: <iter-result2>)[`Some(2)`],
+        colored-node((1, 2), color: colors.data, name: <iter-result3>)[`Some(3)`],
+        colored-node((1, 3), color: colors.data, name: <iter-result4>)[`None`],
 
         title-node((3.5, 5), text(size: 10pt, weight: "bold")[Stream (low-level)]),
 
-        colored-node((3, 4), color: colors.stream, name: <stream-call1>)["poll_next()"],
+        colored-node((3, 4), color: colors.stream, name: <stream-call1>)[`poll_next()`],
         styled-edge(<stream-call1>, <stream-result1>),
-        colored-node((3, 3), color: colors.stream, name: <stream-call2>)["poll_next()"],
+        colored-node((3, 3), color: colors.stream, name: <stream-call2>)[`poll_next()`],
         styled-edge(<stream-call2>, <stream-result2>),
-        colored-node((3, 2), color: colors.stream, name: <stream-call3>)["poll_next()"],
+        colored-node((3, 2), color: colors.stream, name: <stream-call3>)[`poll_next()`],
         styled-edge(<stream-call3>, <stream-result3>),
-        colored-node((3, 1), color: colors.stream, name: <stream-call4>)["poll_next()"],
+        colored-node((3, 1), color: colors.stream, name: <stream-call4>)[`poll_next()`],
         styled-edge(<stream-call4>, <stream-result4>),
 
-        colored-node((4, 4), color: colors.state, name: <stream-result1>)["Pending"],
-        colored-node((4, 3), color: colors.data, name: <stream-result2>)["Ready(Some(1))"],
-        colored-node((4, 2), color: colors.state, name: <stream-result3>)["Pending"],
-        colored-node((4, 1), color: colors.data, name: <stream-result4>)["Ready(Some(2))"],
+        colored-node((4, 4), color: colors.state, name: <stream-result1>)[`Pending`],
+        colored-node((4, 3), color: colors.data, name: <stream-result2>)[`Ready(Some(1))`],
+        colored-node((4, 2), color: colors.state, name: <stream-result3>)[`Pending`],
+        colored-node((4, 1), color: colors.data, name: <stream-result4>)[`Ready(Some(2))`],
 
         node(
-          stroke: 1pt + colors.stream.saturate(50%),
+          stroke: stroke-width + accent(colors.stream),
           fill: colors.stream.lighten(70%),
 
           inset: 1em,
@@ -95,19 +95,19 @@
 
         title-node((6.5, 5), text(size: 10pt, weight: "bold")[Stream (high-level)]),
 
-        colored-node((6, 4), color: colors.ui, name: <async-call1>)["next().await"],
+        colored-node((6, 4), color: colors.ui, name: <async-call1>)[`next().await`],
         styled-edge(<async-call1>, <async-result1>),
-        colored-node((6, 3), color: colors.ui, name: <async-call2>)["next().await"],
+        colored-node((6, 3), color: colors.ui, name: <async-call2>)[`next().await`],
         styled-edge(<async-call2>, <async-result4>),
-        colored-node((6, 2), color: colors.ui, name: <async-call3>)["next().await"],
+        colored-node((6, 2), color: colors.ui, name: <async-call3>)[`next().await`],
         styled-edge(<async-call3>, <async-result3>),
-        colored-node((6, 1), color: colors.ui, name: <async-call4>)["next().await"],
+        colored-node((6, 1), color: colors.ui, name: <async-call4>)[`next().await`],
         styled-edge(<async-call4>, <async-result2>),
 
-        colored-node((7, 4), color: colors.data, name: <async-result1>)["Some(1)"],
-        colored-node((7, 1), color: colors.data, name: <async-result2>)["Some(2)"],
-        colored-node((7, 2), color: colors.data, name: <async-result3>)["Some(3)"],
-        colored-node((7, 3), color: colors.data, name: <async-result4>)["None"],
+        colored-node((7, 4), color: colors.data, name: <async-result1>)[`Some(1)`],
+        colored-node((7, 1), color: colors.data, name: <async-result2>)[`Some(2)`],
+        colored-node((7, 2), color: colors.data, name: <async-result3>)[`Some(3)`],
+        colored-node((7, 3), color: colors.data, name: <async-result4>)[`None`],
 
         title-node((0.5, 0), text(size: 8pt)[✓ Always returns immediately]),
         title-node((3.5, 0), text(size: 8pt)[⚠️ May be Pending]),

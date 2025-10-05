@@ -8,7 +8,7 @@
     == Example 2: One-to-N  Operator
   ]
 
-  slide(title: "Complexity 1-N operators")[
+  slide(title: [Complexity $1-N$ operators])[
     Challenges for `Stream` operators are combined from:
 
     #grid(
@@ -37,8 +37,7 @@
         for (i, pos) in clone-positions.enumerate() {
           let (x, y) = pos
           let color = if i < 2 { colors.pin } else { colors.state }
-          styled-circle(draw, (x, y), color, radius: 0.2)
-          content((x, y - 0.5), text(size: 6pt, "C" + str(i + 1)), anchor: "center")
+          styled-circle(draw, (x, y), color, radius: 0.2)[C]
         }
 
         content((4, 1), text(size: 8pt, "Thousands of clones..."), anchor: "center")
@@ -92,10 +91,10 @@
         styled-edge(<fork>, <alice>, color: colors.ui, label: [`.clone()`], bend: 20deg),
         queue-link(<fork>, <queue-a-consumed>, "queue", colors),
 
-        stream-node((2, 2), <bob>, color: colors.state)["Bob"],
+        stream-node((2, 2), <bob>, color: colors.state)[Bob],
         styled-edge(<bob>, <bob-a>, color: colors.operator),
 
-        stream-node((2, 0), <alice>, color: colors.ui)["Alice"],
+        stream-node((2, 0), <alice>, color: colors.ui)[Alice],
         styled-edge(<alice>, <alice-a>, color: colors.operator),
 
         queue-item((3, 1), true, <queue-a-consumed>, colors)['a'],
@@ -260,11 +259,11 @@
         colored-node((6, 2), color: colors.pin, name: <b3>, stroke-width: 1pt)[•]
         node((6, 2.6), text(size: 7pt)[`b3.wait().await`], stroke: none, name: <b3-label>)
 
-        colored-node((6, -1), color: colors.state, name: <crossed>, stroke-width: 1.5pt)[•]
+        colored-node((6, -1), color: colors.state, name: <crossed>)[•]
         node((5.5, -1), text(size: 7pt)[Barrier crossed], stroke: none, name: <crossed-label>)
         node((10, -1), [], stroke: none, name: <end>)
 
-        edge(<crossed>, <b3>, stroke: (paint: colors.state.darken(70%), dash: "dashed", thickness: 1pt), "-")
+        edge(<crossed>, <b3>, stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt), "-")
         styled-edge(<crossed>, <end>, color: colors.state, stroke-width: 2pt)
       },
     )

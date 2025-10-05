@@ -9,7 +9,7 @@
 
     #text(size: 2em)[Thank you!]
 
-    #rect(fill: colors.operator, stroke: colors.operator + stroke-width, radius: node-radius)[
+    #rect(fill: colors.operator, stroke: accent(colors.operator) + stroke-width, radius: node-radius)[
       *Want to learn more in-depth?*
 
       Join my 7-week course _*"Creating Safe Systems in Rust"*_
@@ -39,7 +39,7 @@
             (1, y - 0.3),
             (3, y + 0.3),
             fill: color,
-            stroke: color.darken(70%) + stroke-width,
+            stroke: accent(color) + stroke-width,
             radius: node-radius,
           )
           content((2, y), text(size: 8pt, weight: "bold", year), anchor: "center")
@@ -48,11 +48,11 @@
           content((3.5, y - 0.03), text(size: 7pt, description), anchor: "west")
           content(
             (3.5, y - 0.24),
-            link(ref-url, text(size: 6pt, style: "italic", fill: colors.stream, reference)),
+            link(ref-url, text(size: 6pt, style: "italic", fill: accent(colors.stream), reference)),
             anchor: "west",
           )
 
-          line((0.8, y), (1, y), stroke: colors.neutral.darken(70%) + stroke-width)
+          line((0.8, y), (1, y), stroke: accent(colors.neutral) + stroke-width)
         }
 
         draw-timeline-entry(
@@ -110,7 +110,7 @@
           colors.error.lighten(20%),
         )
 
-        line((0.8, 0.3), (0.8, 5.7), stroke: colors.neutral + arrow-width)
+        line((0.8, 0.3), (0.8, 5.7), stroke: accent(colors.neutral) + arrow-width * 2)
       })
     ]
   ]
@@ -138,7 +138,7 @@
     ]
   ]
 
-  slide(title: "'Fusing' streams and futures")[
+  slide(title: ['Fusing' `Stream`s and `Future`s])[
 
 
     #align(center + horizon)[
@@ -148,23 +148,23 @@
 
           if multiple {
             if fused {
-              line((-0.8, 0), (0.6, 0), stroke: color.darken(70%) + arrow-width)
-              line((0.8, -0.3), (0.8, 0.3), stroke: color.darken(70%) + (arrow-width * 2))
+              line((-0.8, 0), (0.6, 0), stroke: accent(color) + arrow-width)
+              line((0.8, -0.3), (0.8, 0.3), stroke: accent(color) + (arrow-width * 2))
             } else {
-              line((-0.8, 0), (0.8, 0), stroke: color.darken(70%) + arrow-width, mark: (end: "barbed"))
+              line((-0.8, 0), (0.8, 0), stroke: accent(color) + arrow-width, mark: (end: "barbed"))
             }
             for i in range(if fused { 4 } else { 3 }) {
               let dash-x = -0.6 + i * 0.4
-              line((dash-x, -0.15), (dash-x, 0.15), stroke: color.darken(70%) + (arrow-width * 1.5))
+              line((dash-x, -0.15), (dash-x, 0.15), stroke: accent(color) + (arrow-width * 1.5))
             }
           } else {
-            line((-0.8, 0), (0.3, 0), stroke: color.darken(70%) + arrow-width)
-            line((0, -0.2), (0, 0.2), stroke: color.darken(70%) + (arrow-width * 1.5))
+            line((-0.8, 0), (0.3, 0), stroke: accent(color) + arrow-width)
+            line((0, -0.2), (0, 0.2), stroke: accent(color) + (arrow-width * 1.5))
             if fused {
-              line((0.3, 0), (0.6, 0), stroke: color.darken(70%) + arrow-width)
-              line((0.8, -0.3), (0.8, 0.3), stroke: color.darken(70%) + (arrow-width * 2))
+              line((0.3, 0), (0.6, 0), stroke: accent(color) + arrow-width)
+              line((0.8, -0.3), (0.8, 0.3), stroke: accent(color) + (arrow-width * 2))
             } else {
-              line((0.3, 0), (0.8, 0), stroke: color.darken(70%) + arrow-width, mark: (end: "barbed"))
+              line((0.3, 0), (0.8, 0), stroke: accent(color) + arrow-width, mark: (end: "barbed"))
             }
           }
         })
@@ -192,7 +192,7 @@
     ]
   ]
 
-  slide(title: "Flatten a *finite collection* of `Stream`s")[
+  slide(title: [Flatten a *finite collection* of `Stream`s])[
     A finite collection of `Stream`s = `IntoIterator<Item: Stream>`
 
     ```rust
@@ -230,7 +230,7 @@
     ```
   ]
 
-  slide(title: "More `Stream` features to explore")[
+  slide(title: [More `Stream` features to explore])[
     Many more advanced topics await:
 
     - *Boolean operations*: `any`, `all`
@@ -238,45 +238,45 @@
     - *`Sink`s*: The write-side counterpart to `Stream`s
 
     #{
-      let endpoint(pos, text, color, name) = node(
+      let endpoint(pos, color, name, content) = node(
         pos,
-        [#text],
+        content,
         fill: color,
-        stroke: color + stroke-width,
+        stroke: accent(color) + stroke-width,
         name: name,
       )
-      let data-item(pos, char, name) = node(
+      let data-item(pos, name, content) = node(
         pos,
-        [#char],
+        content,
         fill: colors.data,
-        stroke: colors.data + stroke-width,
+        stroke: accent(colors.data) + stroke-width,
         shape: fletcher.shapes.circle,
         name: name,
       )
-      let label(pos, text) = node(pos, [#text], fill: none, stroke: none)
+      let label(pos, content) = node(pos, content, fill: none, stroke: none)
 
       styled-diagram(
         spacing: (6em, 2em),
         {
-          endpoint((0, 1), "Stream", colors.stream, <stream>)
-          data-item((1, 1), "'a'", <data-a>)
-          data-item((1.5, 1), "'b'", <data-b>)
-          data-item((2, 1), "'c'", <data-c>)
-          endpoint((3, 1), "Sink", colors.ui, <sink>)
+          endpoint((0, 1), colors.stream, <stream>)[Stream]
+          data-item((1, 1), <data-a>)['a']
+          data-item((1.5, 1), <data-b>)['b']
+          data-item((2, 1), <data-c>)['c']
+          endpoint((3, 1), colors.ui, <sink>)[Sink]
 
           edge(<stream>, <data-a>, "-")
           edge(<data-a>, <data-b>, "-")
           edge(<data-b>, <data-c>, "-")
           edge(<data-c>, <sink>, "->", label: [`.forward()`])
 
-          label((0, 1.7), "Read side")
-          label((3, 1.7), "Write side")
+          label((0, 1.7))[Read side]
+          label((3, 1.7))[Write side]
         },
       )
     }
   ]
 
-  slide(title: "The `Stream` trait: a lazy query interface")[
+  slide(title: [The `Stream` trait: a lazy query interface])[
     *The `Stream` trait is NOT the stream itself* - it's just a lazy frontend to query data.
 
     #v(1em)
@@ -302,7 +302,7 @@
     )
   ]
 
-  slide(title: "The _'real'_ stream drivers")[
+  slide(title: [The _'real'_ stream drivers])[
     #align(center + horizon)[
       #canvas(length: 1cm, {
         import draw: *
@@ -311,16 +311,16 @@
           (0.5, 0.5),
           (7.5, 2),
           fill: colors.operator,
-          stroke: colors.operator.darken(70%) + stroke-width,
+          stroke: accent(colors.operator) + stroke-width,
           radius: node-radius,
         )
         content((4, 1.6), text(size: 9pt, weight: "bold", "Leaf Streams (Real Drivers)"), anchor: "center")
         content((4, 1.1), text(size: 7pt, "TCP, Files, Timers, Hardware, Channels"), anchor: "center")
 
-        line((4, 2.2), (4, 2.8), stroke: colors.operator.darken(70%) + arrow-width, mark: (end: "barbed"))
+        line((4, 2.2), (4, 2.8), stroke: accent(colors.operator) + arrow-width, mark: (end: "barbed"))
         content((5.2, 2.5), text(size: 7pt, "Data pushed up"), anchor: "center")
 
-        rect((1, 3), (7, 4), fill: colors.stream, stroke: colors.stream.darken(70%) + stroke-width, radius: node-radius)
+        rect((1, 3), (7, 4), fill: colors.stream, stroke: accent(colors.stream) + stroke-width, radius: node-radius)
         content((4, 3.7), text(size: 9pt, weight: "bold", "Stream Trait Interface"), anchor: "center")
         content((4, 3.3), text(size: 7pt, "Lazy: .poll_next() only responds when called"), anchor: "center")
       })
@@ -339,7 +339,7 @@
     }
     ```
 
-    #rect(inset: 5mm, fill: colors.error, stroke: colors.error + stroke-width, radius: node-radius)[
+    #rect(inset: 5mm, fill: colors.error, stroke: accent(colors.error) + stroke-width, radius: node-radius)[
       What about Rust rule `self` needs to be `Deref<Target=Self>`?
     ]
 
@@ -362,18 +362,16 @@
       stroke-width: stroke-width + colors.state,
       node-shape: circle,
       {
-        node((0, 1.2), [*GC Languages*], name: <gc-title>, fill: none, stroke: none)
-        node((0, 0.5), [GC], fill: colors.state, stroke: colors.state + 1.5pt, shape: circle, name: <gc>)
-        node((-0.5, -0.3), [•], fill: colors.stream, stroke: none, name: <gc-d1>)
-        node((0, -0.5), [•], fill: colors.stream, stroke: none, name: <gc-d2>)
-        node((0.5, -0.2), [•], fill: colors.stream, stroke: none, name: <gc-d3>)
-        node(
+        colored-node((0, 1.2), color: none, name: <gc-title>)[*GC Languages*]
+        colored-node((0, 0.5), color: colors.state, name: <gc>, stroke-width: 1.5pt, shape: circle)[GC]
+        colored-node((-0.5, -0.3), color: colors.stream, name: <gc-d1>)[•]
+        colored-node((0, -0.5), color: colors.stream, name: <gc-d2>)[•]
+        colored-node((0.5, -0.2), color: colors.stream, name: <gc-d3>)[•]
+        colored-node(
           (0, -1.2),
-          text(size: 7pt)[Data flows freely,\ GC handles cleanup],
+          color: none,
           name: <gc-caption>,
-          stroke: none,
-          fill: none,
-        )
+        )[#text(size: 7pt)[Data flows freely,\ GC handles cleanup]]
         node(
           fill: colors.neutral,
           stroke: colors.neutral + stroke-width,
@@ -382,7 +380,7 @@
           enclose: (<gc-title>, <gc>, <gc-d1>, <gc-d2>, <gc-d3>, <gc-caption>),
         )
 
-        node((1.5, 0.3), [*vs*], stroke: none, fill: none)
+        colored-node((1.5, 0.3), color: none)[*vs*]
 
         node(
           fill: colors.stream,
@@ -401,27 +399,24 @@
           ),
         )
 
-        node((3, 1.2), [*Rust*], stroke: none, fill: none, name: <rust-title>)
-        node((2.7, 0.2), [•], fill: colors.stream, stroke: colors.stream + 1pt, name: <owner>)
-        node((2.7, 0.6), text(size: 6pt)[Owner], stroke: none, name: <owner-label>, fill: none)
-        node((3.5, 0.2), [•], fill: colors.stream, stroke: colors.stream + 1pt, name: <moved>)
-        node((3.5, 0.6), text(size: 6pt)[Moved], stroke: none, fill: none, name: <moved-label>)
-        node((3.5, -0.5), [•], fill: colors.stream, stroke: colors.stream + 1pt, name: <borrowed>)
-        node((3.5, -0.9), text(size: 6pt)[Borrow], stroke: none, name: <borrow-label>, fill: none)
-        node(
+        colored-node((3, 1.2), color: none, name: <rust-title>)[*Rust*]
+        colored-node((2.7, 0.2), color: colors.stream, name: <owner>, stroke-width: 1pt)[•]
+        colored-node((2.7, 0.6), color: none, name: <owner-label>)[#text(size: 6pt)[Owner]]
+        colored-node((3.5, 0.2), color: colors.stream, name: <moved>, stroke-width: 1pt)[•]
+        colored-node((3.5, 0.6), color: none, name: <moved-label>)[#text(size: 6pt)[Moved]]
+        colored-node((3.5, -0.5), color: colors.stream, name: <borrowed>, stroke-width: 1pt)[•]
+        colored-node((3.5, -0.9), color: none, name: <borrow-label>)[#text(size: 6pt)[Borrow]]
+        colored-node(
           (3, -1.5),
-          text(size: 7pt)[Explicit ownership,\ tracked at compile time],
-          shape: rect,
-          fill: none,
-          stroke: none,
-          inset: 0.5em,
+          color: none,
           name: <rust-caption>,
-        )
+          shape: rect,
+        )[#text(size: 7pt)[Explicit ownership,\ tracked at compile time]]
 
         styled-edge(<owner>, <moved>, color: colors.stream, stroke-width: 1.5pt)
-        edge(<owner>, <borrowed>, "->", stroke: (paint: colors.stream.darken(70%), thickness: 1.5pt, dash: "dashed"))
+        edge(<owner>, <borrowed>, "->", stroke: (paint: accent(colors.stream), thickness: 1.5pt, dash: "dashed"))
 
-        node(fill: colors.ui, stroke: colors.ui.darken(70%) + stroke-width, enclose: (
+        node(fill: colors.ui, stroke: accent(colors.ui) + stroke-width, enclose: (
           <rust-title>,
           <owner>,
           <owner-label>,

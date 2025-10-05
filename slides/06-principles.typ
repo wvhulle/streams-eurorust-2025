@@ -89,7 +89,7 @@
     == General principles
   ]
 
-  slide(title: "Principles")[
+  slide(title: "Rules of thumb")[
     #align(horizon)[
       #grid(
         columns: (1fr, 1fr),
@@ -140,7 +140,7 @@
 
       node(
         fill: colors.pin,
-        stroke: colors.pin.darken(70%) + stroke-width,
+        stroke: accent(colors.pin) + stroke-width,
         enclose: (
           <standard>,
           <futures-streamext>,
@@ -156,7 +156,7 @@
 
       node(
         fill: colors.neutral,
-        stroke: colors.neutral.darken(70%) + stroke-width,
+        stroke: accent(colors.neutral) + stroke-width,
         enclose: (<control-flow>, <unfold>, <async-stream>),
         name: <traditional>,
       ),
