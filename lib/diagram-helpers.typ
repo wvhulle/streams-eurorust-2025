@@ -6,6 +6,10 @@
   stroke-width as default-stroke-width,
 )
 
+// ============================================================================
+// Main Wrapper Function
+// ============================================================================
+
 #let styled-diagram(
   stroke-width: default-stroke-width,
   node-radius: default-node-radius,
@@ -24,28 +28,17 @@
   )
 ]
 
-#let emoji-node(
-  pos,
-  emoji,
-  color,
-  name,
-  stroke-width: default-stroke-width,
-  node-outset: default-node-outset,
-) = node(
-  pos,
-  emoji,
-  fill: color.base,
-  stroke: color.accent + stroke-width,
-  name: name,
-)
+// ============================================================================
+// Basic Node Creators
+// ============================================================================
 
 #let stream-node(
   pos,
   text,
   name,
+  color: colors.stream,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
-  color: colors.stream,
 ) = node(
   pos,
   [#text],
@@ -54,6 +47,40 @@
   outset: outset,
   name: name,
 )
+
+#let emoji-node(
+  pos,
+  emoji,
+  color,
+  name,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
+) = node(
+  pos,
+  emoji,
+  fill: color.base,
+  stroke: color.accent + stroke-width,
+  outset: outset,
+  name: name,
+)
+
+#let title-node(
+  pos,
+  text,
+  fill: none,
+  stroke: none,
+  outset: default-node-outset,
+) = node(
+  outset: outset,
+  pos,
+  text,
+  fill: fill,
+  stroke: stroke,
+)
+
+// ============================================================================
+// Specialized Node Creators
+// ============================================================================
 
 #let call-node(
   pos,
@@ -87,24 +114,97 @@
   name: name,
 )
 
-#let title-node(pos, text, fill: none, stroke: none, node-outset: default-node-outset) = node(
-  outset: node-outset,
+#let state-node(
   pos,
-  text,
-  fill: fill,
-  stroke: stroke,
+  title,
+  desc,
+  color,
+  name,
+  stroke-width: default-stroke-width,
+  title-size: 8pt,
+  desc-size: 6pt,
+  outset: default-node-outset,
+) = node(
+  pos,
+  stack(
+    dir: ttb,
+    spacing: 0.5em,
+    text(size: title-size, weight: "bold")[#title],
+    text(size: desc-size, style: "italic")[#desc],
+  ),
+  fill: color.base,
+  stroke: color.accent + stroke-width,
+  outset: outset,
+  name: name,
 )
+
+#let workflow-step(
+  pos,
+  num,
+  title,
+  items,
+  color,
+  name,
+  stroke-width: default-stroke-width,
+  text-size: 7pt,
+  outset: default-node-outset,
+) = node(
+  pos,
+  align(left, text(size: text-size, [
+    *#num. #title*
+    #for item in items [
+      - #item
+    ]
+  ])),
+  fill: color.base,
+  stroke: color.accent + stroke-width,
+  outset: outset,
+  name: name,
+)
+
+#let layer(
+  pos,
+  name,
+  label,
+  desc,
+  examples,
+  color: colors.operator,
+  stroke-width: default-stroke-width,
+  label-size: 10pt,
+  desc-size: 8pt,
+  examples-size: 7pt,
+  outset: default-node-outset,
+) = {
+  node(
+    pos,
+    name: name,
+    fill: color.base,
+    stroke: color.accent + stroke-width,
+    outset: outset,
+    stack(
+      dir: ttb,
+      spacing: 0.6em,
+      text(weight: "bold", size: label-size, label),
+      text(size: desc-size, style: "italic", desc),
+      text(size: examples-size, examples.join(" • ")),
+    ),
+  )
+}
+
+// ============================================================================
+// Data Item Nodes
+// ============================================================================
 
 #let queue-item(
   pos,
   char,
   consumed,
   name,
-  stroke-width: default-stroke-width,
   colors,
-  node-outset: default-node-outset,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
 ) = node(
-  outset: node-outset,
+  outset: outset,
   pos,
   if consumed { [#strike[#char]] } else { [#char] },
   fill: if consumed { colors.neutral.base.lighten(90%) } else { colors.neutral.base.darken(10%) },
@@ -117,11 +217,11 @@
   pos,
   char,
   name,
-  stroke-width: default-stroke-width,
   colors,
-  node-outset: default-node-outset,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
 ) = node(
-  outset: node-outset,
+  outset: outset,
   pos,
   [#char],
   fill: colors.data.base,
@@ -130,61 +230,15 @@
   name: name,
 )
 
-#let layer(
-  pos,
-  name,
-  label,
-  desc,
-  color: colors.operator,
-  examples,
-  stroke-width: default-stroke-width,
-  label-size: 10pt,
-  desc-size: 8pt,
-  examples-size: 7pt,
-  node-outset: default-node-outset,
-) = {
-  node(pos, name: name, fill: color.base, stroke: color.accent + stroke-width, outset: node-outset, stack(
-    dir: ttb,
-    spacing: 0.6em,
-    text(weight: "bold", size: label-size, label),
-    text(size: desc-size, style: "italic", desc),
-    text(size: examples-size, examples.join(" • ")),
-  ))
-}
+// ============================================================================
+// Basic Edge Creators
+// ============================================================================
 
-#let flow-edge(
+#let simple-edge(
   from,
   to,
-  color,
-  arrow-width: default-arrow-width,
-  label: none,
   ..args,
-) = edge(
-  from,
-  to,
-  if label != none { [#label] },
-  "->",
-  stroke: color.accent + arrow-width,
-  ..args,
-)
-
-#let simple-edge(from, to, ..args) = edge(from, to, "->", ..args)
-
-#let labeled-flow(
-  from,
-  to,
-  label,
-  color,
-  arrow-width: default-arrow-width,
-  ..args,
-) = edge(
-  from,
-  to,
-  [#label],
-  "->",
-  stroke: color.accent + arrow-width,
-  ..args,
-)
+) = edge(from, to, "->", ..args)
 
 #let simple-flow(
   from,
@@ -200,86 +254,9 @@
   ..args,
 )
 
-#let queue-link(
-  from,
-  to,
-  label,
-  stroke-width: default-stroke-width,
-  colors,
-  ..args,
-) = edge(
-  from,
-  to,
-  text(fill: colors.neutral.accent)[#label],
-  "--",
-  stroke: colors.neutral.accent + stroke-width,
-  ..args,
-)
-
-#let hexagon(
-  draw,
-  center,
-  size,
-  stroke-color,
-  label,
-  label-pos,
-  fill-color: white,
-  stroke-width: default-stroke-width,
-) = {
-  draw.circle(
-    center,
-    radius: size / 2,
-    stroke: stroke-color + stroke-width,
-    fill: fill-color,
-  )
-  if label != "" {
-    draw.content(label-pos, label, anchor: "center")
-  }
-}
-
-#let state-node(
-  pos,
-  title,
-  desc,
-  color,
-  name,
-  stroke-width: default-stroke-width,
-  title-size: 8pt,
-  desc-size: 6pt,
-) = node(
-  pos,
-  stack(
-    dir: ttb,
-    spacing: 0.5em,
-    text(size: title-size, weight: "bold")[#title],
-    text(size: desc-size, style: "italic")[#desc],
-  ),
-  fill: color.base,
-  stroke: color.accent + stroke-width,
-  name: name,
-)
-
-#let workflow-step(
-  pos,
-  num,
-  title,
-  items,
-  color,
-  name,
-  stroke-width: default-stroke-width,
-  text-size: 7pt,
-) = node(
-  pos,
-  align(left, text(size: text-size, [
-    *#num. #title*
-    #for item in items [
-      - #item
-    ]
-  ])),
-  fill: color.base,
-  stroke: color.accent + stroke-width,
-  name: name,
-)
+// ============================================================================
+// Specialized Edge Creators
+// ============================================================================
 
 #let labeled-edge(
   from,
@@ -308,3 +285,76 @@
   "->",
   ..args,
 )
+
+#let flow-edge(
+  from,
+  to,
+  color,
+  arrow-width: default-arrow-width,
+  label: none,
+  ..args,
+) = edge(
+  from,
+  to,
+  if label != none { [#label] },
+  "->",
+  stroke: color.accent + arrow-width,
+  ..args,
+)
+
+#let labeled-flow(
+  from,
+  to,
+  label,
+  color,
+  arrow-width: default-arrow-width,
+  ..args,
+) = edge(
+  from,
+  to,
+  [#label],
+  "->",
+  stroke: color.accent + arrow-width,
+  ..args,
+)
+
+#let queue-link(
+  from,
+  to,
+  label,
+  colors,
+  stroke-width: default-stroke-width,
+  ..args,
+) = edge(
+  from,
+  to,
+  text(fill: colors.neutral.accent)[#label],
+  "--",
+  stroke: colors.neutral.accent + stroke-width,
+  ..args,
+)
+
+// ============================================================================
+// Canvas Helpers
+// ============================================================================
+
+#let hexagon(
+  draw,
+  center,
+  size,
+  stroke-color,
+  label,
+  label-pos,
+  fill-color: white,
+  stroke-width: default-stroke-width,
+) = {
+  draw.circle(
+    center,
+    radius: size / 2,
+    stroke: stroke-color + stroke-width,
+    fill: fill-color,
+  )
+  if label != "" {
+    draw.content(label-pos, label, anchor: "center")
+  }
+}
