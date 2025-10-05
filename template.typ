@@ -1,68 +1,80 @@
-#let colors = (
-  accent: rgb("#05004E"),
-  code-bg: rgb("#fcfcf5"),
-)
+// ============================================================================
+// Diagram styling constants
+// ============================================================================
 
-// Styling variables for consistent diagrams
 #let node-radius = 5pt
 #let stroke-width = 1pt
 #let arrow-width = 1pt
 #let node-outset = 3pt
-#let stroke-darken = 20%  // How much to darken fill colors for strokes
+#let stroke-darken = 20%
 
-// Color palette for semantic consistency (all colors in rgba format)
+// ============================================================================
+// Color palette
+// ============================================================================
+
 #let colors = (
   title: (
     base: rgb("#b2edd7"),
-    accent: rgb("#b2edd7").saturate(50%).darken(50%), // Dark green for text elements
+    accent: rgb("#b2edd7").saturate(50%).darken(50%),
   ),
   stream: (
-    base: rgb("#ebfdfd"), // Light blue for streams/sources
-    accent: rgb("#ebfdfd").saturate(50%).darken(50%), // Dark green for text elements
+    base: rgb("#ebfdfd"),
+    accent: rgb("#ebfdfd").saturate(50%).darken(50%),
   ),
   code: (
     base: rgb("#fcfcf5"),
-    accent: rgb("#fcfcf5").darken(30%), // Dark gray for code elements
+    accent: rgb("#fcfcf5").darken(30%),
   ),
   operator: (
-    base: rgb(255, 240, 230, 255), // Light orange for operators/transforms
-    accent: rgb(255, 240, 230, 255).saturate(40%).darken(50%), // Dark orange for operator arrows/strokes
+    base: rgb(255, 240, 230, 255),
+    accent: rgb(255, 240, 230, 255).saturate(40%).darken(50%),
   ),
   data: (
-    base: rgb(255, 243, 205, 255), // Light yellow for data/items
-    accent: rgb(255, 243, 205, 255).darken(40%), // Dark yellow for data arrows/strokes
+    base: rgb(255, 243, 205, 255),
+    accent: rgb(255, 243, 205, 255).darken(40%),
   ),
   pin: (
-    base: rgb("#dde8ff"), // Blue for Pin concepts
-    accent: rgb("#386bd2"), // Dark blue for pin arrows/strokes
+    base: rgb("#dde8ff"),
+    accent: rgb("#386bd2"),
   ),
   state: (
-    base: rgb(240, 255, 230, 255), // Light green for states/processes
-    accent: rgb(240, 255, 230, 255).darken(40%), // Dark green for state arrows/strokes
+    base: rgb(240, 255, 230, 255),
+    accent: rgb(240, 255, 230, 255).darken(40%),
   ),
   ui: (
-    base: rgb(240, 230, 255, 255), // Light purple for UI/interface
-    accent: rgb(240, 230, 255, 255).darken(40%), // Dark purple for UI arrows/strokes
+    base: rgb(240, 230, 255, 255),
+    accent: rgb(240, 230, 255, 255).darken(40%),
   ),
   error: (
-    base: rgb("#ffdede"), // Light red for errors/warnings
-    accent: rgb("#f4b4b4").saturate(50%), // Dark red for error arrows/strokes
+    base: rgb("#ffdede"),
+    accent: rgb("#f4b4b4").saturate(50%),
   ),
   neutral: (
-    base: rgb(240, 240, 240, 255), // Light gray for neutral elements
-    accent: rgb("#5c5c5c"), // Dark gray for neutral arrows/strokes
+    base: rgb(240, 240, 240, 255),
+    accent: rgb("#5c5c5c"),
   ),
 )
 
-// Note: cetz functions must be defined within canvas contexts
-// Standard hexagon function template for use in slides
+// ============================================================================
+// Diagram helper functions
+// ============================================================================
 
-// Reusable hexagon function that takes draw module as parameter
+#let styled-diagram(..args, body) = {
+  import "@preview/fletcher:0.5.8": diagram
+  diagram(
+    node-stroke: stroke-width,
+    node-corner-radius: node-radius,
+    node-outset: node-outset,
+    edge-stroke: arrow-width,
+    ..args,
+    body
+  )
+}
+
 #let hexagon(draw, center, size, stroke-color, label, label-pos, fill-color: none) = {
   let (cx, cy) = center
   let radius = size / 2
 
-  // Calculate hexagon vertices (6 points around circle)
   let vertices = ()
   for i in range(6) {
     let angle = i * 60deg
@@ -71,7 +83,6 @@
     vertices.push((x, y))
   }
 
-  // Fill hexagon if color provided
   if fill-color != none {
     draw.merge-path(fill: fill-color, stroke: none, {
       for i in range(6) {
@@ -86,7 +97,6 @@
     })
   }
 
-  // Draw hexagon outline using line() calls
   for i in range(6) {
     let start = vertices.at(i)
     let end = vertices.at(calc.rem(i + 1, 6))
@@ -96,6 +106,10 @@
 
   draw.content(label-pos, text(size: 8pt, weight: "bold", label), anchor: "center")
 }
+
+// ============================================================================
+// Presentation template
+// ============================================================================
 
 #let presentation-template(
   title: none,
@@ -107,12 +121,10 @@
   repository: none,
   body,
 ) = {
-  // Typography
   set text(font: "Fira Sans", size: 0.9em)
   set page(width: 16cm, height: 9cm, margin: 1cm)
   set par(justify: true)
 
-  // Raw text (code) styling
   show raw: set text(
     font: ("FiraCode Nerd Font Mono", "JetBrains Mono", "Cascadia Mono"),
     weight: 400,
@@ -126,7 +138,7 @@
     it,
   )
   show raw.where(block: false): it => text(size: 1.15em, weight: 500, it)
-  // Page backgrounds
+
   set page(background: context {
     let page-num = counter(page).get().first()
     let total-pages = counter(page).final().first()
@@ -136,7 +148,6 @@
     }
   })
 
-  // Headings
   show heading.where(level: 1): align.with(center + horizon)
   show heading.where(level: 2): it => {
     v(4em)
@@ -161,13 +172,11 @@
     v(0.5em)
   }
 
-  // Content styling
   show link: underline.with(stroke: 1pt + colors.code.accent, offset: 0.15em)
   show table: set table(fill: colors.code.base, stroke: 0.5pt + colors.code.accent)
   show table.cell: set text(size: 10pt)
   show table.header: set text(weight: "bold")
 
-  // Generate title slide if metadata provided
   if title != none {
     pagebreak(weak: true)
     align(center + horizon)[
@@ -206,6 +215,10 @@
   body
 }
 
+// ============================================================================
+// Slide layout
+// ============================================================================
+
 #let slide(title: none, content) = {
   pagebreak(weak: true)
 
@@ -223,4 +236,3 @@
     context text(size: 10pt, fill: gray, counter(page).display()),
   )
 }
-
