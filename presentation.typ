@@ -1447,7 +1447,7 @@
   let b2 = b1.clone(); // First output
   let b3 = b1.clone(); // For second output
   ```
-
+  #v(-1em)
   #align(center + horizon)[
 
     #diagram(
@@ -1457,26 +1457,37 @@
       edge-stroke: arrow-width,
       spacing: (1em, 1em),
       {
-        node((0, 0), align(left)[*Send task*], stroke: none)
-        node((0, 1), align(left)[*Consume 1*], stroke: none)
-        node((0, 2), align(left)[*Consume 2*], stroke: none)
+        node((0, 0), align(left)[*Send task*], stroke: none, name: <send-label>)
+        node((0, 1), align(left)[*Consume 1*], stroke: none, name: <consume1-label>)
+        node((0, 2), align(left)[*Consume 2*], stroke: none, name: <consume2-label>)
 
-        edge((1, 0), (10, 0), stroke: colors.neutral.accent + 1.5pt, "->")
-        edge((1, 1), (10, 1), stroke: colors.neutral.accent + 1.5pt, "->")
-        edge((1, 2), (10, 2), stroke: colors.neutral.accent + 1.5pt, "->")
+        node((1, 0), [], stroke: none, name: <send-start>)
+        node((1, 1), [], stroke: none, name: <consume1-start>)
+        node((1, 2), [], stroke: none, name: <consume2-start>)
 
-        node((4, 1), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt)
-        node((4, 1.6), text(size: 7pt)[`b2.wait().await`], stroke: none)
+        node((10, 0), [], stroke: none, name: <send-end>)
+        node((10, 1), [], stroke: none, name: <consume1-end>)
+        node((10, 2), [], stroke: none, name: <consume2-end>)
 
-        node((6, 2), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt)
-        node((6, 2.6), text(size: 7pt)[`b3.wait().await`], stroke: none)
+        edge(<send-start>, <send-end>, stroke: colors.neutral.accent + 1.5pt, "->")
+        edge(<consume1-start>, <consume1-end>, stroke: colors.neutral.accent + 1.5pt, "->")
+        edge(<consume2-start>, <consume2-end>, stroke: colors.neutral.accent + 1.5pt, "->")
 
-        node((6, 0), [•], fill: colors.state.base, stroke: colors.state.accent + 1.5pt)
-        node((6, -0.6), text(size: 7pt)[Barrier crossed], stroke: none)
-        node((6, 0.5), text(size: 7pt)[`b1.wait().await`], stroke: none)
+        node((4, 0), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt, name: <b1>)
+        node((4, 0.5), text(size: 7pt)[`b1.wait().await`], stroke: none, name: <b1-label>)
 
+        node((5, 1), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt, name: <b2>)
+        node((5, 1.6), text(size: 7pt)[`b2.wait().await`], stroke: none, name: <b2-label>)
 
-        edge((6, 0), (6, 2), stroke: (paint: colors.state.accent, dash: "dashed", thickness: 1pt), "-")
+        node((6, 2), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt, name: <b3>)
+        node((6, 2.6), text(size: 7pt)[`b3.wait().await`], stroke: none, name: <b3-label>)
+
+        node((6, -1), [•], fill: colors.state.base, stroke: colors.state.accent + 1.5pt, name: <crossed>)
+        node((5.5, -1), text(size: 7pt)[Barrier crossed], stroke: none, name: <crossed-label>)
+        node((10, -1), [], stroke: none, name: <end>)
+
+        edge(<crossed>, <b3>, stroke: (paint: colors.state.accent, dash: "dashed", thickness: 1pt), "-")
+        edge(<crossed>, <end>, stroke: colors.state.accent + 2pt, "->")
       },
     )
   ]
@@ -1751,7 +1762,6 @@
         1. Fewer `Option`s
         2. Fewer states
 
-
       ],
     )
 
@@ -1780,40 +1790,49 @@
       node-fill: colors.data.base,
 
 
-      node((1.5, 0), [Transform a `Stream`?], name: <transform-stream>),
-      edge(<transform-stream>, <declarative>, [Traditional \ control flow], "-}>"),
-      edge(<transform-stream>, <simple-transform>, [Stream \ operators], "-}>"),
+      node((1.5, 0), [Transform a `Stream`?], name: <transform>),
+      edge(<transform>, <control-flow>, [Traditional \ control flow], "-}>"),
+      edge(<transform>, <standard>, [Stream \ operators], "-}>"),
 
       node(
         fill: colors.pin.base,
         stroke: colors.pin.accent + stroke-width,
         enclose: (
-          <simple-transform>,
-          <futures-lib>,
-          <futures-rx-lib>,
-          <simple-transform>,
-          <rxjs-like>,
-          <on-cratesio>,
-          <build-own-trait>,
-          <import-extension-trait>,
+          <standard>,
+          <futures-streamext>,
+          <futures-rx>,
+          <standard>,
+          <rxjs>,
+          <search-crates>,
+          <build-trait>,
+          <import-trait>,
         ),
+        name: <stream-operators>,
       ),
 
-      node((0, 1), [Standard? \ e.g. N-1, 1-1], name: <simple-transform>),
+      node(
+        (2.5, 3.5),
+        [The *dark magic* of stream operators!],
+        name: <dark-magic>,
+        fill: colors.error.base,
+        stroke: colors.error.accent + stroke-width,
+      ),
+      edge(<dark-magic>, <stream-operators>, "--"),
+      node((0, 1), [Standard? \ e.g. N-1, 1-1], name: <standard>),
 
-      edge(<simple-transform>, <rxjs-like>, [No], "-}>"),
+      edge(<standard>, <rxjs>, [No], "-}>"),
       node(
         (-0.5, 2),
         [`futures::` \ `StreamExt`],
-        name: <futures-lib>,
+        name: <futures-streamext>,
         fill: colors.operator.base,
         stroke: colors.operator.accent + stroke-width,
       ),
-      edge(<simple-transform>, <futures-lib>, [Yes], "-}>"),
+      edge(<standard>, <futures-streamext>, [Yes], "-}>"),
       node(
         (0.6, 2),
         [RxJs-like \ e.g. 1-N],
-        name: <rxjs-like>,
+        name: <rxjs>,
         fill: colors.operator.base,
         stroke: colors.operator.accent + stroke-width,
       ),
@@ -1821,39 +1840,39 @@
       node(
         (-0.5, 3),
         [`futures-rx`],
-        name: <futures-rx-lib>,
+        name: <futures-rx>,
         fill: colors.operator.base,
         stroke: colors.operator.accent + stroke-width,
       ),
-      edge(<rxjs-like>, <futures-rx-lib>, [Yes], "-}>"),
+      edge(<rxjs>, <futures-rx>, [Yes], "-}>"),
 
-      node((0.6, 3), [Search \ crates.io], name: <on-cratesio>),
-      edge(<rxjs-like>, <on-cratesio>, [No], "-}>"),
+      node((0.6, 3), [Search \ crates.io], name: <search-crates>),
+      edge(<rxjs>, <search-crates>, [No], "-}>"),
 
       node(
         (0, 4),
         [Build your \ own trait],
-        name: <build-own-trait>,
+        name: <build-trait>,
         fill: colors.operator.base,
         stroke: colors.operator.accent + stroke-width,
       ),
-      edge(<on-cratesio>, <build-own-trait>, [Does not exist], "-}>"),
+      edge(<search-crates>, <build-trait>, [Does not exist], "-}>"),
       node(
         (1, 4),
         [Import \ extension trait],
-        name: <import-extension-trait>,
+        name: <import-trait>,
         fill: colors.operator.base,
         stroke: colors.operator.accent + stroke-width,
       ),
-      edge(<on-cratesio>, <import-extension-trait>, [Exists], "-}>"),
-      node((2.5, 1), [Declarative], name: <declarative>),
-      edge(<declarative>, <simple-declarative>, "-}>", [Yes]),
-      edge(<declarative>, <async-stream-lib>, [No]),
+      edge(<search-crates>, <import-trait>, [Exists], "-}>"),
+      node((2.5, 1), [Declarative], name: <control-flow>),
+      edge(<control-flow>, <unfold>, "-}>", [Yes]),
+      edge(<control-flow>, <async-stream>, [No]),
 
       node(
         (2, 2),
         [`futures::` \ `stream::unfold`],
-        name: <simple-declarative>,
+        name: <unfold>,
         fill: colors.stream.base,
         stroke: colors.stream.accent + stroke-width,
       ),
@@ -1861,7 +1880,7 @@
       node(
         (3, 2),
         [`async-stream` \ with `yield`],
-        name: <async-stream-lib>,
+        name: <async-stream>,
         fill: colors.stream.base,
         stroke: colors.stream.accent + stroke-width,
       ),
@@ -2298,68 +2317,81 @@
 
 
 #slide[
-  === Why does Rust bring to the table?
+  === Why does Rust need special treatment?
 
-  Reactivity in garbage collected languages is *completely different* from Rust's ownership system
+  #set text(size: 8pt)
+
+  *Key challenges:*
+
+  - Most mainstream languages lack functional stream operators entirely
+  - Rust's ownership and borrowing rules require explicit data tracking
+  - Memory safety constraints force careful stream design
+
+
 
   #align(center)[
     #canvas(length: 1cm, {
       import draw: *
 
-      // TypeScript side
+      // GC Languages side
       rect(
-        (0.5, 1),
+        (0.5, 0.5),
         (3.5, 4),
         fill: colors.operator.base,
         stroke: colors.operator.accent + stroke-width,
         radius: node-radius,
       )
-      content((2, 3.5), text(size: 8pt, weight: "bold", "TypeScript"), anchor: "center")
+      content((2, 3.6), text(size: 9pt, weight: "bold", "GC Languages"), anchor: "center")
 
-      // GC cleanup
-      circle((2, 2.8), radius: 0.4, fill: colors.state.base, stroke: colors.state.accent + stroke-width)
-      content((2, 2.8), text(size: 6pt, "GC"), anchor: "center")
+      // Garbage collector
+      circle((2, 2.9), radius: 0.35, fill: colors.state.base, stroke: colors.state.accent + stroke-width)
+      content((2, 2.9), text(size: 6pt, "GC"), anchor: "center")
 
+      // Free-flowing data with crossing paths
+      line((1.2, 2.2), (2.8, 1.8), stroke: colors.stream.accent + 1pt)
+      line((1.2, 1.8), (2.8, 2.2), stroke: colors.stream.accent + 1pt)
+      line((1.5, 1.5), (2.5, 1.5), stroke: colors.stream.accent + 1pt)
 
-      // Data flowing freely - simplified dots
-      for i in range(3) {
-        let x = 1.4 + i * 0.3
-        circle((x, 2.0), radius: 0.08, fill: colors.stream.accent)
-      }
-      content((2, 1.4), text(size: 6pt, "Put anything\nanywhere"), anchor: "center")
+      content((2, 0.9), text(size: 7pt, "Data flows freely,\nGC handles cleanup"), anchor: "center")
 
       // VS separator
-      content((4.5, 2.5), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
+      content((4.5, 2.25), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
 
       // Rust side
       rect(
-        (5.5, 1),
+        (5.5, 0.5),
         (8.5, 4),
         fill: colors.ui.base,
         stroke: colors.ui.accent + stroke-width,
         radius: node-radius,
       )
-      content((7, 3.5), text(size: 8pt, weight: "bold", "Rust"), anchor: "center")
+      content((7, 3.6), text(size: 9pt, weight: "bold", "Rust"), anchor: "center")
 
-      // Ownership constraints
-      rect(
-        (6.2, 2.6),
-        (7.8, 3.2),
-        fill: colors.ui.base,
-        stroke: colors.ui.accent + stroke-width,
-        radius: node-radius,
-      )
-      content((7, 2.9), text(size: 6pt, "Ownership\nRules"), anchor: "center")
+      // Constrained linear data flow with ownership annotations
 
-      // Constrained data flow
-      line((6.2, 2.2), (6.8, 2.2), stroke: colors.stream.accent + arrow-width)
-      line((6.8, 2.2), (7.2, 1.8), stroke: colors.stream.accent + arrow-width, mark: (end: "barbed"))
-      line((7.2, 1.8), (7.8, 1.8), stroke: colors.stream.accent + arrow-width)
-      content((7, 1.3), text(size: 6pt, "Explicit design\nrequired"), anchor: "center")
+      // Data point 1 - owned
+      circle((6.3, 2.0), radius: 0.15, fill: colors.stream.accent, stroke: colors.stream.accent + 1pt)
+      content((6.3, 2.4), text(size: 6pt, "Owner"), anchor: "center")
+
+      line((6.45, 2.0), (7.05, 2.0), stroke: colors.stream.accent + 1.5pt, mark: (end: "stealth"))
+
+      // Data point 2 - moved/borrowed
+      circle((7.2, 2.0), radius: 0.15, fill: colors.stream.accent, stroke: colors.stream.accent + 1pt)
+      content((7.2, 2.4), text(size: 6pt, "Moved"), anchor: "center")
+
+      line((7.35, 2.0), (7.65, 1.6), stroke: colors.stream.accent + 1.5pt, mark: (end: "stealth"))
+
+      // Data point 3 - borrowed
+      circle((7.8, 1.5), radius: 0.15, fill: colors.stream.accent, stroke: colors.stream.accent + 1pt)
+      content((7.8, 1.9), text(size: 6pt, "Borrow"), anchor: "center")
+
+      content((7, 0.9), text(size: 7pt, "Explicit ownership,\ntracked at compile time"), anchor: "center")
     })
   ]
 
-  This fundamental difference explains why stream patterns from other languages don't translate directly
+  #v(0.5em)
+
+  Reactive patterns from GC languages require rethinking in Rust's ownership model
 ]
 
 
