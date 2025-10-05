@@ -9,22 +9,21 @@
     == Example 1: One-to-One Operator
   ]
 
-  slide(title: "Doubling stream operator")[
+  slide(title: [Doubling stream operator])[
     #styled-diagram(
       spacing: 6em,
 
-      node((0, 0), [Input\ Stream], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
-      node(
+      stream-node((0, 0), <in>)[Input\ Stream],
+      colored-node(
         (1, 0),
-        [`Double`],
-        fill: colors.operator.base,
-        stroke: colors.operator.accent + stroke-width,
+        color: colors.operator,
+        name: <double>,
         shape: pill,
-      ),
-      node((2, 0), [Output\ Stream], fill: colors.stream.base, stroke: colors.stream.accent + stroke-width),
+      )[`Double`],
+      stream-node((2, 0), <out>)[Output\ Stream],
 
-      edge((0, 0), (1, 0), [1, 2, 3, ...], "-}>", stroke: colors.data.accent + arrow-width),
-      edge((1, 0), (2, 0), [2, 4, 6, ...], "-}>", stroke: colors.data.accent + arrow-width),
+      styled-edge(<in>, <double>, label: [1, 2, 3, ...], "->", color: colors.data),
+      styled-edge(<double>, <out>, label: [2, 4, 6, ...], "->", color: colors.data),
     )
   ]
 
@@ -83,43 +82,34 @@
             draw,
             (1, 2),
             3,
-            colors.pin.accent,
-            text(fill: colors.pin.accent, size: 8pt, weight: "bold")[`Pin<&mut Double>`],
-            (1, 3.5),
-            fill-color: colors.pin.base,
-          )
-          circle((1, 2), radius: 0.8, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
+            color: colors.pin,
+          )[`Pin<&mut Double>`]
+          styled-circle(draw, (1, 2), colors.operator, radius: 0.8)
           content(
             (1, 3),
-            text(size: 7pt, weight: "bold", [`&mut Double`], fill: colors.operator.accent),
+            text(size: 7pt, weight: "bold", [`&mut Double`], fill: colors.operator),
             anchor: "center",
           )
-          circle((1, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
-          content((1, 2), text(size: 6pt, fill: colors.stream.accent, [`InSt`]), anchor: "center")
+          styled-circle(draw, (1, 2), colors.stream, radius: 0.4, label: [`InSt`])
 
-          line((2.7, 2), (3.5, 2), mark: (end: "barbed"), stroke: colors.state.accent + arrow-width)
-          content((3, 2.4), text(size: 7pt, fill: colors.pin.accent, [?]), anchor: "center")
+          styled-line(draw, (2.7, 2), (3.5, 2), colors.state, mark: (end: "barbed"))
+          styled-content(draw, (3, 2.4), colors.pin, [?], size: 7pt)
 
-          circle((4, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
-          content((4, 2), text(size: 6pt, fill: colors.stream.accent, [`InSt`]), anchor: "center")
+          styled-circle(draw, (4, 2), colors.stream, radius: 0.4, label: [`InSt`])
 
-          line((4.5, 2), (5.3, 2), mark: (end: "barbed"), stroke: colors.state.accent + arrow-width)
-          content((5, 2.4), text(size: 6pt, text(fill: colors.pin.accent)[?]), anchor: "center")
+          styled-line(draw, (4.5, 2), (5.3, 2), colors.state, mark: (end: "barbed"))
+          styled-content(draw, (5, 2.4), colors.pin, [?], size: 6pt)
 
           hexagon(
             draw,
             (6.5, 2),
             2,
-            colors.pin.accent,
-            text(fill: colors.pin.accent)[`Pin<&mut InSt>`],
-            (6.5, 3.3),
-            fill-color: colors.pin.base,
-          )
-          circle((6.5, 2), radius: 0.4, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
-          content((6.5, 2), text(size: 6pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
+            color: colors.pin,
+          )[`Pin<&mut InSt>`]
+          styled-circle(draw, (6.5, 2), colors.stream, radius: 0.4, label: [`InSt`])
 
-          line((7.5, 2), (8.5, 2), mark: (end: "barbed"), stroke: colors.stream.accent + arrow-width)
-          content((8, 2.4), text(size: 6pt, fill: colors.stream.accent, [`Stream::poll_next()`]), anchor: "north-west")
+          styled-line(draw, (7.5, 2), (8.5, 2), colors.stream, mark: (end: "barbed"))
+          styled-content(draw, (8, 2.4), colors.stream, [`Stream::poll_next()`], size: 6pt, anchor: "north-west")
         })
 
         #v(1em)
@@ -129,15 +119,15 @@
           column-gutter: 2em,
           row-gutter: 0.8em,
 
-          rect(width: 1.2em, height: 0.8em, fill: colors.pin.base, stroke: colors.pin.accent + 0.8pt),
+          rect(width: 1.2em, height: 0.8em, fill: colors.pin, stroke: colors.pin.darken(70%) + 0.8pt),
           text(size: 8pt)[Pin types],
           [],
 
-          rect(width: 1.2em, height: 0.8em, fill: colors.operator.base, stroke: colors.operator.accent + 0.8pt),
+          rect(width: 1.2em, height: 0.8em, fill: colors.operator, stroke: colors.operator.darken(70%) + 0.8pt),
           text(size: 8pt)[Operators/structs],
           [],
 
-          rect(width: 1.2em, height: 0.8em, fill: colors.stream.base, stroke: colors.stream.accent + 0.8pt),
+          rect(width: 1.2em, height: 0.8em, fill: colors.stream, stroke: colors.stream.darken(70%) + 0.8pt),
           text(size: 8pt)[Streams/inner types],
           [],
         )
@@ -160,18 +150,18 @@
             content((1, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
             content((1, 1.6), text(size: 6pt, "✅ Safe to move"), anchor: "center")
 
-            line((1.8, 2.7), (7.2, 2.7), mark: (end: "barbed"), stroke: colors.pin.accent + arrow-width)
+            line((1.8, 2.7), (7.2, 2.7), mark: (end: "barbed"), stroke: colors.pin + arrow-width)
             content(
               (4.5, 3.0),
-              text(size: 7pt, weight: "bold", fill: colors.pin.accent, [`Pin::new()`]),
+              text(size: 7pt, weight: "bold", fill: colors.pin, [`Pin::new()`]),
               anchor: "center",
             )
             content((4.5, 2.4), text(size: 6pt, "Always safe"), anchor: "center")
 
-            line((7.2, 1.7), (1.8, 1.7), mark: (end: "barbed"), stroke: colors.pin.accent + arrow-width)
+            line((7.2, 1.7), (1.8, 1.7), mark: (end: "barbed"), stroke: colors.pin + arrow-width)
             content(
               (4.5, 2.0),
-              text(size: 7pt, weight: "bold", fill: colors.pin.accent, [`Pin::get_mut()`]),
+              text(size: 7pt, weight: "bold", fill: colors.pin, [`Pin::get_mut()`]),
               anchor: "center",
             )
             content((4.5, 1.4), text(size: 6pt, [if `Bird: Unpin`]), anchor: "center")
@@ -180,11 +170,8 @@
               draw,
               (8.5, 2.3),
               2.5,
-              colors.pin.accent,
-              text(fill: colors.pin.accent)[`Pin<&mut Bird>`],
-              (8.5, 3.7),
-              fill-color: colors.pin.base,
-            )
+              color: colors.pin,
+            )[`Pin<&mut Bird>`]
             content((8.5, 2.6), text(size: 2em, "🐦"), anchor: "center")
             content((8.5, 2.0), text(size: 8pt, weight: "bold", [`Unpin` Bird]), anchor: "center")
             content((8.5, 1.6), text(size: 6pt, [Can be\ uncaged]), anchor: "center")
@@ -199,21 +186,18 @@
             content((1, 2.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
             content((1, 1.6), text(size: 6pt, "⚠️ Dangerous to move"), anchor: "center")
 
-            line((2.5, 2.8), (6.5, 1.8), stroke: colors.error.accent + arrow-width)
-            line((2.5, 1.8), (6.5, 2.8), stroke: colors.error.accent + arrow-width)
+            line((2.5, 2.8), (6.5, 1.8), stroke: colors.error + arrow-width)
+            line((2.5, 1.8), (6.5, 2.8), stroke: colors.error + arrow-width)
 
-            content((4.5, 1.5), text(size: 6pt, fill: colors.error.accent, [❌ Not safe]), anchor: "center")
+            styled-content(draw, (4.5, 1.5), colors.error, [❌ Not safe], size: 6pt)
             content((4.5, 2.5), text(size: 9pt, weight: "bold", [`Pin::get_mut()` \ `Pin::new()`]), anchor: "center")
 
             hexagon(
               draw,
               (8.5, 2.3),
               2.5,
-              colors.pin.accent,
-              text(fill: colors.pin.accent)[`Pin<&mut Tiger>`],
-              (8.5, 3.7),
-              fill-color: colors.pin.base,
-            )
+              color: colors.pin,
+            )[`Pin<&mut Tiger>`]
             content((8.5, 2.8), text(size: 3em, "🐅"), anchor: "center")
             content((8.5, 2.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
             content((8.5, 1.6), text(size: 6pt, [Can't be\ uncaged]), anchor: "center")
@@ -230,14 +214,14 @@
       #canvas(length: 1.2cm, {
         import draw: *
 
-        rect((1, 3), (4, 5), fill: colors.ui.base, stroke: colors.ui.accent + stroke-width, radius: node-radius)
+        rect((1, 3), (4, 5), fill: colors.ui, stroke: colors.ui + stroke-width, radius: node-radius)
         content((2.5, 5.2), text(size: 9pt, weight: "bold", "Stack"), anchor: "center")
         content((2.5, 4.7), text(size: 8pt, [`Box::new(in_stream)`]), anchor: "center")
-        rect((1.9, 3.5), (3, 4.5), fill: colors.neutral.base, stroke: colors.neutral.accent + stroke-width)
+        rect((1.9, 3.5), (3, 4.5), fill: colors.neutral, stroke: colors.neutral + stroke-width)
         content((2.5, 4.), text(size: 8pt, [pointer \ `0X1234`]), anchor: "center")
         content((2.5, 3.3), text(size: 7pt, "✅ Safe to move"), anchor: "center")
 
-        line((3.1, 4), (7.3, 3.7), mark: (end: "barbed"), stroke: colors.operator.accent + arrow-width)
+        line((3.1, 4), (7.3, 3.7), mark: (end: "barbed"), stroke: colors.operator + arrow-width)
         content((5.25, 4.3), text(size: 8pt, [dereferences to]), anchor: "center")
 
         content((11.5, 5.0), text(size: 3em, "🐅"), anchor: "center")
@@ -248,12 +232,12 @@
           stop: 170deg,
           radius: 1.5,
           mark: (end: "barbed"),
-          stroke: colors.error.accent + arrow-width,
+          stroke: colors.error + arrow-width,
         )
 
-        line((6.0, 3), (10, 3), stroke: colors.operator.accent + stroke-width)
-        line((6.0, 3), (8, 5), stroke: colors.operator.accent + stroke-width)
-        line((10, 3), (8, 5), stroke: colors.operator.accent + stroke-width)
+        line((6.0, 3), (10, 3), stroke: colors.operator + stroke-width)
+        line((6.0, 3), (8, 5), stroke: colors.operator + stroke-width)
+        line((10, 3), (8, 5), stroke: colors.operator + stroke-width)
 
         content((8, 5.3), text(size: 9pt, weight: "bold", "Heap"), anchor: "center")
         content((8.4, 3.8), text(size: 6pt, [`0X1234`]), anchor: "center")
@@ -285,27 +269,19 @@
           draw,
           (2, 4),
           4.5,
-          colors.pin.accent,
-          text(fill: colors.pin.accent)[`Pin<&mut Double>`],
-          (2, 6.2),
-          fill-color: colors.pin.base,
-        )
-        circle((2, 4), radius: 1.5, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
-        content(
-          (2, 5.7),
-          text(size: 7pt, weight: "bold", fill: colors.operator.accent)[`&mut Double`],
-          anchor: "center",
-        )
-        content((2, 5.2), text(size: 6pt, weight: "bold")[`&mut Box<InSt>`], anchor: "center")
+          color: colors.pin,
+        )[`Pin<&mut Double>`]
+        styled-circle(draw, (2, 4), colors.operator, radius: 1.5, label: [`&mut Double`])
 
-        rect(
-          (2 - 0.6, 4 - 0.6),
-          (2 + 0.6, 4 + 0.6),
-          fill: colors.neutral.base,
-          stroke: colors.neutral.accent + stroke-width,
+
+        styled-rect(
+          draw,
+          (2 - 0.9, 4 - 0.9),
+          (2 + 0.9, 4 + 0.9),
+          colors.neutral,
+          label: [`&mut Box<InSt>`],
         )
-        circle((2, 4), radius: 0.5, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
-        content((2, 4), text(size: 6pt, fill: colors.stream.accent)[`InSt:` \ `!Unpin`], anchor: "center")
+        styled-circle(draw, (2, 4), colors.stream, radius: 0.5, label: [`InSt: !Unpin`], label-size: 6pt)
 
         content((4.8, 5.9), text(size: 3em, "🐅"), anchor: "center")
         arc(
@@ -314,60 +290,55 @@
           stop: 178deg,
           radius: 1.5,
           mark: (end: "barbed"),
-          stroke: colors.error.accent + arrow-width,
+          stroke: colors.error.saturate(50%) + arrow-width,
         )
 
-        circle((6.5, 4), radius: 1, fill: colors.operator.base, stroke: colors.operator.accent + stroke-width)
-        content(
-          (6.5, 5.2),
-          text(size: 7pt, weight: "bold", fill: colors.operator.accent)[`&mut Double`],
-          anchor: "center",
-        )
-        content((6.5, 4.7), text(size: 7pt, weight: "bold")[`&mut Box<InSt>`], anchor: "center")
+        styled-circle(draw, (6.5, 4), colors.operator, radius: 1, label: [`&mut Double`])
 
-        rect(
+
+        styled-rect(
+          draw,
           (6.5 - 0.45, 4 - 0.45),
           (6.5 + 0.45, 4 + 0.45),
-          fill: colors.neutral.base,
-          stroke: colors.neutral.accent + stroke-width,
+          colors.neutral,
+          label: [`&mut Box<InSt>`],
         )
-        circle((6.5, 4), radius: 0.3, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
-        content((6.5, 4), text(size: 5pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
+        styled-circle(draw, (6.5, 4), colors.stream, radius: 0.3, label-size: 5pt)
 
-        hexagon(draw, (9.5, 4.0), 2.5, colors.pin.accent, "", (9.5, 5.8), fill-color: colors.pin.base)
-        content(
-          (9.5, 5.4),
-          text(size: 7pt, weight: "bold", fill: colors.pin.accent)[`Pin<&mut InSt>`],
-          anchor: "center",
-        )
-        content((9.5, 4.7), text(size: 7pt, weight: "bold")[`&mut Box<InSt>`], anchor: "center")
+        hexagon(draw, (9.5, 4.0), 2.5, color: colors.pin)[`Pin<&mut InSt>`]
 
-        rect(
+        styled-content(draw, (9.5, 4.7), colors.neutral)[`&mut Box<InSt>`]
+
+        styled-rect(
+          draw,
           (9.5 - 0.45, 4 - 0.45),
           (9.5 + 0.45, 4 + 0.45),
-          fill: colors.neutral.base,
-          stroke: colors.neutral.accent + stroke-width,
+          colors.neutral,
         )
-        circle((9.5, 4), radius: 0.3, fill: colors.stream.base, stroke: colors.stream.accent + stroke-width)
-        content((9.5, 4), text(size: 5pt, fill: colors.stream.accent)[`InSt`], anchor: "center")
+        styled-circle(draw, (9.5, 4), colors.stream, radius: 0.3, label-size: 5pt)
 
-        line((4.4, 4), (5.4, 4), mark: (end: "barbed"), stroke: colors.state.accent + arrow-width)
-        content(
+        styled-line(draw, (4.4, 4), (5.4, 4), colors.state, mark: (end: "barbed"))
+        styled-content(
+          draw,
           (4.9, 4.5),
-          text(size: 6pt, weight: "bold", fill: colors.pin.accent)[`Pin::get_mut()`],
-          anchor: "center",
-        )
-        content((4.9, 3.5), text(fill: colors.error.accent, size: 6pt)[if `Double:` \ `Unpin`], anchor: "center")
+          colors.pin,
 
-        line((7.1, 4), (8.9, 4), mark: (end: "barbed"), stroke: colors.state.accent + arrow-width)
-        content((7.9, 4.5), text(size: 6pt, weight: "bold", fill: colors.pin.accent)[`Pin::new()`], anchor: "center")
+          size: 6pt,
+          weight: "bold",
+        )[`Pin::get_mut()`]
+        styled-content(draw, (4.9, 3.5), colors.error, size: 6pt)[if `Double:` \ `Unpin`]
 
-        line((11.0, 4), (11.7, 4), mark: (end: "barbed"), stroke: colors.stream.accent + arrow-width)
-        content(
+        styled-line(draw, (7.1, 4), (8.9, 4), colors.state, mark: (end: "barbed"))
+        styled-content(draw, (7.9, 4.5), colors.pin, weight: "bold")[`Pin::new()`]
+
+        styled-line(draw, (11.0, 4), (11.7, 4), colors.stream, mark: (end: "barbed"))
+        styled-content(
+          draw,
           (11.5, 4.5),
-          text(size: 6pt, weight: "bold", fill: colors.stream.accent)[`Stream::poll_next()`],
-          anchor: "center",
-        )
+          colors.stream,
+          size: 6pt,
+          weight: "bold",
+        )[`Stream::poll_next()`]
       })
     ]
   ]

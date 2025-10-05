@@ -36,7 +36,8 @@
         let clone-positions = ((0.5, 1), (2, 0.5), (4, 0.2), (6, 1.2), (7.5, 0.8))
         for (i, pos) in clone-positions.enumerate() {
           let (x, y) = pos
-          circle((x, y), radius: 0.2, fill: if i < 2 { colors.pin.base } else { colors.state.base })
+          let color = if i < 2 { colors.pin } else { colors.state }
+          styled-circle(draw, (x, y), color, radius: 0.2)
           content((x, y - 0.5), text(size: 6pt, "C" + str(i + 1)), anchor: "center")
         }
 
@@ -81,32 +82,32 @@
     #set text(size: 9pt)
     #{
       styled-diagram(
-        spacing: (6em, 1em),
+        spacing: (5em, 1em),
 
-        stream-node((0, 1), [`InputStream`], <input-stream>),
-        labeled-flow(<input-stream>, <fork>, [`.fork()`], colors.stream, label-pos: 0.4),
+        stream-node((0, 1), <input-stream>)[`InputStream`],
+        styled-edge(<input-stream>, <fork>, color: colors.stream, label: [`.fork()`], label-pos: 0.4),
 
-        stream-node((1, 1), [`Fork`], <fork>),
-        labeled-flow(<fork>, <bob>, [`.clone()`], colors.ui, bend: -20deg),
-        labeled-flow(<fork>, <alice>, [`.clone()`], colors.ui, bend: 20deg),
+        stream-node((1, 1), <fork>)[`Fork`],
+        styled-edge(<fork>, <bob>, color: colors.ui, label: [`.clone()`], bend: -20deg),
+        styled-edge(<fork>, <alice>, color: colors.ui, label: [`.clone()`], bend: 20deg),
         queue-link(<fork>, <queue-a-consumed>, "queue", colors),
 
-        stream-node((2, 2), "Bob", color: colors.state, <bob>),
-        simple-flow(<bob>, <bob-a>, colors.operator),
+        stream-node((2, 2), <bob>, color: colors.state)["Bob"],
+        styled-edge(<bob>, <bob-a>, color: colors.operator),
 
-        stream-node((2, 0), "Alice", color: colors.ui, <alice>),
-        simple-flow(<alice>, <alice-a>, colors.operator),
+        stream-node((2, 0), <alice>, color: colors.ui)["Alice"],
+        styled-edge(<alice>, <alice-a>, color: colors.operator),
 
-        queue-item((3, 1), "'a'", true, <queue-a-consumed>, colors),
-        queue-item((3.5, 1), "'b'", true, <queue-b-consumed>, colors),
-        queue-item((4, 1), "'c'", false, <queue-c>, colors),
-        queue-item((4.5, 1), "'d'", false, <queue-d>, colors),
+        queue-item((3, 1), true, <queue-a-consumed>, colors)['a'],
+        queue-item((3.5, 1), true, <queue-b-consumed>, colors)['b'],
+        queue-item((4, 1), false, <queue-c>, colors)['c'],
+        queue-item((4.5, 1), false, <queue-d>, colors)['d'],
 
-        data-item((3, 3), "'a'", <bob-a>, colors),
-        data-item((3.5, 3), "'b'", <bob-b>, colors),
-        data-item((4, 3), "'c'", <bob-c>, colors),
-        data-item((3, -1), "'a'", <alice-a>, colors),
-        data-item((3.5, -1), "'b'", <alice-b>, colors),
+        data-item((3, 3), <bob-a>, colors)['a'],
+        data-item((3.5, 3), <bob-b>, colors)['b'],
+        data-item((4, 3), <bob-c>, colors)['c'],
+        data-item((3, -1), <alice-a>, colors)['a'],
+        data-item((3.5, -1), <alice-b>, colors)['b'],
       )
     }
 
@@ -115,13 +116,13 @@
         columns: (auto, auto, auto, auto, auto, auto, auto, auto),
         column-gutter: 1.5em,
 
-        rect(width: 1em, height: 0.6em, fill: colors.stream.base, stroke: colors.stream.accent + 0.5pt),
+        rect(width: 1em, height: 0.6em, fill: colors.stream, stroke: colors.stream + 0.5pt),
         [Streams],
-        rect(width: 1em, height: 0.6em, fill: colors.operator.base, stroke: colors.operator.accent + 0.5pt),
+        rect(width: 1em, height: 0.6em, fill: colors.operator, stroke: colors.operator + 0.5pt),
         [Operators],
-        rect(width: 1em, height: 0.6em, fill: colors.state.base, stroke: colors.state.accent + 0.5pt),
+        rect(width: 1em, height: 0.6em, fill: colors.state, stroke: colors.state + 0.5pt),
         [Consumers],
-        rect(width: 1em, height: 0.6em, fill: colors.data.base, stroke: colors.data.accent + 0.5pt),
+        rect(width: 1em, height: 0.6em, fill: colors.data, stroke: colors.data + 0.5pt),
         [Data],
       )
     ]
@@ -132,99 +133,86 @@
     #styled-diagram(
       spacing: (3em, 2.5em),
 
-      node(
+      colored-node(
         (1, 0),
-        [`InputStream`],
-        fill: colors.stream.base,
-        stroke: colors.stream.accent + stroke-width,
+        color: colors.stream,
         name: <poll-input-stream>,
-      ),
-      edge(
+      )[`InputStream`],
+      styled-edge(
         <poll-input-stream>,
         <poll-alice>,
-        [2. `Pending`],
-        "->",
-        stroke: colors.neutral.accent + stroke-width,
+        label: [2. `Pending`],
+        color: colors.neutral,
         bend: -85deg,
         label-pos: 90%,
       ),
-      edge(<poll-input-stream>, <poll-data>, [4. `Ready`], "->", stroke: colors.operator.accent + arrow-width),
+      styled-edge(<poll-input-stream>, <poll-data>, label: [4. `Ready`], color: colors.operator),
 
-      node(
+      colored-node(
         (0, 3),
-        [Alice\ 💤 Sleeping],
-        fill: colors.ui.base,
-        stroke: colors.ui.accent + stroke-width,
-        shape: fletcher.shapes.circle,
+        color: colors.ui,
         name: <poll-alice>,
-      ),
-      edge(
+        shape: fletcher.shapes.circle,
+      )[Alice\ 💤 Sleeping],
+      styled-edge(
         <poll-alice>,
         <poll-input-stream>,
-        [1. `poll_next()`],
-        "->",
-        stroke: colors.neutral.accent + stroke-width,
+        label: [1. `poll_next()`],
+        color: colors.neutral,
         bend: 50deg,
         label-pos: 79%,
       ),
-      edge(
+      styled-edge(
         <poll-alice>,
         <poll-data>,
-        [6. `poll_next()`],
-        "->",
-        stroke: colors.stream.accent + stroke-width,
+        label: [6. `poll_next()`],
+        color: colors.stream,
         bend: -40deg,
         label-pos: 30%,
       ),
 
-      node(
+      colored-node(
         (2, 3),
-        [Bob\ 🔍 Polling],
-        fill: colors.state.base,
-        stroke: colors.state.accent + stroke-width,
-        shape: fletcher.shapes.circle,
+        color: colors.state,
         name: <poll-bob>,
-      ),
-      edge(
+        shape: fletcher.shapes.circle,
+      )[Bob\ 🔍 Polling],
+      styled-edge(
         <poll-bob>,
         <poll-input-stream>,
-        [3. `poll_next()`],
-        "->",
-        stroke: colors.state.accent + arrow-width,
+        label: [3. `poll_next()`],
+        color: colors.state,
+        stroke-width: arrow-width,
         bend: -50deg,
         label-pos: 70%,
       ),
-      edge(
+      styled-edge(
         <poll-bob>,
         <poll-alice>,
-        [5. `wake()` Alice],
-        "->",
-        stroke: colors.state.accent + arrow-width,
+        label: [5. `wake()` Alice],
+        color: colors.state,
+        stroke-width: arrow-width,
         bend: 40deg,
       ),
 
-      node(
+      colored-node(
         (1, 1.5),
-        [data 'x'],
-        fill: colors.data.base,
-        stroke: colors.data.accent + stroke-width,
+        color: colors.data,
         name: <poll-data>,
-      ),
-      edge(
+      )[data 'x'],
+      styled-edge(
         <poll-data>,
         <poll-alice>,
-        [7. `clone()`],
-        "->",
-        stroke: colors.operator.accent + stroke-width,
+        label: [7. `clone()`],
+        color: colors.operator,
         bend: -40deg,
         label-pos: 30%,
       ),
-      edge(
+      styled-edge(
         <poll-data>,
         <poll-bob>,
-        [8. original],
-        "->",
-        stroke: colors.operator.accent + stroke-width,
+        label: [8. original],
+        color: colors.operator,
         bend: 40deg,
         label-pos: 30%,
       ),
@@ -259,25 +247,25 @@
         node((10, 1), [], stroke: none, name: <consume1-end>)
         node((10, 2), [], stroke: none, name: <consume2-end>)
 
-        edge(<send-start>, <send-end>, stroke: colors.neutral.accent + 1.5pt, "->")
-        edge(<consume1-start>, <consume1-end>, stroke: colors.neutral.accent + 1.5pt, "->")
-        edge(<consume2-start>, <consume2-end>, stroke: colors.neutral.accent + 1.5pt, "->")
+        styled-edge(<send-start>, <send-end>, color: colors.neutral)
+        styled-edge(<consume1-start>, <consume1-end>, color: colors.neutral)
+        styled-edge(<consume2-start>, <consume2-end>, color: colors.neutral)
 
-        node((4, 0), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt, name: <b1>)
+        colored-node((4, 0), color: colors.pin, name: <b1>, stroke-width: 1pt)[•]
         node((4, 0.5), text(size: 7pt)[`b1.wait().await`], stroke: none, name: <b1-label>)
 
-        node((5, 1), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt, name: <b2>)
+        colored-node((5, 1), color: colors.pin, name: <b2>, stroke-width: 1pt)[•]
         node((5, 1.6), text(size: 7pt)[`b2.wait().await`], stroke: none, name: <b2-label>)
 
-        node((6, 2), [•], fill: colors.pin.base, stroke: colors.pin.accent + 1pt, name: <b3>)
+        colored-node((6, 2), color: colors.pin, name: <b3>, stroke-width: 1pt)[•]
         node((6, 2.6), text(size: 7pt)[`b3.wait().await`], stroke: none, name: <b3-label>)
 
-        node((6, -1), [•], fill: colors.state.base, stroke: colors.state.accent + 1.5pt, name: <crossed>)
+        colored-node((6, -1), color: colors.state, name: <crossed>, stroke-width: 1.5pt)[•]
         node((5.5, -1), text(size: 7pt)[Barrier crossed], stroke: none, name: <crossed-label>)
         node((10, -1), [], stroke: none, name: <end>)
 
-        edge(<crossed>, <b3>, stroke: (paint: colors.state.accent, dash: "dashed", thickness: 1pt), "-")
-        edge(<crossed>, <end>, stroke: colors.state.accent + 2pt, "->")
+        edge(<crossed>, <b3>, stroke: (paint: colors.state.darken(70%), dash: "dashed", thickness: 1pt), "-")
+        styled-edge(<crossed>, <end>, color: colors.state, stroke-width: 2pt)
       },
     )
   ]
@@ -350,18 +338,18 @@
           colors.state,
           <polling-base-stream>,
         ),
-        transition(
+        styled-edge(
           <polling-base-stream>,
           <processing-queue>,
-          [input stream ready,\ queue item],
+          label: [input stream ready,\ queue item],
           label-pos: 0.5,
           label-anchor: "north",
           label-sep: 0em,
         ),
-        transition(
+        styled-edge(
           <polling-base-stream>,
           <pending>,
-          "input stream pending",
+          label: "input stream pending",
           bend: -15deg,
           label-pos: 0.7,
           label-sep: 0.5em,
@@ -375,17 +363,17 @@
           colors.data,
           <processing-queue>,
         ),
-        transition(
+        styled-edge(
           <processing-queue>,
           <polling-base-stream>,
-          [buffer empty,\ poll base],
+          label: [buffer empty,\ poll base],
           bend: 40deg,
           label-pos: 0.5,
         ),
 
         state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.ui, <pending>),
-        transition(<pending>, <polling-base-stream>, "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
-        transition(<pending>, <processing-queue>, "fresh buffer", bend: 15deg, label-pos: 0.7),
+        styled-edge(<pending>, <polling-base-stream>, label: "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
+        styled-edge(<pending>, <processing-queue>, label: "fresh buffer", bend: 15deg, label-pos: 0.7),
       )
     }
 

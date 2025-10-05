@@ -17,7 +17,7 @@
           colors.stream,
           <write-tests>,
         ),
-        labeled-edge(<write-tests>, <analyze-states>, none),
+        styled-edge(<write-tests>, <analyze-states>),
 
         workflow-step(
           (3, 3),
@@ -27,7 +27,7 @@
           colors.data,
           <analyze-states>,
         ),
-        labeled-edge(<analyze-states>, <implement>, none, bend: -15deg),
+        styled-edge(<analyze-states>, <implement>, bend: -15deg),
 
         workflow-step(
           (2, 2),
@@ -37,7 +37,7 @@
           colors.state,
           <implement>,
         ),
-        labeled-edge(<implement>, <run-tests>, none, bend: -15deg),
+        styled-edge(<implement>, <run-tests>, bend: -15deg),
 
         workflow-step(
           (1, 1),
@@ -47,28 +47,28 @@
           colors.ui,
           <run-tests>,
         ),
-        labeled-edge(<run-tests>, <benchmarks>, label: "✓ pass"),
-        labeled-edge(
+        styled-edge(<run-tests>, <benchmarks>, label: "✓ pass"),
+        styled-edge(
           <run-tests>,
           <implement>,
           label: "✗ fail",
-          stroke: colors.error.accent + stroke-width,
+          color: colors.error,
           bend: -30deg,
         ),
 
-        labeled-edge(
+        styled-edge(
           <run-tests>,
           <write-tests>,
           label: "✗ missing test",
-          stroke: colors.error.accent + stroke-width,
+          color: colors.error,
           bend: -30deg,
         ),
 
-        labeled-edge(
+        styled-edge(
           <benchmarks>,
           <implement>,
           label: "✗ too slow",
-          stroke: colors.error.accent + stroke-width,
+          color: colors.error,
           bend: 30deg,
           label-pos: 0.3,
         ),
@@ -130,17 +130,17 @@
     #set text(size: 7pt)
     #v(-4.2em)
     #styled-diagram(
-      stroke-width: stroke-width + colors.data.accent,
+      stroke-width: stroke-width + colors.data,
       mark-scale: 80%,
-      node-fill: colors.data.base,
+      node-fill: colors.data,
 
-      node((1.5, 0), [Stream processing style], name: <transform>),
-      edge(<transform>, <control-flow>, [Traditional \ control flow], "-}>"),
-      edge(<transform>, <standard>, [Stream \ operators], "-}>"),
+      colored-node((1.5, 0), color: colors.data, name: <transform>)[Stream processing style],
+      styled-edge(<transform>, <control-flow>, "-}>", label: [Traditional \ control flow]),
+      styled-edge(<transform>, <standard>, "-}>", label: [Stream \ operators]),
 
       node(
-        fill: colors.pin.base,
-        stroke: colors.pin.accent + stroke-width,
+        fill: colors.pin,
+        stroke: colors.pin.darken(70%) + stroke-width,
         enclose: (
           <standard>,
           <futures-streamext>,
@@ -155,86 +155,70 @@
       ),
 
       node(
-        fill: colors.neutral.base,
-        stroke: colors.neutral.accent + stroke-width,
+        fill: colors.neutral,
+        stroke: colors.neutral.darken(70%) + stroke-width,
         enclose: (<control-flow>, <unfold>, <async-stream>),
         name: <traditional>,
       ),
 
-      node(
+      colored-node(
         (2.5, 3.5),
-        text(size: 1.5em)[Always requires `Box` \ to make `!Unpin` \ output `Unpin` ],
+        color: colors.error,
         name: <dark-magic>,
-        fill: colors.error.base,
-        stroke: colors.error.accent + stroke-width,
-      ),
-      edge(<dark-magic>, <traditional>, "--"),
-      node((0, 1), [Standard? \ e.g. N-1, 1-1], name: <standard>),
+      )[Always requires `Box` \ to make `!Unpin` \ output `Unpin` ],
+      styled-edge(<dark-magic>, <traditional>, "--"),
+      colored-node((0, 1), color: colors.data, name: <standard>)[Standard? \ e.g. N-1, 1-1],
 
-      edge(<standard>, <rxjs>, [No], "-}>"),
-      node(
+      styled-edge(<standard>, <rxjs>, "-}>", label: [No]),
+      colored-node(
         (-0.5, 2),
-        [`futures::` \ `StreamExt`],
+        color: colors.operator,
         name: <futures-streamext>,
-        fill: colors.operator.base,
-        stroke: colors.operator.accent + stroke-width,
-      ),
-      edge(<standard>, <futures-streamext>, [Yes], "-}>"),
-      node(
+      )[`futures::` \ `StreamExt`],
+      styled-edge(<standard>, <futures-streamext>, "-}>", label: [Yes]),
+      colored-node(
         (0.6, 2),
-        [RxJs-like \ e.g. 1-N],
+        color: colors.operator,
         name: <rxjs>,
-        fill: colors.operator.base,
-        stroke: colors.operator.accent + stroke-width,
-      ),
+      )[RxJs-like \ e.g. 1-N],
 
-      node(
+      colored-node(
         (-0.5, 3),
-        [`futures-rx`],
+        color: colors.operator,
         name: <futures-rx>,
-        fill: colors.operator.base,
-        stroke: colors.operator.accent + stroke-width,
-      ),
-      edge(<rxjs>, <futures-rx>, [Yes], "-}>"),
+      )[`futures-rx`],
+      styled-edge(<rxjs>, <futures-rx>, "-}>", label: [Yes]),
 
-      node((0.6, 3), [Search \ crates.io], name: <search-crates>),
-      edge(<rxjs>, <search-crates>, [No], "-}>"),
+      colored-node((0.6, 3), color: colors.data, name: <search-crates>)[Search \ crates.io],
+      styled-edge(<rxjs>, <search-crates>, "-}>", label: [No]),
 
-      node(
+      colored-node(
         (0, 4),
-        [Build your \ own trait],
+        color: colors.operator,
         name: <build-trait>,
-        fill: colors.operator.base,
-        stroke: colors.operator.accent + stroke-width,
-      ),
-      edge(<search-crates>, <build-trait>, [Does not exist], "-}>"),
-      node(
+      )[Build your \ own trait],
+      styled-edge(<search-crates>, <build-trait>, "-}>", label: [Does not exist]),
+      colored-node(
         (1, 4),
-        [Import \ extension trait],
+        color: colors.operator,
         name: <import-trait>,
-        fill: colors.operator.base,
-        stroke: colors.operator.accent + stroke-width,
-      ),
-      edge(<search-crates>, <import-trait>, [Exists], "-}>"),
-      node((2.5, 1), [Declarative], name: <control-flow>),
-      edge(<control-flow>, <unfold>, "-}>", [Yes]),
-      edge(<control-flow>, <async-stream>, "-}>", [No]),
+      )[Import \ extension trait],
+      styled-edge(<search-crates>, <import-trait>, "-}>", label: [Exists]),
+      colored-node((2.5, 1), color: colors.data, name: <control-flow>)[Declarative],
+      styled-edge(<control-flow>, <unfold>, "-}>", label: [Yes]),
+      styled-edge(<control-flow>, <async-stream>, "-}>", label: [No]),
 
-      node(
+      colored-node(
         (2, 2),
-        [`futures::` \ `stream::unfold`],
+        color: colors.stream,
         name: <unfold>,
-        fill: colors.stream.base,
-        stroke: colors.stream.accent + stroke-width,
-      ),
+      )[`futures::` \ `stream::unfold`],
 
-      node(
+      colored-node(
         (3, 2),
-        [`async-stream` \ with `yield`],
+        color: colors.stream,
         name: <async-stream>,
-        fill: colors.stream.base,
-        stroke: colors.stream.accent + stroke-width,
-      ),
+      )[`async-stream` \ with `yield`],
     )
   ]
 }

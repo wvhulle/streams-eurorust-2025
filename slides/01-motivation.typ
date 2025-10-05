@@ -17,21 +17,21 @@
         styled-diagram(
           spacing: (2em, 1em),
           {
-            emoji-node((-2, 1), text(size: 4em)[🚗], colors.neutral, <vehicle>)
-            flow-edge(<vehicle>, <video>, colors.neutral)
-            flow-edge(<vehicle>, <audio>, colors.neutral)
-            flow-edge(<vehicle>, <data>, colors.neutral)
+            emoji-node((-2, 1), colors.neutral, <vehicle>)[🚗]
+            styled-edge(<vehicle>, <video>, color: colors.neutral)
+            styled-edge(<vehicle>, <audio>, color: colors.neutral)
+            styled-edge(<vehicle>, <data>, color: colors.neutral)
 
-            emoji-node((0, 2), "📹", colors.stream, <video>)
-            flow-edge(<video>, <control>, colors.stream)
+            emoji-node((0, 2), colors.stream, <video>)[📹]
+            styled-edge(<video>, <control>, color: colors.stream)
 
-            emoji-node((0, 1), "🎵", colors.stream, <audio>)
-            flow-edge(<audio>, <control>, colors.data)
+            emoji-node((0, 1), colors.stream, <audio>)[🎵]
+            styled-edge(<audio>, <control>, color: colors.data)
 
-            emoji-node((0, 0), "📊", colors.stream, <data>)
-            flow-edge(<data>, <control>, colors.operator)
+            emoji-node((0, 0), colors.stream, <data>)[📊]
+            styled-edge(<data>, <control>, color: colors.operator)
 
-            emoji-node((3, 1), text(size: 2em)[🎛️], colors.neutral, <control>)
+            emoji-node((3, 1), colors.neutral, <control>)[🎛️]
           },
         )
       }
@@ -69,8 +69,8 @@
           color: colors.data,
         )
 
-        edge(<physical>, <leaf>, "->", stroke: colors.operator.accent + arrow-width, label: "OS abstraction")
-        edge(<leaf>, <operators>, "->", stroke: colors.stream.accent + arrow-width, label: "Stream operators")
+        styled-edge(<physical>, <leaf>, "->", color: colors.operator, label: "OS abstraction")
+        styled-edge(<leaf>, <operators>, "->", color: colors.stream, label: "Stream operators")
 
         node(
           (-1, 1),
@@ -78,31 +78,31 @@
           [Requires an `async` runtime \ #text(size: 0.7em)[(see 'leaf future' by _Carl Fredrik Samson_)]],
           stroke: none,
         )
-        edge(<runtime-note>, <leaf>, "->", stroke: colors.neutral.accent + arrow-width)
+        styled-edge(<runtime-note>, <leaf>, "->", color: colors.neutral)
 
         node((-1, 0), name: <presentation-note>, [In this presentation], stroke: none)
-        edge(<presentation-note>, <operators>, "->", stroke: colors.neutral.accent + arrow-width)
+        styled-edge(<presentation-note>, <operators>, "->", color: colors.neutral)
 
         node(
           (1, 2),
           name: <legend-data>,
           fill: none,
           stroke: none,
-        )[ #box(width: 1em, height: 1em, rect(fill: colors.data.base, stroke: colors.data.accent)) Data]
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.data, stroke: colors.data)) Data]
 
         node(
           (1, 1),
           name: <legend-streams>,
           fill: none,
           stroke: none,
-        )[ #box(width: 1em, height: 1em, rect(fill: colors.stream.base, stroke: colors.stream.accent)) Streams]
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.stream, stroke: colors.stream)) Streams]
 
         node(
           (1, 0),
           name: <legend-operators>,
           fill: none,
           stroke: none,
-        )[ #box(width: 1em, height: 1em, rect(fill: colors.operator.base, stroke: colors.operator.accent))   Operators]
+        )[ #box(width: 1em, height: 1em, rect(fill: colors.operator, stroke: colors.operator))   Operators]
       },
     )
   ]

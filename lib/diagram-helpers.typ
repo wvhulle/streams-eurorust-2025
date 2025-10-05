@@ -6,7 +6,26 @@
   stroke-width as default-stroke-width,
 )
 
-// ============================================================================
+// =====================================
+
+#let styled-content(
+  draw,
+  pos,
+  color,
+  size: 6pt,
+  weight: none,
+  anchor: "center",
+  content,
+) = {
+  let text-color = color.darken(70%)
+  draw.content(
+    pos,
+    text(size: size, weight: if weight != none { weight } else { "bold" }, fill: text-color)[#content],
+    anchor: anchor,
+  )
+}
+
+// =======================
 // Main Wrapper Function
 // ============================================================================
 
@@ -32,48 +51,52 @@
 // Basic Node Creators
 // ============================================================================
 
+#let colored-node(
+  pos,
+  color: blue,
+  name: none,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
+  shape: auto,
+  content,
+) = node(
+  pos,
+  content,
+  fill: color,
+  stroke: color.saturate(50%).darken(20%) + stroke-width,
+  outset: outset,
+  shape: shape,
+  name: name,
+)
+
 #let stream-node(
   pos,
-  text,
   name,
   color: colors.stream,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
-) = node(
-  pos,
-  [#text],
-  fill: color.base,
-  stroke: color.accent + stroke-width,
-  outset: outset,
-  name: name,
-)
+  body,
+) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, body)
 
 #let emoji-node(
   pos,
-  emoji,
   color,
   name,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
-) = node(
-  pos,
-  emoji,
-  fill: color.base,
-  stroke: color.accent + stroke-width,
-  outset: outset,
-  name: name,
-)
+  content,
+) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, content)
 
 #let title-node(
   pos,
-  text,
   fill: none,
   stroke: none,
   outset: default-node-outset,
+  content,
 ) = node(
-  outset: outset,
   pos,
-  text,
+  content,
+  outset: outset,
   fill: fill,
   stroke: stroke,
 )
@@ -84,35 +107,21 @@
 
 #let call-node(
   pos,
-  text,
   color,
   name,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
-) = node(
-  pos,
-  [#text],
-  fill: color.base,
-  stroke: color.accent + stroke-width,
-  outset: outset,
-  name: name,
-)
+  content,
+) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, content)
 
 #let result-node(
   pos,
-  text,
   color,
   name,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
-) = node(
-  pos,
-  [#text],
-  fill: color.base,
-  stroke: color.accent + stroke-width,
-  outset: outset,
-  name: name,
-)
+  content,
+) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, content)
 
 #let state-node(
   pos,
@@ -132,8 +141,8 @@
     text(size: title-size, weight: "bold")[#title],
     text(size: desc-size, style: "italic")[#desc],
   ),
-  fill: color.base,
-  stroke: color.accent + stroke-width,
+  fill: color,
+  stroke: color.darken(70%) + stroke-width,
   outset: outset,
   name: name,
 )
@@ -156,8 +165,8 @@
       - #item
     ]
   ])),
-  fill: color.base,
-  stroke: color.accent + stroke-width,
+  fill: color,
+  stroke: color.darken(70%) + stroke-width,
   outset: outset,
   name: name,
 )
@@ -178,8 +187,8 @@
   node(
     pos,
     name: name,
-    fill: color.base,
-    stroke: color.accent + stroke-width,
+    fill: color,
+    stroke: color.darken(70%) + stroke-width,
     outset: outset,
     stack(
       dir: ttb,
@@ -197,127 +206,70 @@
 
 #let queue-item(
   pos,
-  char,
   consumed,
   name,
   colors,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
+  content,
 ) = node(
-  outset: outset,
   pos,
-  if consumed { [#strike[#char]] } else { [#char] },
-  fill: if consumed { colors.neutral.base.lighten(90%) } else { colors.neutral.base.darken(10%) },
-  stroke: colors.neutral.accent + stroke-width,
+  if consumed { [#strike[#content]] } else { content },
+  outset: outset,
+  fill: if consumed { colors.neutral.lighten(90%) } else { colors.neutral.darken(10%) },
+  stroke: colors.neutral.darken(70%) + stroke-width,
   shape: fletcher.shapes.rect,
   name: name,
 )
 
 #let data-item(
   pos,
-  char,
   name,
   colors,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
+  content,
 ) = node(
-  outset: outset,
   pos,
-  [#char],
-  fill: colors.data.base,
-  stroke: colors.data.accent + stroke-width,
+  content,
+  outset: outset,
+  fill: colors.data,
+  stroke: colors.data.darken(70%) + stroke-width,
   shape: fletcher.shapes.circle,
   name: name,
 )
 
 // ============================================================================
-// Basic Edge Creators
+// Edge Creators
 // ============================================================================
 
-#let simple-edge(
+// Unified styled edge with optional color and label
+#let styled-edge(
   from,
   to,
   ..args,
-) = edge(from, to, "->", ..args)
-
-#let simple-flow(
-  from,
-  to,
-  color,
-  stroke-width: default-stroke-width,
-  ..args,
-) = edge(
-  from,
-  to,
-  "->",
-  stroke: color.accent + stroke-width,
-  ..args,
-)
-
-// ============================================================================
-// Specialized Edge Creators
-// ============================================================================
-
-#let labeled-edge(
-  from,
-  to,
   label: none,
+  color: none,
+  stroke-width: default-stroke-width,
   label-size: 6pt,
-  ..args,
 ) = {
-  if label != none {
-    edge(from, to, text(size: label-size)[#label], "->", ..args)
-  } else {
-    edge(from, to, "->", ..args)
-  }
+  let positional-args = args.pos()
+  let named-args = args.named()
+
+  // Default to "->" if no mark is provided in positional args
+  let mark = if positional-args.len() > 0 { positional-args.at(0) } else { "->" }
+
+  edge(
+    from,
+    to,
+    if label != none { text(size: label-size)[#label] },
+    mark,
+    stroke: if color != none { color.saturate(50%).darken(10%) + stroke-width } else { stroke-width },
+    ..named-args,
+  )
 }
 
-#let transition(
-  from,
-  to,
-  label,
-  label-size: 6pt,
-  ..args,
-) = edge(
-  from,
-  to,
-  text(size: label-size)[#label],
-  "->",
-  ..args,
-)
-
-#let flow-edge(
-  from,
-  to,
-  color,
-  arrow-width: default-arrow-width,
-  label: none,
-  ..args,
-) = edge(
-  from,
-  to,
-  if label != none { [#label] },
-  "->",
-  stroke: color.accent + arrow-width,
-  ..args,
-)
-
-#let labeled-flow(
-  from,
-  to,
-  label,
-  color,
-  arrow-width: default-arrow-width,
-  ..args,
-) = edge(
-  from,
-  to,
-  [#label],
-  "->",
-  stroke: color.accent + arrow-width,
-  ..args,
-)
-
+// Specialized: dashed link for queue connections
 #let queue-link(
   from,
   to,
@@ -328,9 +280,9 @@
 ) = edge(
   from,
   to,
-  text(fill: colors.neutral.accent)[#label],
+  text(fill: colors.neutral.darken(70%), size: 6pt)[#label],
   "--",
-  stroke: colors.neutral.accent + stroke-width,
+  stroke: colors.neutral.darken(70%) + stroke-width,
   ..args,
 )
 
@@ -338,23 +290,107 @@
 // Canvas Helpers
 // ============================================================================
 
-#let hexagon(
+// Styled canvas primitives that apply darkening automatically
+#let styled-circle(
   draw,
   center,
-  size,
-  stroke-color,
-  label,
-  label-pos,
-  fill-color: white,
+  color,
+  radius: 0.5,
+  label: none,
+  label-size: 6pt,
   stroke-width: default-stroke-width,
 ) = {
   draw.circle(
     center,
-    radius: size / 2,
-    stroke: stroke-color + stroke-width,
-    fill: fill-color,
+    radius: radius,
+    fill: color,
+    stroke: color.darken(70%) + stroke-width,
   )
-  if label != "" {
-    draw.content(label-pos, label, anchor: "center")
+  if label != none {
+    let text-color = { color.saturate(100%).darken(70%) }
+    draw.content(
+      (center.at(0), center.at(1) + radius + 0.15),
+      text(size: label-size, fill: text-color)[#label],
+      anchor: "center",
+    )
+  }
+}
+
+#let styled-rect(
+  draw,
+  from,
+  to,
+  color,
+  stroke-width: default-stroke-width,
+  radius: none,
+  label: none,
+  label-size: 7pt,
+) = {
+  draw.rect(
+    from,
+    to,
+    fill: color,
+    stroke: color.darken(70%) + stroke-width,
+    radius: radius,
+  )
+  if label != none {
+    let text-color = { color.darken(70%) }
+    let center-x = (from.at(0) + to.at(0)) / 2
+    let top-y = calc.max(from.at(1), to.at(1)) + 0.15
+    draw.content((center-x, top-y), text(size: label-size, fill: text-color)[#label], anchor: "south")
+  }
+}
+
+#let styled-line(
+  draw,
+  from,
+  to,
+  color,
+  stroke-width: default-stroke-width,
+  mark: none,
+) = {
+  draw.line(
+    from,
+    to,
+    stroke: color.darken(70%) + stroke-width,
+    mark: mark,
+  )
+}
+
+#let styled-content(
+  draw,
+  pos,
+  color,
+  size: 6pt,
+  weight: none,
+  anchor: "center",
+  content,
+) = {
+  let text-color = color.saturate(100%).darken(20%)
+  draw.content(
+    pos,
+    text(size: size, weight: if weight != none { weight } else { "bold" }, fill: text-color)[#content],
+    anchor: anchor,
+  )
+}
+
+#let hexagon(
+  draw,
+  center,
+  size,
+  color: white,
+  stroke-width: default-stroke-width,
+  label,
+) = {
+  let stroke-color = color.saturate(50%).darken(10%)
+  let radius = size / 2
+  draw.circle(
+    center,
+    radius: radius,
+    stroke: stroke-color + stroke-width,
+    fill: color,
+  )
+  if label != none {
+    draw.content((center.at(0), center.at(1) + radius + 0.2), text(fill: stroke-color)[#label], anchor: "center")
   }
 }
