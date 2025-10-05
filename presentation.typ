@@ -99,8 +99,8 @@
       edge-stroke: arrow-width,
       spacing: (1em, 2em),
       {
-        let layer(pos, label, desc, fill, examples, stroke) = {
-          node(pos, fill: fill, stroke: stroke + stroke-width, stack(
+        let layer(pos, name, label, desc, fill, examples, stroke) = {
+          node(pos, name: name, fill: fill, stroke: stroke + stroke-width, stack(
             dir: ttb,
             spacing: 0.6em,
 
@@ -111,7 +111,8 @@
         }
 
         layer(
-          (0, 2),
+          (0, 0),
+          <operators>,
           "Stream operators",
           "Pure software transformations",
           colors.operator.base,
@@ -121,6 +122,7 @@
 
         layer(
           (0, 1),
+          <leaf>,
           "Leaf streams",
           "OS/kernel constraints",
           colors.stream.base,
@@ -129,7 +131,8 @@
         )
 
         layer(
-          (0, 0),
+          (0, 2),
+          <physical>,
           "Physical streams",
           "Electronic signals",
           colors.data.base,
@@ -137,34 +140,38 @@
           colors.data.accent,
         )
 
-        edge((0, 0), (0, 1), "->", stroke: colors.operator.accent + arrow-width, label: "OS abstraction")
-        edge((0, 1), (0, 2), "->", stroke: colors.stream.accent + arrow-width, label: "Stream operators")
+        edge(<physical>, <leaf>, "->", stroke: colors.operator.accent + arrow-width, label: "OS abstraction")
+        edge(<leaf>, <operators>, "->", stroke: colors.stream.accent + arrow-width, label: "Stream operators")
 
         node(
           (-1, 1),
+          name: <runtime-note>,
           [Requires an `async` runtime \ #text(size: 0.7em)[(see 'leaf future' by _Carl Fredrik Samson_)]],
           stroke: none,
         )
-        edge((-1, 1), (0, 1), "->", stroke: colors.neutral.accent + arrow-width)
+        edge(<runtime-note>, <leaf>, "->", stroke: colors.neutral.accent + arrow-width)
 
-        node((-1, 2), [In this presentation], stroke: none)
-        edge((-1, 2), (0, 2), "->", stroke: colors.neutral.accent + arrow-width)
+        node((-1, 0), name: <presentation-note>, [In this presentation], stroke: none)
+        edge(<presentation-note>, <operators>, "->", stroke: colors.neutral.accent + arrow-width)
 
 
         node(
-          (1, 0),
+          (1, 2),
+          name: <legend-data>,
           fill: none,
           stroke: none,
         )[ #box(width: 1em, height: 1em, rect(fill: colors.data.base, stroke: colors.data.accent)) Data]
 
         node(
           (1, 1),
+          name: <legend-streams>,
           fill: none,
           stroke: none,
         )[ #box(width: 1em, height: 1em, rect(fill: colors.stream.base, stroke: colors.stream.accent)) Streams]
 
         node(
-          (1, 2),
+          (1, 0),
+          name: <legend-operators>,
           fill: none,
           stroke: none,
         )[ #box(width: 1em, height: 1em, rect(fill: colors.operator.base, stroke: colors.operator.accent))   Operators]
@@ -614,7 +621,7 @@
 
 
 #slide[
-  === The lesser-known #link("https://doc.rust-lang.org/std/future/fn.ready.html")[`std::future::ready`] function
+  === The handy #link("https://doc.rust-lang.org/std/future/fn.ready.html")[`std::future::ready`] function
 
   The `futures::StreamExt::filter` expects an *async closure* (or closure returning `Future`):
   #text(size: 9pt)[
@@ -684,29 +691,61 @@
 #slide[
 
 
-  === Wrapping the original stream by value
+  === Wrapping the original stream
+
+  #set text(size: 8pt)
+
+  All stream operators start by:
+
+  - *wrapping input stream by value*
+  - and being *generic over stream type*
+
+  (No trait bounds yet ):
 
   ```rust
   struct Double<InSt> { in_stream: InSt, }
+  ```
+  And implementing the `Stream` trait for it (*with trait bounds*):
 
+  ```rs
   impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> {
     type Item = InSt::Item;
-    // Self = Double<InSt>
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-        -> Poll<Option<Self::Item>> {
-              // Project onto self.in_stream...
-              Pin::new(&mut self.in_stream) // Not possible!
-                  .poll_next(cx) // Unreachable ...
-                  .map(|x| x * 2)
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) ->  Poll<Option<Self::Item>> {
+              ...
     }
+  }
+  ```
+]
+
+
+
+#slide[
+
+
+  === Naive implementation of `poll_next`
+
+  Focus on the implementation of the `poll_next` method
+
+  (Remember that `Self = Double<InSt>` with field `in_stream: InSt`):
+
+  ```rust
+  fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+      -> Poll<Option<Self::Item>> {
+            // Access field `self.in_stream`
+            //  `self.in_stream` is of type `InSt`
+            Pin::new(&mut self.in_stream) // Not possible!
+                .poll_next(cx) // Unreachable ...
+                .map(|x| x * 2)
   }
   ```
   `Pin<&mut Self>` *blocks access to `self.in_stream`*!
 ]
 
 
+
 #slide[
-  === How to *project* to access `self.in_stream`?
+  === How to access `self.in_stream`?
   #text(size: 8pt)[
     #align(center + horizon)[
 
@@ -964,7 +1003,7 @@
 
   === Putting it all together visually
 
-  ... and wrapping it around the boxed stream:
+  Mapping from `Pin<&mut Double>` to `&mut InSt` is called *projection*
 
   #align(center)[
     #canvas(length: 1.2cm, {
@@ -1559,11 +1598,9 @@
 
 #slide[
 
-  === #link(
-    "https://github.com/wvhulle/clone-stream/blob/main/src/states.rs",
-  )[Eventual state machine of `clone-stream`]
+  === Simplified state machine of  #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[`clone-stream`]
   #set text(size: 8pt)
-  Enforcing simplicity, *correctness and performance*, I ended up with this minimal (simplified) state machine.
+  Enforcing simplicity, *correctness and performance*:
 
 
 
@@ -1638,7 +1675,7 @@
 
 
 #slide[
-  === Steps for developing robust operators
+  === Steps for creating robust stream operators
 
   #align(center + horizon)[
     #{
@@ -1669,7 +1706,7 @@
         node-corner-radius: node-radius,
         node-outset: node-outset,
         edge-stroke: arrow-width,
-        spacing: (3em, 2em),
+        spacing: (3em, 1em),
 
         workflow-step(
           (1, 3),
@@ -1694,22 +1731,46 @@
         workflow-step(
           (2, 2),
           "3",
-          "Implement",
-          ("Start with N=1,2", "Waker management"),
+          "Define transitions",
+          ([Start with 1,2 output `Stream`s], "Get wake-up order right", [Don't create  custom `Waker`s]),
           colors.state,
           <implement>,
         ),
         labeled-edge(<implement>, <run-tests>, none, bend: -15deg),
 
-        workflow-step((1, 1), "4", "Run tests", ("Tests pass?",), colors.ui, <run-tests>),
+        workflow-step(
+          (1, 1),
+          "4",
+          "Run tests",
+          ("Trace tests", "Debug tests"),
+          colors.ui,
+          <run-tests>,
+        ),
         labeled-edge(<run-tests>, <benchmarks>, "✓ pass"),
         labeled-edge(<run-tests>, <implement>, "✗ fail", stroke: colors.error.accent + stroke-width, bend: -30deg),
+
+        labeled-edge(
+          <run-tests>,
+          <write-tests>,
+          "✗ missing test",
+          stroke: colors.error.accent + stroke-width,
+          bend: -30deg,
+        ),
+
+        labeled-edge(
+          <benchmarks>,
+          <implement>,
+          "✗ too slow",
+          stroke: colors.error.accent + stroke-width,
+          bend: 30deg,
+          label-pos: 0.3,
+        ),
 
         workflow-step(
           (3, 1),
           "5",
           "Performance",
-          ("Add benchmarks", "Add profiling", "Find hotspots"),
+          ("Add benchmarks (criterion)", "Add profiling", "Find hotspots"),
           colors.operator,
           <benchmarks>,
         ),
@@ -1779,7 +1840,7 @@
 #slide[
 
   #set text(size: 8pt)
-  === Recommendations
+  === How to get started
   #v(-3em)
   #align(center + horizon)[
     #diagram(
@@ -1790,7 +1851,7 @@
       node-fill: colors.data.base,
 
 
-      node((1.5, 0), [Transform a `Stream`?], name: <transform>),
+      node((1.5, 0), [Stream processing style], name: <transform>),
       edge(<transform>, <control-flow>, [Traditional \ control flow], "-}>"),
       edge(<transform>, <standard>, [Stream \ operators], "-}>"),
 
@@ -1811,13 +1872,20 @@
       ),
 
       node(
+        fill: colors.neutral.base,
+        stroke: colors.neutral.accent + stroke-width,
+        enclose: (<control-flow>, <unfold>, <async-stream>),
+        name: <traditional>,
+      ),
+
+      node(
         (2.5, 3.5),
-        [The *dark magic* of stream operators!],
+        text(size: 1.5em)[Always requires `Box` \ to make `!Unpin` \ output `Unpin` ],
         name: <dark-magic>,
         fill: colors.error.base,
         stroke: colors.error.accent + stroke-width,
       ),
-      edge(<dark-magic>, <stream-operators>, "--"),
+      edge(<dark-magic>, <traditional>, "--"),
       node((0, 1), [Standard? \ e.g. N-1, 1-1], name: <standard>),
 
       edge(<standard>, <rxjs>, [No], "-}>"),
@@ -2319,74 +2387,107 @@
 #slide[
   === Why does Rust need special treatment?
 
-  #set text(size: 8pt)
+  #set text(size: 7pt)
 
-  *Key challenges:*
 
-  - Most mainstream languages lack functional stream operators entirely
-  - Rust's ownership and borrowing rules require explicit data tracking
-  - Memory safety constraints force careful stream design
+  - Stream operators must wrap and own their input by value
+  - Combining `Future` (waker cleanup, coordination) and `Iterator` (ordering, backpressure) complexity
+  - Sharing mutable state safely across async boundaries requires careful design
 
 
 
   #align(center)[
-    #canvas(length: 1cm, {
-      import draw: *
+    #diagram(
+      spacing: (4em, 2em),
+      node-inset: 2pt,
+      node-outset: node-outset,
+      node-fill: colors.state.base,
+      node-stroke: stroke-width + colors.state.accent,
+      node-corner-radius: node-radius,
+      node-shape: circle,
+      {
+        // GC Languages
+        node((0, 1.2), [*GC Languages*], name: <gc-title>, fill: none, stroke: none)
+        node((0, 0.5), [GC], fill: colors.state.base, stroke: colors.state.accent + 1.5pt, shape: circle, name: <gc>)
+        node((-0.5, -0.3), [•], fill: colors.stream.accent, stroke: none, name: <gc-d1>)
+        node((0, -0.5), [•], fill: colors.stream.accent, stroke: none, name: <gc-d2>)
+        node((0.5, -0.2), [•], fill: colors.stream.accent, stroke: none, name: <gc-d3>)
+        node(
+          (0, -1.2),
+          text(size: 7pt)[Data flows freely,\ GC handles cleanup],
 
-      // GC Languages side
-      rect(
-        (0.5, 0.5),
-        (3.5, 4),
-        fill: colors.operator.base,
-        stroke: colors.operator.accent + stroke-width,
-        radius: node-radius,
-      )
-      content((2, 3.6), text(size: 9pt, weight: "bold", "GC Languages"), anchor: "center")
+          name: <gc-caption>,
+          stroke: none,
+          fill: none,
+        )
+        node(
+          fill: colors.neutral.base,
+          stroke: colors.neutral.accent + stroke-width,
+          shape: rect,
+          inset: 0.7em,
+          enclose: (
+            <gc-title>,
+            <gc>,
+            <gc-d1>,
+            <gc-d2>,
+            <gc-d3>,
+            <gc-caption>,
+          ),
+        )
 
-      // Garbage collector
-      circle((2, 2.9), radius: 0.35, fill: colors.state.base, stroke: colors.state.accent + stroke-width)
-      content((2, 2.9), text(size: 6pt, "GC"), anchor: "center")
+        // Separator
+        node((1.5, 0.3), [*vs*], stroke: none, fill: none)
 
-      // Free-flowing data with crossing paths
-      line((1.2, 2.2), (2.8, 1.8), stroke: colors.stream.accent + 1pt)
-      line((1.2, 1.8), (2.8, 2.2), stroke: colors.stream.accent + 1pt)
-      line((1.5, 1.5), (2.5, 1.5), stroke: colors.stream.accent + 1pt)
+        node(
+          fill: colors.stream.base,
+          stroke: colors.stream.accent + stroke-width,
+          shape: fletcher.shapes.rect,
+          inset: 0.7em,
+          enclose: (
+            <rust-title>,
+            <owner>,
+            <owner-label>,
+            <moved>,
+            <moved-label>,
+            <borrowed>,
+            <borrow-label>,
+            <rust-caption>,
+          ),
+        )
 
-      content((2, 0.9), text(size: 7pt, "Data flows freely,\nGC handles cleanup"), anchor: "center")
+        // Rust
+        node((3, 1.2), [*Rust*], stroke: none, fill: none, name: <rust-title>)
+        node((2.7, 0.2), [•], fill: colors.stream.accent, stroke: colors.stream.accent + 1pt, name: <owner>)
+        node((2.7, 0.6), text(size: 6pt)[Owner], stroke: none, name: <owner-label>, fill: none)
+        node((3.5, 0.2), [•], fill: colors.stream.accent, stroke: colors.stream.accent + 1pt, name: <moved>)
+        node((3.5, 0.6), text(size: 6pt)[Moved], stroke: none, fill: none, name: <moved-label>)
+        node((3.5, -0.5), [•], fill: colors.stream.accent, stroke: colors.stream.accent + 1pt, name: <borrowed>)
+        node((3.5, -0.9), text(size: 6pt)[Borrow], stroke: none, name: <borrow-label>, fill: none)
+        node(
+          (3, -1.5),
+          text(size: 7pt)[Explicit ownership,\ tracked at compile time],
+          shape: rect,
+          fill: none,
+          stroke: none,
+          inset: 0.5em,
+          name: <rust-caption>,
+        )
 
-      // VS separator
-      content((4.5, 2.25), text(size: 12pt, weight: "bold", "vs"), anchor: "center")
+        edge(<owner>, <moved>, "->", stroke: colors.stream.accent + 1.5pt)
+        edge(<owner>, <borrowed>, "->", stroke: (paint: colors.stream.accent, thickness: 1.5pt, dash: "dashed"))
 
-      // Rust side
-      rect(
-        (5.5, 0.5),
-        (8.5, 4),
-        fill: colors.ui.base,
-        stroke: colors.ui.accent + stroke-width,
-        radius: node-radius,
-      )
-      content((7, 3.6), text(size: 9pt, weight: "bold", "Rust"), anchor: "center")
-
-      // Constrained linear data flow with ownership annotations
-
-      // Data point 1 - owned
-      circle((6.3, 2.0), radius: 0.15, fill: colors.stream.accent, stroke: colors.stream.accent + 1pt)
-      content((6.3, 2.4), text(size: 6pt, "Owner"), anchor: "center")
-
-      line((6.45, 2.0), (7.05, 2.0), stroke: colors.stream.accent + 1.5pt, mark: (end: "stealth"))
-
-      // Data point 2 - moved/borrowed
-      circle((7.2, 2.0), radius: 0.15, fill: colors.stream.accent, stroke: colors.stream.accent + 1pt)
-      content((7.2, 2.4), text(size: 6pt, "Moved"), anchor: "center")
-
-      line((7.35, 2.0), (7.65, 1.6), stroke: colors.stream.accent + 1.5pt, mark: (end: "stealth"))
-
-      // Data point 3 - borrowed
-      circle((7.8, 1.5), radius: 0.15, fill: colors.stream.accent, stroke: colors.stream.accent + 1pt)
-      content((7.8, 1.9), text(size: 6pt, "Borrow"), anchor: "center")
-
-      content((7, 0.9), text(size: 7pt, "Explicit ownership,\ntracked at compile time"), anchor: "center")
-    })
+        node(fill: colors.ui.base, stroke: colors.ui.accent + stroke-width, enclose: (
+          <rust-title>,
+          <owner>,
+          <owner-label>,
+          <moved>,
+          <moved-label>,
+          <borrowed>,
+          <borrow-label>,
+          <rust-caption>,
+        ))
+      },
+    )
   ]
 
   #v(0.5em)
