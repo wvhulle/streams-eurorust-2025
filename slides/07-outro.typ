@@ -374,7 +374,7 @@
         )[#text(size: 7pt)[Data flows freely,\ GC handles cleanup]]
         node(
           fill: colors.neutral,
-          stroke: colors.neutral + stroke-width,
+          stroke: accent(colors.neutral) + stroke-width,
           shape: rect,
           inset: 0.7em,
           enclose: (<gc-title>, <gc>, <gc-d1>, <gc-d2>, <gc-d3>, <gc-caption>),
@@ -384,7 +384,7 @@
 
         node(
           fill: colors.stream,
-          stroke: colors.stream + stroke-width,
+          stroke: accent(colors.stream) + stroke-width,
           shape: fletcher.shapes.rect,
           inset: 0.7em,
           enclose: (
