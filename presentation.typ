@@ -1210,7 +1210,7 @@
   let ui_latency = tcp_stream.latency().fork();
 
   let breaks_latency_clone = ui_latency.clone();
-  // Warning! Needs to be implemented
+  // Warning: `Clone` needs to be implemented!
 
   spawn(async move { display_ui(ui_latency).await; });
   spawn(async move { engage_breaks(breaks_latency_clone).await; });
@@ -1591,11 +1591,11 @@
         spacing: (4em, 1.5em),
 
         // Core states from actual implementation
-        state-node((0, 1), "PollingBaseStream", "Actively polling input stream", colors.state, <polling-base-stream>),
+        state-node((0, 1), "PollingInputStream", "Actively polling input stream", colors.state, <polling-base-stream>),
         transition(
           <polling-base-stream>,
           <processing-queue>,
-          [base ready,\ queue item],
+          [input stream ready,\ queue item],
           label-pos: 0.5,
           label-anchor: "north",
           label-sep: 0em,
@@ -1603,19 +1603,19 @@
         transition(
           <polling-base-stream>,
           <pending>,
-          "base pending",
+          "input stream pending",
           bend: -15deg,
-          label-pos: 0.5,
+          label-pos: 0.7,
           label-sep: 0.5em,
           label-anchor: "west",
         ),
 
-        state-node((2, 1), "ProcessingQueue", "Reading from shared buffer", colors.data, <processing-queue>),
-        transition(<processing-queue>, <polling-base-stream>, [queue empty,\ poll base], bend: 40deg, label-pos: 0.3),
+        state-node((2, 1), "ReadingBuffer", "Reading from shared buffer", colors.data, <processing-queue>),
+        transition(<processing-queue>, <polling-base-stream>, [buffer empty,\ poll base], bend: 40deg, label-pos: 0.5),
 
         state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.ui, <pending>),
         transition(<pending>, <polling-base-stream>, "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
-        transition(<pending>, <processing-queue>, "queue ready", bend: 15deg, label-pos: 0.7),
+        transition(<pending>, <processing-queue>, "fresh buffer", bend: 15deg, label-pos: 0.7),
       )
     }
   ]
@@ -1773,28 +1773,61 @@
   #v(-3em)
   #align(center + horizon)[
     #diagram(
-      node-stroke: stroke-width + colors.stream.accent,
+      node-stroke: stroke-width + colors.data.accent,
       node-corner-radius: node-radius,
       edge-stroke: arrow-width,
       mark-scale: 80%,
-      node-fill: colors.stream.base,
+      node-fill: colors.data.base,
 
 
-      node((1, 0), [Transform a `Stream`?], name: <transform-stream>),
-      edge(<transform-stream>, <declarative>, [Without `Pin`], "-}>"),
-      edge(<transform-stream>, <simple-transform>, [With `Pin`], "-}>"),
+      node((1.5, 0), [Transform a `Stream`?], name: <transform-stream>),
+      edge(<transform-stream>, <declarative>, [Traditional \ control flow], "-}>"),
+      edge(<transform-stream>, <simple-transform>, [Stream \ operators], "-}>"),
+
+      node(
+        fill: colors.pin.base,
+        stroke: colors.pin.accent + stroke-width,
+        enclose: (
+          <simple-transform>,
+          <futures-lib>,
+          <futures-rx-lib>,
+          <simple-transform>,
+          <rxjs-like>,
+          <on-cratesio>,
+          <build-own-trait>,
+          <import-extension-trait>,
+        ),
+      ),
 
       node((0, 1), [Standard? \ e.g. N-1, 1-1], name: <simple-transform>),
 
       edge(<simple-transform>, <rxjs-like>, [No], "-}>"),
-      node((-0.5, 2), [`futures`], name: <futures-lib>),
+      node(
+        (-0.5, 2),
+        [`futures::` \ `StreamExt`],
+        name: <futures-lib>,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
+      ),
       edge(<simple-transform>, <futures-lib>, [Yes], "-}>"),
-      node((0.6, 2), [RxJs-like \ e.g. 1-N], name: <rxjs-like>),
+      node(
+        (0.6, 2),
+        [RxJs-like \ e.g. 1-N],
+        name: <rxjs-like>,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
+      ),
 
-      node((-0.5, 3), [`futures-rx`], name: <futures-rx-lib>),
+      node(
+        (-0.5, 3),
+        [`futures-rx`],
+        name: <futures-rx-lib>,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
+      ),
       edge(<rxjs-like>, <futures-rx-lib>, [Yes], "-}>"),
 
-      node((0.6, 3), [On \ crates.io], name: <on-cratesio>),
+      node((0.6, 3), [Search \ crates.io], name: <on-cratesio>),
       edge(<rxjs-like>, <on-cratesio>, [No], "-}>"),
 
       node(
@@ -1804,21 +1837,34 @@
         fill: colors.operator.base,
         stroke: colors.operator.accent + stroke-width,
       ),
-      edge(<on-cratesio>, <build-own-trait>, [No], "-}>"),
-      node((1, 4), [Import \ extension trait], name: <import-extension-trait>),
-      edge(<on-cratesio>, <import-extension-trait>, [Yes], "-}>"),
-      node((2, 1), [Declarative], name: <declarative>),
+      edge(<on-cratesio>, <build-own-trait>, [Does not exist], "-}>"),
+      node(
+        (1, 4),
+        [Import \ extension trait],
+        name: <import-extension-trait>,
+        fill: colors.operator.base,
+        stroke: colors.operator.accent + stroke-width,
+      ),
+      edge(<on-cratesio>, <import-extension-trait>, [Exists], "-}>"),
+      node((2.5, 1), [Declarative], name: <declarative>),
       edge(<declarative>, <simple-declarative>, "-}>", [Yes]),
       edge(<declarative>, <async-stream-lib>, [No]),
 
-      node((1.5, 2), [simple state], name: <simple-declarative>),
-      edge(<simple-declarative>, <unfold-fn>, [Yes], "-}>"),
-      node((1.2, 3), [`unfold`], name: <unfold-fn>),
+      node(
+        (2, 2),
+        [`futures::` \ `stream::unfold`],
+        name: <simple-declarative>,
+        fill: colors.stream.base,
+        stroke: colors.stream.accent + stroke-width,
+      ),
 
-      node((2.5, 2), [`async-stream`], name: <async-stream-lib>),
-      edge(<simple-declarative>, <async-runtime>, [No], "-}>"),
-
-      node((2, 3), [async \ runtime], name: <async-runtime>),
+      node(
+        (3, 2),
+        [`async-stream` \ with `yield`],
+        name: <async-stream-lib>,
+        fill: colors.stream.base,
+        stroke: colors.stream.accent + stroke-width,
+      ),
     )
   ]
 ]
