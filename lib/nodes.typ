@@ -64,8 +64,18 @@
   name,
   stroke-width: default-stroke-width,
   outset: default-node-outset,
+  inset: -1pt,
   content,
-) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, text(size: 1.5em, content))
+) = node(
+  pos,
+  text(size: 2.5em, content),
+  fill: if color == none { none } else { color },
+  stroke: if color == none { none } else { accent(color) + stroke-width },
+  outset: outset,
+  inset: inset,
+  shape: fletcher.shapes.circle,
+  name: name,
+)
 
 #let title-node(
   pos,

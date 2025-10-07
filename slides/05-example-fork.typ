@@ -30,19 +30,28 @@
     )
 
     #align(center)[
-      #canvas(length: 1cm, {
-        import draw: *
+      #text(size: 8pt)[
 
-        let clone-positions = ((0.5, 1), (2, 0.5), (4, 0.2), (6, 1.2), (7.5, 0.8))
-        for (i, pos) in clone-positions.enumerate() {
-          let (x, y) = pos
-          let color = if i < 2 { colors.pin } else { colors.state }
-          styled-circle(draw, (x, y), color, radius: 0.2)[C]
-        }
 
-        content((4, 1), text(size: 8pt, "Thousands of clones..."), anchor: "center")
-      })
+
+        #canvas(length: 1cm, {
+          import draw: *
+
+          let clone-positions = ((0.5, 1), (2, 0.5), (4, 0.2), (6, 1.2), (7.5, 0.8))
+          for (i, pos) in clone-positions.enumerate() {
+            let (x, y) = pos
+            let color = if i < 2 { colors.pin } else { colors.state }
+            styled-circle(draw, (x, y), color, radius: 0.2)[#i]
+          }
+
+          content((4, 1), "Thousands of clones...", anchor: "center")
+        })
+      ]
+
+      All in different states
     ]
+
+
   ]
 
   slide(title: "Sharing latency between tasks")[
@@ -51,6 +60,7 @@
     ```rust
     let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
     let latency = tcp_stream.latency(); // Stream<Item = Duration>
+
     spawn(async move { display_ui(latency).await; });
     spawn(async move { engage_breaks(latency).await; }); // Error!
     ```

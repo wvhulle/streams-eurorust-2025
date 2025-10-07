@@ -12,9 +12,8 @@
   center,
   color,
   radius: 0.5,
-  label-size: 6pt,
   stroke-width: default-stroke-width,
-  content,
+  body,
 ) = {
   draw.circle(
     center,
@@ -22,10 +21,10 @@
     fill: color,
     stroke: accent(color) + stroke-width,
   )
-  if label != none {
+  if body != none and body != [] {
     draw.content(
       (center.at(0), center.at(1) + radius + 0.15),
-      text(size: label-size, weight: "bold")[#content],
+      text(weight: "bold", body),
       anchor: "center",
     )
   }
@@ -97,8 +96,6 @@
   draw,
   pos,
   color,
-  size: 6pt,
-  weight: none,
   anchor: "center",
   background: none,
   padding: 0.2,
@@ -118,7 +115,7 @@
   } else {
     draw.content(
       pos,
-      text(size: size, weight: if weight != none { weight } else { "bold" })[#content],
+      [#content],
       anchor: anchor,
     )
   }
@@ -169,6 +166,6 @@
     draw.line(start, end, stroke: stroke-color + stroke-width)
   }
   if label != none {
-    draw.content((center.at(0), center.at(1) + radius + 0.2), text[#label], anchor: "center")
+    draw.content((center.at(0), center.at(1) + radius + 0.05), text[#label], anchor: "center")
   }
 }

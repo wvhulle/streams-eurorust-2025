@@ -15,7 +15,7 @@
       ]
       #{
         styled-diagram(
-          spacing: (2em, 1em),
+          spacing: (5em, 2em),
           {
             emoji-node((-2, 1), colors.neutral, <vehicle>)[🚗]
             styled-edge(<vehicle>, <video>, color: colors.neutral)
