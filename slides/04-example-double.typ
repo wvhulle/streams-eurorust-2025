@@ -61,14 +61,13 @@
     ```rust
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
         -> Poll<Option<Self::Item>> {
-              // Access field `self.in_stream`
-              //  `self.in_stream` is of type `InSt`
+              // Cannot access self.in_stream!
               Pin::new(&mut self.in_stream) // Not possible!
-                  .poll_next(cx) // Unreachable ...
+                  .poll_next(cx)
                   .map(|x| x * 2)
     }
     ```
-    `Pin<&mut Self>` *blocks access to `self.in_stream`*!
+    `Pin<&mut Self>` *blocks access to `self.in_stream`* (when `Self: !Unpin`)!
   ]
 
   slide(title: [How to access `self.in_stream`?])[
@@ -127,11 +126,10 @@
 
             styled-line(draw, (1.8, 2.7), (7.2, 2.7), colors.pin, mark: (end: "barbed"))
             styled-content(draw, (4.5, 3.0), colors.pin, size: 7pt, weight: "bold")[`Pin::new()`]
-            styled-content(draw, (4.5, 2.4), colors.pin, size: 6pt)[Always safe]
+            styled-content(draw, (4.5, 2.4), colors.pin, size: 6pt)[Always safe if `Bird: Unpin`]
 
             styled-line(draw, (7.2, 1.7), (1.8, 1.7), colors.pin, mark: (end: "barbed"))
             styled-content(draw, (4.5, 2.0), colors.pin, size: 7pt, weight: "bold")[`Pin::get_mut()`]
-            styled-content(draw, (4.5, 1.4), colors.pin, size: 6pt)[if `Bird: Unpin`]
 
             hexagon(
               draw,
@@ -156,7 +154,7 @@
             styled-line(draw, (2.5, 2.8), (6.5, 1.8), colors.error)
             styled-line(draw, (2.5, 1.8), (6.5, 2.8), colors.error)
 
-            styled-content(draw, (4.5, 1.5), colors.error, size: 6pt)[❌ Not safe]
+            styled-content(draw, (4.5, 1.5), colors.error, size: 6pt)[Not always safe \ (use `unsafe`)]
             styled-content(draw, (4.5, 2.5), colors.pin, size: 9pt, weight: "bold")[`Pin::get_mut()` \ `Pin::new()`]
 
             hexagon(
@@ -181,9 +179,13 @@
       #canvas(length: 1.2cm, {
         import draw: *
 
-        styled-rect(draw, (1, 3), (4, 5), colors.neutral, radius: node-radius)[Stack]
+        styled-rect(draw, (1, 3), (4, 5), colors.neutral, radius: node-radius)[#text(
+          size: 9pt,
+          weight: "bold",
+          [Stack],
+        )]
         styled-rect(draw, (1.9, 3.5), (3, 4.5), colors.data)[pointer `0X1234`]
-        content((2.5, 3.3), text(size: 7pt, "✅ Safe to move"), anchor: "center")
+        content((2.5, 3.3), text(size: 7pt, [`Unpin` = Safe to move]), anchor: "center")
 
 
         content((5.25, 4.3), text(size: 7pt, [`Box::new(in_stream)` \ dereferences to]), anchor: "center")
@@ -197,7 +199,7 @@
           (8.4, 3.5),
           black,
           size: 7pt,
-        )[`0X1234`\ `InSt (!Unpin)`\ Fixed address]
+        )[`0X1234`\ `InSt (!Unpin)`\ Not safe to move]
 
         content((11.5, 5.0), text(size: 3em, "🐅"), anchor: "center")
         content((11.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
@@ -215,7 +217,7 @@
     ]
 
     1. The output of `Box::new(tiger)` is just a pointer \
-      Moving pointers is safe, so *`Box: Unpin`*
+      Moving pointers is safe, so *`Box<Tiger>: Unpin`*
     2. Box behaves like what it contains: *`Box<X>: Deref<Target = X>`*
 
 
@@ -297,6 +299,8 @@
         styled-line(draw, (7.1, 4), (8.9, 4), colors.pin, mark: (end: "barbed"))
         styled-content(draw, (7.9, 4.5), colors.pin, weight: "bold")[`Pin::new()`]
 
+        styled-content(draw, (7.9, 3.5), colors.error, size: 6pt)[if `Double:` \ `Unpin`]
+
         styled-line(draw, (11.0, 4), (11.7, 4), colors.stream, mark: (end: "barbed"))
         styled-content(
           draw,
@@ -315,7 +319,7 @@
 
       ```rust
       impl<InSt> Stream for Double<InSt>
-      where InSt: Stream<Item = i32>
+      where InSt: Stream<Item = i32> + Unpin
       {
           fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
               -> Poll<Option<Self::Item>>
@@ -330,6 +334,76 @@
       }
       ```
     ]
+  ]
+
+  slide(title: "Two ways to handle `!Unpin` fields")[
+    #set text(size: 7pt)
+    #grid(
+      columns: (1fr, 1fr),
+      rows: auto,
+      gutter: 2em,
+
+      [
+        *Approach 1: Use `Box<_>`*
+        ```rust
+        struct Double<InSt> {
+          in_stream: Box<InSt>
+        }
+
+        impl<InSt> Stream for Double<InSt>
+        where InSt: Stream
+        ```
+        ✓ Works with `InSt`
+      ],
+      [
+        *Approach 2: Require `Unpin`*
+        ```rust
+        struct Double<InSt> {
+          in_stream: InSt
+        }
+
+        impl<InSt> Stream for Double<InSt>
+        where InSt: Stream + Unpin
+        ```
+        ✗ Imposes `Unpin` constraint
+      ],
+
+      [ *Approach 3: Use `pin-project`*
+
+        ```rust
+        #[pin_project]
+        struct Double<InSt> {
+            #[pin]
+            in_stream: InSt,
+        }
+        ```
+        Used by popular crates (Tokio, etc.)
+      ],
+    )
+
+  ]
+
+  slide(title: [Example usage of `pin-project`])[
+    #set text(size: 8pt)
+    Projects like Tokio use the `pin-project` crate:
+
+    ```rust
+    #[pin_project]
+    struct Double<InSt> {
+        #[pin]
+        in_stream: InSt,
+    }
+
+    impl<InSt: Stream> Stream for Double<InSt> {
+        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+            -> Poll<Option<Self::Item>>
+        {
+            // pin-project generates safe projection code
+            self.project().in_stream.poll_next(cx)
+                .map(|r| r.map(|x| x * 2))
+        }
+    }
+    ```
   ]
 
   slide(title: "Distributing your operator")[

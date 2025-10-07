@@ -38,7 +38,7 @@
   color,
   stroke-width: default-stroke-width,
   radius: none,
-  label-size: 9pt,
+  label-size: 6pt,
   content,
 ) = {
   draw.rect(
@@ -111,7 +111,7 @@
         fill: background,
         inset: padding * 1em,
         radius: 0.2em,
-        text(size: size, weight: if weight != none { weight } else { "bold" })[#content]
+        text(size: size, weight: if weight != none { weight } else { "bold" })[#content],
       ),
       anchor: anchor,
     )
