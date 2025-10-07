@@ -3,16 +3,36 @@
 // =====================================
 
 // Create accent color from base color with saturation and darkening
-#let accent(color, sat: 90%, dark: 40%) = rgb(color).saturate(sat).darken(dark)
+#let accent(color, sat: 90%, dark: 10%) = rgb(color).saturate(sat).darken(dark)
 
 
 #let colors = (
-  neutral: color.hsl(162deg, 50%, 85%), // Soft mint - neutral, calm
-  stream: color.hsl(207deg, 55%, 87%), // Light blue - flowing, continuous
-  operator: color.hsl(48deg, 85%, 90%), // Warm yellow - transformation, processing
-  data: color.hsl(282deg, 40%, 87%), // Soft purple - values, information
-  state: color.hsl(146deg, 52%, 88%), // Light green - status, condition
-  ui: color.hsl(10deg, 80%, 90%), // Soft coral - interface, interaction
-  pin: color.hsl(288deg, 42%, 90%), // Lavender - pinning, stability
-  error: color.hsl(6deg, 78%, 91%), // Light rose - errors, warnings
+  neutral: color.hsl(142.67deg, 100%, 91.18%), //  concepts in Rust that are not specific to streams
+  stream: color.hsl(200deg, 65%, 85%), //  all `Stream`s, flowing, continuous
+  operator: color.hsl(45.16deg, 100%, 81.76%), // stream transformation with stream operators or combinators
+  data: color.hsl(330.91deg, 57.89%, 88.82%), //  values, allocations, fundamental data types
+  state: color.hsl(140deg, 34.88%, 74.71%), //  low-level state of stream
+  action: color.hsl(21.25deg, 68.57%, 86.27%), //  primitive operation on a stream
+  pin: color.hsl(270deg, 100%, 87.84%), //  pinning, methods of Pin type, `Unpin`, stability
+  error: color.hsl(0deg, 65%, 85%), //  errors, warnings
 )
+
+
+#let legend(items) = {
+  align(center)[
+    #grid(
+      columns: items.len(),
+      column-gutter: 2em,
+      ..items
+        .map(item => {
+          (
+            align(center)[
+              #rect(width: 2em, height: 0.8em, fill: item.color, stroke: accent(item.color) + 0.8pt)
+              #v(0.3em)
+              #text(size: 8pt)[#item.label]
+            ],
+          )
+        })
+        .flatten()
+    )]
+}

@@ -83,40 +83,29 @@
 
           styled-circle(draw, (1, 2), colors.stream, radius: 0.4)[`InSt`]
 
-          styled-line(draw, (2.7, 2), (3.5, 2), colors.state, mark: (end: "barbed"))
+          styled-line(draw, (2.7, 2), (3.5, 2), colors.pin, mark: (end: "barbed"))
           styled-content(draw, (3, 2.4), colors.pin, [?], size: 7pt)
 
           styled-circle(draw, (4, 2), colors.stream, radius: 0.4)[`InSt`]
 
-          styled-line(draw, (4.5, 2), (5.3, 2), colors.state, mark: (end: "barbed"))
+          styled-line(draw, (4.5, 2), (5.3, 2), colors.pin, mark: (end: "barbed"))
           styled-content(draw, (5, 2.4), colors.pin, [?], size: 6pt)
 
           hexagon(draw, (6.5, 2), 2, color: colors.pin)[`Pin<&mut InSt>`]
           styled-circle(draw, (6.5, 2), colors.stream, radius: 0.4)[`InSt`]
 
-          styled-line(draw, (7.5, 2), (8.5, 2), colors.stream, mark: (end: "barbed"))
-          styled-content(draw, (8, 2.4), colors.stream, size: 6pt, anchor: "north-west")[`Stream::poll_next()`]
+          styled-line(draw, (7.5, 2), (8.5, 2), colors.action, mark: (end: "barbed"))
+          styled-content(draw, (8, 2.4), colors.action, size: 6pt, anchor: "north-west")[`Stream::poll_next()`]
         })
 
         #v(1em)
 
-        #grid(
-          columns: (auto, auto, auto),
-          column-gutter: 2em,
-          row-gutter: 0.8em,
-
-          rect(width: 1.2em, height: 0.8em, fill: colors.pin, stroke: accent(colors.pin) + 0.8pt),
-          text(size: 8pt)[Pin types],
-          [],
-
-          rect(width: 1.2em, height: 0.8em, fill: colors.operator, stroke: accent(colors.operator) + 0.8pt),
-          text(size: 8pt)[Operators/structs],
-          [],
-
-          rect(width: 1.2em, height: 0.8em, fill: colors.stream, stroke: accent(colors.stream) + 0.8pt),
-          text(size: 8pt)[Streams/inner types],
-          [],
-        )
+        #legend((
+          (color: colors.pin, label: [Pin types]),
+          (color: colors.operator, label: [Operators/structs]),
+          (color: colors.stream, label: [Streams/inner types]),
+          (color: colors.action, label: [Actions]),
+        ))
       ]
     ]
   ]
@@ -192,12 +181,23 @@
       #canvas(length: 1.2cm, {
         import draw: *
 
-        styled-rect(draw, (1, 3), (4, 5), colors.ui, radius: node-radius)[Stack]
-        styled-rect(draw, (1.9, 3.5), (3, 4.5), colors.neutral)[pointer `0X1234`]
+        styled-rect(draw, (1, 3), (4, 5), colors.neutral, radius: node-radius)[Stack]
+        styled-rect(draw, (1.9, 3.5), (3, 4.5), colors.data)[pointer `0X1234`]
         content((2.5, 3.3), text(size: 7pt, "✅ Safe to move"), anchor: "center")
 
-        styled-line(draw, (3.1, 4), (7.3, 3.7), colors.operator, mark: (end: "barbed"))
+
         content((5.25, 4.3), text(size: 7pt, [`Box::new(in_stream)` \ dereferences to]), anchor: "center")
+
+
+        styled-triangle(draw, (6.0, 3), (10, 3), (8, 5), colors.neutral)[]
+
+        content((8, 5.3), text(size: 9pt, weight: "bold", [Heap]), anchor: "center")
+        styled-content(
+          draw,
+          (8.4, 3.5),
+          black,
+          size: 7pt,
+        )[`0X1234`\ `InSt (!Unpin)`\ Fixed address]
 
         content((11.5, 5.0), text(size: 3em, "🐅"), anchor: "center")
         content((11.5, 4.0), text(size: 8pt, weight: "bold", [`!Unpin` Tiger]), anchor: "center")
@@ -210,14 +210,7 @@
           stroke: accent(colors.error) + arrow-width,
         )
 
-        styled-line(draw, (6.0, 3), (10, 3), colors.operator)
-        styled-line(draw, (6.0, 3), (8, 5), colors.operator)
-        styled-line(draw, (10, 3), (8, 5), colors.operator)
-
-        content((8, 5.3), text(size: 9pt, weight: "bold", "Heap"), anchor: "center")
-        content((8.4, 3.8), text(size: 6pt, [`0X1234`]), anchor: "center")
-        content((8.4, 3.5), text(size: 8pt, [`InSt (!Unpin)`]), anchor: "center")
-        content((8.3, 3.2), text(size: 7pt, "📌 Fixed address"), anchor: "center")
+        styled-line(draw, (3.1, 4), (7.3, 3.7), colors.neutral, mark: (end: "barbed"))
       })
     ]
 
@@ -290,7 +283,7 @@
         )[]
         styled-circle(draw, (9.5, 4), colors.stream, radius: 0.3, label-size: 5pt)[]
 
-        styled-line(draw, (4.4, 4), (5.4, 4), colors.state, mark: (end: "barbed"))
+        styled-line(draw, (4.4, 4), (5.4, 4), colors.pin, mark: (end: "barbed"))
         styled-content(
           draw,
           (4.9, 4.5),
@@ -301,7 +294,7 @@
         )[`Pin::get_mut()`]
         styled-content(draw, (4.9, 3.5), colors.error, size: 6pt)[if `Double:` \ `Unpin`]
 
-        styled-line(draw, (7.1, 4), (8.9, 4), colors.state, mark: (end: "barbed"))
+        styled-line(draw, (7.1, 4), (8.9, 4), colors.pin, mark: (end: "barbed"))
         styled-content(draw, (7.9, 4.5), colors.pin, weight: "bold")[`Pin::new()`]
 
         styled-line(draw, (11.0, 4), (11.7, 4), colors.stream, mark: (end: "barbed"))

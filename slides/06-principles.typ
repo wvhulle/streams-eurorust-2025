@@ -44,7 +44,7 @@
           "4",
           "Run tests",
           ("Trace tests", "Debug tests"),
-          colors.ui,
+          colors.action,
           <run-tests>,
         ),
         styled-edge(<run-tests>, <benchmarks>, label: "✓ pass"),

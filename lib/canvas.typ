@@ -23,10 +23,9 @@
     stroke: accent(color) + stroke-width,
   )
   if label != none {
-    let text-color = { accent(color) }
     draw.content(
       (center.at(0), center.at(1) + radius + 0.15),
-      text(size: label-size, fill: text-color, weight: "bold")[#content],
+      text(size: label-size, weight: "bold")[#content],
       anchor: "center",
     )
   }
@@ -50,10 +49,31 @@
     radius: radius,
   )
   if content != none {
-    let text-color = { accent(color) }
     let center-x = (from.at(0) + to.at(0)) / 2
     let top-y = calc.max(from.at(1), to.at(1)) + 0.15
-    draw.content((center-x, top-y), text(size: label-size, fill: text-color)[#content], anchor: "south")
+    draw.content((center-x, top-y), text(size: label-size)[#content], anchor: "south")
+  }
+}
+
+#let styled-triangle(
+  draw,
+  p1,
+  p2,
+  p3,
+  color,
+  stroke-width: default-stroke-width,
+  label-size: 9pt,
+  content,
+) = {
+  draw.merge-path(fill: color, stroke: accent(color) + stroke-width, {
+    draw.line(p1, p2)
+    draw.line((), p3)
+    draw.line((), p1)
+  })
+  if content != none {
+    let center-x = (p1.at(0) + p2.at(0) + p3.at(0)) / 3
+    let center-y = (p1.at(1) + p2.at(1) + p3.at(1)) / 3
+    draw.content((center-x, center-y), text(size: label-size)[#content], anchor: "center")
   }
 }
 
@@ -80,14 +100,28 @@
   size: 6pt,
   weight: none,
   anchor: "center",
+  background: none,
+  padding: 0.2,
   content,
 ) = {
-  let text-color = accent(color)
-  draw.content(
-    pos,
-    text(size: size, weight: if weight != none { weight } else { "bold" }, fill: text-color)[#content],
-    anchor: anchor,
-  )
+  if background != none {
+    draw.content(
+      pos,
+      box(
+        fill: background,
+        inset: padding * 1em,
+        radius: 0.2em,
+        text(size: size, weight: if weight != none { weight } else { "bold" })[#content]
+      ),
+      anchor: anchor,
+    )
+  } else {
+    draw.content(
+      pos,
+      text(size: size, weight: if weight != none { weight } else { "bold" })[#content],
+      anchor: anchor,
+    )
+  }
 }
 
 #let hexagon(
@@ -135,6 +169,6 @@
     draw.line(start, end, stroke: stroke-color + stroke-width)
   }
   if label != none {
-    draw.content((center.at(0), center.at(1) + radius + 0.2), text(fill: stroke-color)[#label], anchor: "center")
+    draw.content((center.at(0), center.at(1) + radius + 0.2), text[#label], anchor: "center")
   }
 }

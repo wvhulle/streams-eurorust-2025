@@ -84,51 +84,45 @@
         spacing: (5em, 1em),
 
         stream-node((0, 1), <input-stream>)[`InputStream`],
-        styled-edge(<input-stream>, <fork>, color: colors.stream, label: [`.fork()`], label-pos: 0.4),
+        styled-edge(<input-stream>, <fork>, color: colors.operator, label: [`.fork()`], label-pos: 0.4),
 
         stream-node((1, 1), <fork>)[`Fork`],
-        styled-edge(<fork>, <bob>, color: colors.ui, label: [`.clone()`], bend: -20deg),
-        styled-edge(<fork>, <alice>, color: colors.ui, label: [`.clone()`], bend: 20deg),
-        queue-link(<fork>, <queue-a-consumed>, "queue", colors),
+        styled-edge(<fork>, <bob>, color: colors.neutral, label: [`.clone()`], bend: -20deg),
+        styled-edge(<fork>, <alice>, color: colors.neutral, label: [`.clone()`], bend: 20deg),
+        queue-link(<fork>, <queue-a-consumed>, "queue", colors.neutral),
 
-        stream-node((2, 2), <bob>, color: colors.state)[Bob],
-        styled-edge(<bob>, <bob-a>, color: colors.operator),
+        stream-node((2, 2), <bob>, color: colors.stream)[Bob],
+        styled-edge(<bob>, <bob-a>, color: colors.action),
 
-        stream-node((2, 0), <alice>, color: colors.ui)[Alice],
-        styled-edge(<alice>, <alice-a>, color: colors.operator),
+        stream-node((2, 0), <alice>, color: colors.stream)[Alice],
+        styled-edge(<alice>, <alice-a>, color: colors.action),
 
-        queue-item((3, 1), true, <queue-a-consumed>, colors)['a'],
-        queue-item((3.5, 1), true, <queue-b-consumed>, colors)['b'],
-        queue-item((4, 1), false, <queue-c>, colors)['c'],
-        queue-item((4.5, 1), false, <queue-d>, colors)['d'],
+        queue-item((3, 1), true, <queue-a-consumed>)['a'],
+        queue-item((3.5, 1), true, <queue-b-consumed>)['b'],
+        queue-item((4, 1), false, <queue-c>)['c'],
+        queue-item((4.5, 1), false, <queue-d>)['d'],
 
-        data-item((3, 3), <bob-a>, colors)['a'],
-        data-item((3.5, 3), <bob-b>, colors)['b'],
-        data-item((4, 3), <bob-c>, colors)['c'],
-        data-item((3, -1), <alice-a>, colors)['a'],
-        data-item((3.5, -1), <alice-b>, colors)['b'],
+        data-item((3, 3), <bob-a>)['a'],
+        data-item((3.5, 3), <bob-b>)['b'],
+        data-item((4, 3), <bob-c>)['c'],
+        data-item((3, -1), <alice-a>)['a'],
+        data-item((3.5, -1), <alice-b>)['b'],
       )
     }
 
     #align(center)[
-      #grid(
-        columns: (auto, auto, auto, auto, auto, auto, auto, auto),
-        column-gutter: 1.5em,
-
-        rect(width: 1em, height: 0.6em, fill: colors.stream, stroke: colors.stream + 0.5pt),
-        [Streams],
-        rect(width: 1em, height: 0.6em, fill: colors.operator, stroke: colors.operator + 0.5pt),
-        [Operators],
-        rect(width: 1em, height: 0.6em, fill: colors.state, stroke: colors.state + 0.5pt),
-        [Consumers],
-        rect(width: 1em, height: 0.6em, fill: colors.data, stroke: colors.data + 0.5pt),
-        [Data],
-      )
+      #legend((
+        (color: colors.stream, label: [Streams]),
+        (color: colors.operator, label: [Operators]),
+        (color: colors.data, label: [Data]),
+      ))
     ]
   ]
 
   slide(title: "Polling and waking flow")[
     #set text(size: 7pt)
+    #v(-5em)
+
     #styled-diagram(
       spacing: (3em, 2.5em),
 
@@ -141,15 +135,15 @@
         <poll-input-stream>,
         <poll-alice>,
         label: [2. `Pending`],
-        color: colors.neutral,
+        color: colors.data,
         bend: -85deg,
         label-pos: 90%,
       ),
-      styled-edge(<poll-input-stream>, <poll-data>, label: [4. `Ready`], color: colors.operator),
+      styled-edge(<poll-input-stream>, <poll-data>, label: [4. `Ready`], color: colors.data),
 
       colored-node(
         (0, 3),
-        color: colors.ui,
+        color: colors.stream,
         name: <poll-alice>,
         shape: fletcher.shapes.circle,
       )[Alice\ 💤 Sleeping],
@@ -157,7 +151,7 @@
         <poll-alice>,
         <poll-input-stream>,
         label: [1. `poll_next()`],
-        color: colors.neutral,
+        color: colors.action,
         bend: 50deg,
         label-pos: 79%,
       ),
@@ -165,14 +159,14 @@
         <poll-alice>,
         <poll-data>,
         label: [6. `poll_next()`],
-        color: colors.stream,
+        color: colors.action,
         bend: -40deg,
         label-pos: 30%,
       ),
 
       colored-node(
         (2, 3),
-        color: colors.state,
+        color: colors.stream,
         name: <poll-bob>,
         shape: fletcher.shapes.circle,
       )[Bob\ 🔍 Polling],
@@ -180,7 +174,7 @@
         <poll-bob>,
         <poll-input-stream>,
         label: [3. `poll_next()`],
-        color: colors.state,
+        color: colors.action,
         stroke-width: arrow-width,
         bend: -50deg,
         label-pos: 70%,
@@ -189,7 +183,7 @@
         <poll-bob>,
         <poll-alice>,
         label: [5. `wake()` Alice],
-        color: colors.state,
+        color: colors.action,
         stroke-width: arrow-width,
         bend: 40deg,
       ),
@@ -203,7 +197,7 @@
         <poll-data>,
         <poll-alice>,
         label: [7. `clone()`],
-        color: colors.operator,
+        color: colors.neutral,
         bend: -40deg,
         label-pos: 30%,
       ),
@@ -211,11 +205,20 @@
         <poll-data>,
         <poll-bob>,
         label: [8. original],
-        color: colors.operator,
+        color: colors.data,
         bend: 40deg,
         label-pos: 30%,
       ),
     )
+
+    #v(1em)
+
+    #legend((
+      (color: colors.stream, label: [Streams]),
+      (color: colors.action, label: [Actions]),
+      (color: colors.data, label: [Data]),
+      (color: colors.neutral, label: [Clone operations]),
+    ))
   ]
 
   slide(title: [`Barrier`s for task synchronization])[
@@ -250,13 +253,13 @@
         styled-edge(<consume1-start>, <consume1-end>, color: colors.neutral)
         styled-edge(<consume2-start>, <consume2-end>, color: colors.neutral)
 
-        colored-node((4, 0), color: colors.pin, name: <b1>, stroke-width: 1pt)[•]
+        colored-node((4, 0), color: colors.action, name: <b1>, stroke-width: 1pt)[•]
         node((4, 0.5), text(size: 7pt)[`b1.wait().await`], stroke: none, name: <b1-label>)
 
-        colored-node((5, 1), color: colors.pin, name: <b2>, stroke-width: 1pt)[•]
+        colored-node((5, 1), color: colors.action, name: <b2>, stroke-width: 1pt)[•]
         node((5, 1.6), text(size: 7pt)[`b2.wait().await`], stroke: none, name: <b2-label>)
 
-        colored-node((6, 2), color: colors.pin, name: <b3>, stroke-width: 1pt)[•]
+        colored-node((6, 2), color: colors.action, name: <b3>, stroke-width: 1pt)[•]
         node((6, 2.6), text(size: 7pt)[`b3.wait().await`], stroke: none, name: <b3-label>)
 
         colored-node((6, -1), color: colors.state, name: <crossed>)[•]
@@ -370,7 +373,7 @@
           label-pos: 0.5,
         ),
 
-        state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.ui, <pending>),
+        state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.action, <pending>),
         styled-edge(<pending>, <polling-base-stream>, label: "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
         styled-edge(<pending>, <processing-queue>, label: "fresh buffer", bend: 15deg, label-pos: 0.7),
       )

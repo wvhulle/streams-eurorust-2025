@@ -89,7 +89,7 @@
           "Tony Hoare formalizes concurrent dataflow",
           "CACM 21(8):666-677",
           "https://dl.acm.org/doi/10.1145/359576.359585",
-          colors.ui.lighten(35%),
+          colors.action.lighten(35%),
         )
         draw-timeline-entry(
           1.5,
@@ -262,7 +262,7 @@
           data-item((1, 1), <data-a>)['a']
           data-item((1.5, 1), <data-b>)['b']
           data-item((2, 1), <data-c>)['c']
-          endpoint((3, 1), colors.ui, <sink>)[Sink]
+          endpoint((3, 1), colors.action, <sink>)[Sink]
 
           edge(<stream>, <data-a>, "-")
           edge(<data-a>, <data-b>, "-")
@@ -416,7 +416,7 @@
         styled-edge(<owner>, <moved>, color: colors.stream, stroke-width: 1.5pt)
         edge(<owner>, <borrowed>, "->", stroke: (paint: accent(colors.stream), thickness: 1.5pt, dash: "dashed"))
 
-        node(fill: colors.ui, stroke: accent(colors.ui) + stroke-width, enclose: (
+        node(fill: colors.action, stroke: accent(colors.action) + stroke-width, enclose: (
           <rust-title>,
           <owner>,
           <owner-label>,
