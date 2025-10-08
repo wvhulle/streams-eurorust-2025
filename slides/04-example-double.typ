@@ -34,30 +34,45 @@
       Input stream *needs to yield integers*.
     ]]
 
-  slide(title: "Wrapping the original stream")[
-    #set text(size: 8pt)
+  slide(title: [Building a stream operator: structure])[
+    #set text(size: 9pt)
+    #grid(
+      columns: (1fr, 1fr),
+      column-gutter: 0.5em,
+      [
+        *Step 1:* Define a struct that wraps the input stream
 
-    All stream operators start by:
+        ```rust
+        struct Double<InSt> {
+            in_stream: InSt,
+        }
+        ```
 
-    - *wrapping input stream by value*
-    - and being *generic over stream type* (back-end agnostic)
+        - Generic over stream type (works with any backend)
+        - Stores input stream by value
 
-    (No trait bounds yet ):
+      ],
+      [
+        *Step 2:* Implement `Stream` trait with bounds
 
-    ```rust
-    struct Double<InSt> { in_stream: InSt, }
-    ```
-    And implementing the `Stream` trait for it (*with trait bounds*):
+        ```rs
+        impl<InSt> Stream for Double<InSt>
+        where
+            InSt: Stream<Item = i32>
+        {
+            type Item = i32;
 
-    ```rs
-    impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> {
-      type Item = InSt::Item;
+            fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+                -> Poll<Option<Self::Item>> {
+                // ... implementation goes here
+            }
+        }
+        ```
+      ],
+    )
 
-      fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) ->  Poll<Option<Self::Item>> {
-                ...
-      }
-    }
-    ```
+
+
   ]
 
   slide(title: [Naive implementation of `poll_next`])[
@@ -77,8 +92,10 @@
     `Pin<&mut Self>` *blocks access to `self.in_stream`* (when `Self: !Unpin`)!
   ]
 
-  slide(title: [How to access `self.in_stream`?])[
+  slide(title: [The projection problem: accessing pinned fields])[
     #text(size: 8pt)[
+      We have `Pin<&mut Double>`, but need `Pin<&mut InSt>` to call `poll_next()`. How?
+
       #align(center + horizon)[
 
         #canvas(length: 1.2cm, {
@@ -116,82 +133,157 @@
     ]
   ]
 
-  slide(title: [Marking types `!Unpin` defends against unsafe moves])[
-    #set text(size: 7pt)
+  slide(title: [The naive solution fails])[
+    #set text(size: 8pt)
+    Can we use `Pin::get_mut()` to unwrap and re-wrap?
 
-    A _pointer type_ can only be wrapped in `Pin` if it is *not `!Unpin`*.
+    ```rs
+    impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> {
+      type Item = InSt::Item;
 
-    Once a pointer type `P` appears inside `Pin<P>`, *target will never move again*.
+      fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+          -> Poll<Option<Self::Item>> {
+        let this = self.get_mut();  // Error!
+        let pinned_in = Pin::new(&mut this.in_stream);
+        pinned_in.poll_next(cx).map(|p| p.map(|x| x * 2))
+      }
+    }
+    ```
 
-    #v(-1em)
+    *Problem:* `Pin::get_mut()` requires `Double<InSt>: Unpin`
 
-    #show "🐦": it => text(size: 3em)[#it]
-    #show "🐅": it => text(size: 3em)[#it]
+    But `Double<InSt>` is `!Unpin` when `InSt: !Unpin`!
+  ]
+
+  slide(title: [Why does `Pin::get_mut()` require `Unpin`?])[
+    #set text(size: 8pt)
+
+    `Pin<P>` makes a promise: *the pointee will never move again*.
+
     #align(center)[
-      #grid(
-        rows: (auto, auto),
-        row-gutter: 0.5em,
+      #styled-diagram(
+        spacing: (4em, 2em),
 
-        [
-          #canvas(length: 1cm, {
-            import draw: *
-            let bird-color = colors.data.darken(100%)
-            styled-content(draw, (1, 2.5), bird-color)[🐦]
-            styled-content(draw, (1, 2.0), bird-color)[`Unpin` Bird]
-            styled-content(draw, (1, 1.6), bird-color)[Safe to move]
+        colored-node((0, 0), color: colors.pin, name: <pin>)[`Pin<&mut T>`],
 
-            styled-line(draw, (1.8, 2.7), (7.2, 2.7), colors.pin, mark: (end: "barbed"))
-            styled-content(draw, (4.5, 3.0), colors.pin)[`Pin::new()`]
-            styled-content(draw, (4.5, 2.4), colors.pin)[Always safe if `Bird: Unpin`]
+        colored-node((1, 1), color: colors.action, name: <getmut>)[`.get_mut()`],
 
-            styled-line(draw, (7.2, 1.7), (1.8, 1.7), colors.pin, mark: (end: "barbed"))
-            styled-content(draw, (4.5, 2.0), colors.pin)[`Pin::get_mut()`]
+        colored-node((2, 2), color: colors.data, name: <mut>)[`&mut T`],
 
-            hexagon(
-              draw,
-              (8.5, 2.3),
-              2.5,
-              color: colors.pin,
-            )[`Pin<&mut Bird>`]
-            styled-content(draw, (8.5, 2.8), bird-color)[🐦]
-            styled-content(draw, (8.5, 2.2), bird-color)[`Unpin` Bird]
-            styled-content(draw, (8.5, 1.6), bird-color)[Can be\ uncaged]
-          })
-        ],
+        colored-node((3, 3), color: colors.error, name: <swap>)[`mem::swap()`],
 
-        [
-          #canvas(length: 1cm, {
-            import draw: *
-            let tiger-color = colors.neutral.darken(100%)
-            styled-content(draw, (1, 2.8), tiger-color)[🐅]
-            styled-content(draw, (1, 2.0), tiger-color)[`!Unpin` Tiger]
-            styled-content(draw, (1, 1.6), tiger-color)[Dangerous to move]
+        colored-node((4, 4), color: colors.error, name: <moved>)[Value moved!],
 
-            styled-line(draw, (2.5, 2.8), (6.5, 1.8), colors.error)
-            styled-line(draw, (2.5, 1.8), (6.5, 2.8), colors.error)
-
-            styled-content(draw, (4.5, 1.5), colors.error)[Not always safe \ (use `unsafe`)]
-            styled-content(draw, (4.5, 2.5), colors.pin)[`Pin::get_mut()` \ `Pin::new()`]
-
-            hexagon(
-              draw,
-              (8.5, 2.3),
-              2.5,
-              color: colors.pin,
-            )[`Pin<&mut Tiger>`]
-            styled-content(draw, (8.5, 2.8), tiger-color)[🐅]
-            styled-content(draw, (8.5, 2.2), tiger-color)[`!Unpin` Tiger]
-            styled-content(draw, (8.5, 1.6), tiger-color)[Can't be\ uncaged]
-          })
-        ],
+        styled-edge(<pin>, <getmut>, "-", color: colors.pin, label: [_unpinning_ `T`]),
+        styled-edge(<getmut>, <mut>, "->", color: colors.pin, label: [gives]),
+        styled-edge(<mut>, <swap>, "->", color: colors.error, label: "allows"),
+        styled-edge(<swap>, <moved>, "->", color: colors.error, label: "breaks promise"),
       )
     ]
+
+    #v(-2em)
+    *Solution:* Only allow `get_mut()` when `T: Unpin` (moving is safe).
+  ]
+
+  slide(title: [`Unpin` types can be safely unpinned])[
+    #set text(size: 7pt)
+
+    #show "🐦": it => text(size: 3em)[#it]
+
+    #v(-2em)
+    #canvas(length: 1cm, {
+      import draw: *
+      let bird-color = colors.data.darken(100%)
+      styled-content(draw, (1, 2.5), bird-color)[🐦]
+      styled-content(draw, (1, 2.0), bird-color)[`Unpin` Bird]
+      styled-content(draw, (1, 1.6), bird-color)[Safe to move]
+
+      styled-line(draw, (1.8, 2.7), (7.2, 2.7), colors.pin, mark: (end: "barbed"))
+      styled-content(draw, (4.5, 3.0), colors.pin)[`Pin::new()`]
+      styled-content(draw, (4.5, 2.4), colors.pin)[Always safe if `Bird: Unpin`]
+
+      styled-line(draw, (7.2, 1.7), (1.8, 1.7), colors.pin, mark: (end: "barbed"))
+      styled-content(draw, (4.5, 2.0), colors.pin)[`Pin::get_mut()`]
+
+      hexagon(
+        draw,
+        (8.5, 2.3),
+        2.5,
+        color: colors.pin,
+      )[`Pin<&mut Bird>`]
+      styled-content(draw, (8.5, 2.8), bird-color)[🐦]
+      styled-content(draw, (8.5, 2.2), bird-color)[`Unpin` Bird]
+      styled-content(draw, (8.5, 1.6), bird-color)[Moving won't\ break anything]
+    })
+
+    If `T: Unpin`, then `Pin::get_mut()` is safe because moving `T` doesn't cause UB.
+
+    *Examples of `Unpin` types:*
+
+    - `i32`, `String`, `Vec<T>` - all primitive and standard types
+    - `Box<T>` - pointers are safe to move
+    - `&T`, `&mut T` - references are safe to move
+
+    *Why safe?*
+
+    These types don't have self-referential pointers. Moving them in memory doesn't invalidate any internal references.
+
+    *Default:* Almost all types are `Unpin` by default!
+
+
+  ]
+
+  slide(title: [`!Unpin` types cannot be safely unpinned])[
+    #set text(size: 7pt)
+
+    #show "🐅": it => text(size: 3em)[#it]
+    #v(-2em)
+    #canvas(length: 1cm, {
+      import draw: *
+      let tiger-color = colors.neutral.darken(100%)
+      styled-content(draw, (1, 2.8), tiger-color)[🐅]
+      styled-content(draw, (1, 2.0), tiger-color)[`!Unpin` Tiger]
+      styled-content(draw, (1, 1.6), tiger-color)[Dangerous to move]
+
+      styled-line(draw, (2.5, 2.8), (6.5, 1.8), colors.error)
+      styled-line(draw, (2.5, 1.8), (6.5, 2.8), colors.error)
+
+      styled-content(draw, (4.5, 1.5), colors.error)[Would break \ pin promise!]
+      styled-content(draw, (4.5, 2.5), colors.pin)[`Pin::get_mut()` \ gives `&mut T`]
+
+      hexagon(
+        draw,
+        (8.5, 2.3),
+        2.5,
+        color: colors.pin,
+      )[`Pin<&mut Tiger>`]
+      styled-content(draw, (8.5, 2.8), tiger-color)[🐅]
+      styled-content(draw, (8.5, 2.2), tiger-color)[`!Unpin` Tiger]
+      styled-content(draw, (8.5, 1.6), tiger-color)[Moving would\ cause UB]
+    })
+
+
+
+
+    *Examples of `!Unpin` types:*
+
+    - `PhantomPinned` - explicitly opts out of `Unpin`
+    - Most `Future` types (async state machines)
+    - Types with self-referential pointers
+    - `Double<InSt>` where `InSt: !Unpin`
+
+    *Why unsafe?*
+
+    These types may contain pointers to their own fields. Moving them in memory would invalidate those internal pointers, causing use-after-free.
+
+    *Key insight:* `!Unpin` is rare and usually intentional for async/self-referential types.
+
   ]
 
 
-  slide(title: [Doing what the compiler wants you to do])[
+  slide(title: [One workaround: add the `Unpin` bound])[
     #set text(size: 8pt)
-    The compiler will push you to add `Self: Unpin` which implies `InSt: Unpin`:
+    The compiler error suggests adding `InSt: Unpin`:
 
     ```rs
     impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> + Unpin {
@@ -203,7 +295,7 @@
         let pinned_in = Pin::new(&mut this.in_stream);
         pinned_in
           .poll_next(cx)
-          .map(|x| x * 2)
+          .map(|p| p.map(|x| x * 2))
       }
     }
     ```
@@ -211,7 +303,7 @@
 
     We *don't want to impose `InSt: Unpin` on users* of `Double`!
 
-    How to enable users to `Double` streams of type `InSt: !Unpin`? ...
+    How to support `InSt: !Unpin` streams? ...
 
   ]
 
@@ -287,162 +379,163 @@
   ]
 
 
-  slide(title: [Projecting the `Double`d stream])[
+  slide(title: [Applying the solution: `Pin<Box<InSt>>`])[
     #set text(size: 8pt)
+    #v(-1em)
+    Change the struct definition to store `Pin<Box<InSt>>`:
+
+    ```rust
+    struct Double<InSt> { in_stream: Pin<Box<InSt>>, }
+    ```
+
+    *Why this works:*
+    - `Box<InSt>` is always `Unpin` (pointers are safe to move)
+    - `Pin<Box<InSt>>` can hold `!Unpin` streams safely on the heap
 
 
-    1. `Box` the input stream to make it `Unpin`
-    2. `Pin` the input stream (works with `!Unpin` streams!)
-    3. Put the pinned box in `Double`d stream
-      ```rs
-      let double = Double {
-          in_stream: Pin::new(Box::new(in_stream)) // Box::pin()
-      };
-      ```
-      Inside `poll_next`, project to `Pin<&mut InSt>`:
+    *Projection in `poll_next`:*
 
-      ```rs
-      let in_stream: Pin<&mut InSt> = double
-        .get_mut() // Pin<&mut Double<InSt>> -> &mut Double<InSt>
-        .in_stream // &mut Double<InSt> -> Pin<Box<InSt>>
-        .as_mut(); // Pin<Box<InSt>> -> Pin<&mut InSt>
-      ```
-    This `Stream` impl *works without `InSt: Unpin`*!
+    ```rs
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+        -> Poll<Option<Self::Item>> {
+        let this = self.get_mut();  // Safe: Double is Unpin now
+        this.in_stream.as_mut()      // Project to Pin<&mut InSt>
+            .poll_next(cx)
+            .map(|opt| opt.map(|x| x * 2))
+    }
+    ```
 
-
+    This works *without requiring `InSt: Unpin`*!
   ]
 
   slide(title: [Projecting visually])[
     From `Pin<&mut Double>` to `Pin<&mut InSt>` in a few *safe steps*:
-    #text(size: 6pt)[
+    #text(size: 7pt)[
 
 
 
 
-      #align(center)[
-        #align(center)[
-          #canvas(length: 1.2cm, {
-            import draw: *
-            let center1 = (1, 4)
-            // Step 0: Starting point - Pin<&mut Double>
-            hexagon(
-              draw,
-              center1,
-              3.5,
-              color: colors.pin,
-            )[`Pin<&mut Double>`]
-            styled-circle(draw, center1, colors.operator, radius: 1.2)[`&mut Double`]
+      #align(center + horizon)[
+        #canvas(length: 1.2cm, {
+          import draw: *
+          let center1 = (1, 4)
+          // Step 0: Starting point - Pin<&mut Double>
+          hexagon(
+            draw,
+            center1,
+            3.5,
+            color: colors.pin,
+          )[`Pin<&mut Double>`]
+          styled-circle(draw, center1, colors.operator, radius: 1.2)[`&mut Double`]
 
-            hexagon(
-              draw,
-              center1,
-              2,
-              color: colors.pin,
-            )[`Pin<Box<Inst>>`]
+          hexagon(
+            draw,
+            center1,
+            2,
+            color: colors.pin,
+          )[`Pin<Box<Inst>>`]
 
-            styled-rect(
-              draw,
-              (center1.at(0) - 0.4, center1.at(1) - 0.4),
-              (center1.at(0) + 0.4, center1.at(1) + 0.4),
-              colors.neutral,
-            )[`Box<InSt>`]
-            styled-circle(draw, center1, colors.stream, radius: 0.25)[]
+          styled-rect(
+            draw,
+            (center1.at(0) - 0.4, center1.at(1) - 0.4),
+            (center1.at(0) + 0.4, center1.at(1) + 0.4),
+            colors.neutral,
+          )[`Box<InSt>`]
+          styled-circle(draw, center1, colors.stream, radius: 0.25)[]
 
-            content((3, 5.3), text(size: 3em, "🐅"), anchor: "center")
-            arc(
-              (2.5, 5.3),
-              start: 80deg,
-              stop: 178deg,
-              radius: 1.2,
-              mark: (end: "barbed"),
-              stroke: accent(colors.error) + arrow-width,
-            )
+          content((3, 5.3), text(size: 3em, "🐅"), anchor: "center")
+          arc(
+            (2.5, 5.3),
+            start: 80deg,
+            stop: 178deg,
+            radius: 1.2,
+            mark: (end: "barbed"),
+            stroke: accent(colors.error) + arrow-width,
+          )
 
-            // Step 1: After .get_mut() - &mut Double
+          // Step 1: After .get_mut() - &mut Double
 
-            let center2 = (4.5, 4)
-            styled-circle(draw, center2, colors.operator, radius: 1.2)[`&mut Double`]
-            hexagon(
-              draw,
-              center2,
-              2,
-              color: colors.pin,
-            )[`Pin<Box<Inst>>`]
+          let center2 = (4.5, 4)
+          styled-circle(draw, center2, colors.operator, radius: 1.2)[`&mut Double`]
+          hexagon(
+            draw,
+            center2,
+            2,
+            color: colors.pin,
+          )[`Pin<Box<Inst>>`]
 
-            draw.content((center2.at(0), center2.at(1) - 1.4))[_`&mut Self` \ mutable ref to operator_]
+          draw.content((center2.at(0), center2.at(1) - 1.4))[_`&mut Self` \ mutable ref to operator_]
 
-            styled-rect(
-              draw,
-              (center2.at(0) - 0.4, center2.at(1) - 0.4),
-              (center2.at(0) + 0.4, center2.at(1) + 0.4),
-              colors.neutral,
-            )[`Box<InSt>`]
-            styled-circle(draw, center2, colors.stream, radius: 0.25)[]
+          styled-rect(
+            draw,
+            (center2.at(0) - 0.4, center2.at(1) - 0.4),
+            (center2.at(0) + 0.4, center2.at(1) + 0.4),
+            colors.neutral,
+          )[`Box<InSt>`]
+          styled-circle(draw, center2, colors.stream, radius: 0.25)[]
 
-            // Step 2: After .in_stream - Pin<Box<InSt>>
-            let center3 = (7.5, 4)
-            hexagon(
-              draw,
-              center3,
-              2,
-              color: colors.pin,
-            )[`Pin<Box<Inst>>`]
+          // Step 2: After .in_stream - Pin<Box<InSt>>
+          let center3 = (7.5, 4)
+          hexagon(
+            draw,
+            center3,
+            2,
+            color: colors.pin,
+          )[`Pin<Box<Inst>>`]
 
-            styled-rect(
-              draw,
-              (center3.at(0) - 0.4, center3.at(1) - 0.4),
-              (center3.at(0) + 0.4, center3.at(1) + 0.4),
-              colors.neutral,
-            )[`Box<InSt>`]
-            styled-circle(draw, center3, colors.stream, radius: 0.25)[]
+          styled-rect(
+            draw,
+            (center3.at(0) - 0.4, center3.at(1) - 0.4),
+            (center3.at(0) + 0.4, center3.at(1) + 0.4),
+            colors.neutral,
+          )[`Box<InSt>`]
+          styled-circle(draw, center3, colors.stream, radius: 0.25)[]
 
 
-            styled-circle(draw, (7.5, 4), colors.stream, radius: 0.25)[]
+          styled-circle(draw, (7.5, 4), colors.stream, radius: 0.25)[]
 
-            draw.content((center3.at(0), center3.at(1) - 1.4))[_pinned and boxed \ inner input stream field_]
+          draw.content((center3.at(0), center3.at(1) - 1.4))[_pinned and boxed \ inner input stream field_]
 
-            // Step 3: After .as_mut() - Pin<&mut InSt>
-            let center4 = (10.5, 4)
+          // Step 3: After .as_mut() - Pin<&mut InSt>
+          let center4 = (10.5, 4)
 
-            hexagon(draw, center4, 2, color: colors.pin)[`Pin<&mut InSt>`]
+          hexagon(draw, center4, 2, color: colors.pin)[`Pin<&mut InSt>`]
 
-            styled-circle(draw, center4, colors.stream, radius: 0.25)[`InSt`]
+          styled-circle(draw, center4, colors.stream, radius: 0.25)[`InSt`]
 
-            draw.content((center4.at(0), center4.at(1) - 1.4))[_pinned unboxed inner \ input stream_]
+          draw.content((center4.at(0), center4.at(1) - 1.4))[_pinned unboxed inner \ input stream_]
 
-            // Arrow 1: .get_mut()
-            styled-line(draw, (2.9, 4), (3.3, 4), colors.pin, mark: (end: "barbed"))
-            styled-content(
-              draw,
-              (3.1, 4.5),
-              colors.pin,
-            )[`.get_mut()`]
-            styled-content(draw, (3.1, 3.2), colors.neutral)[Safe \ because \ `Double:` \ `Unpin`]
+          // Arrow 1: .get_mut()
+          styled-line(draw, (2.9, 4), (3.3, 4), colors.pin, mark: (end: "barbed"))
+          styled-content(
+            draw,
+            (3.1, 4.5),
+            colors.pin,
+          )[`.get_mut()`]
+          styled-content(draw, (3.1, 3.2), colors.neutral)[Safe \ because \ `Double:` \ `Unpin`]
 
-            // Arrow 2: .in_stream (field access)
-            styled-line(draw, (5.8, 4), (6.3, 4), colors.neutral, mark: (end: "barbed"))
-            styled-content(draw, (5.9, 4.5), colors.neutral)[`.in_stream`]
-            styled-content(draw, (6.1, 3.5), colors.neutral)[simple \ field \ access]
+          // Arrow 2: .in_stream (field access)
+          styled-line(draw, (5.8, 4), (6.3, 4), colors.neutral, mark: (end: "barbed"))
+          styled-content(draw, (5.9, 4.5), colors.neutral)[`.in_stream`]
+          styled-content(draw, (6.1, 3.5), colors.neutral)[simple \ field \ access]
 
-            // Arrow 3: .as_mut() (pin projection)
-            styled-line(draw, (8.7, 4), (9.3, 4), colors.pin, mark: (end: "barbed"))
-            styled-content(draw, (9.0, 4.5), colors.pin)[`.as_mut()`]
-            styled-content(draw, (9.0, 3.4), colors.neutral)[always safe \ because `Pin` \ contract]
+          // Arrow 3: .as_mut() (pin projection)
+          styled-line(draw, (8.7, 4), (9.3, 4), colors.pin, mark: (end: "barbed"))
+          styled-content(draw, (9.0, 4.5), colors.pin)[`.as_mut()`]
+          styled-content(draw, (9.0, 3.4), colors.neutral)[always safe \ because `Pin` \ contract]
 
-            // Arrow 4: .poll_next()
-            styled-line(draw, (11.7, 4), (12.4, 4), colors.action, mark: (end: "barbed"))
-            styled-content(
-              draw,
-              (12.2, 4.5),
-              colors.stream,
-            )[`.poll_next()`]
-          })
-        ]]
-
+          // Arrow 4: .poll_next()
+          styled-line(draw, (11.7, 4), (12.4, 4), colors.action, mark: (end: "barbed"))
+          styled-content(
+            draw,
+            (12.2, 4.5),
+            colors.stream,
+          )[`.poll_next()`]
+        })
+      ]
 
     ]
 
-    *Reminder*: `Pin` does not take up space, it functions more like a gatekeeper that guarantees *pointee will never move again*.
   ]
 
   slide(title: [Complete boxed `Stream` implementation])[

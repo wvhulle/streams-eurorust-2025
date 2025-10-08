@@ -5,9 +5,13 @@
 
 #let outro-slides(slide) = {
   slide[
-    #text(size: 1em)[Any questions?]
+    #text(size: 2em)[Any questions?]
 
-    #text(size: 2em)[Thank you!]
+    - Afraid to ask? Contact me: #link("mailto:willemvanhulle@protonmail.com") \
+    - These slides: #link("https://github.com/wvhulle/streams-eurorust-2025")[github.com/wvhulle/streams-eurorust-2025]
+
+
+    #set align(bottom)
 
     #rect(fill: colors.operator, stroke: accent(colors.operator) + stroke-width, radius: node-radius)[
       *Want to learn more in-depth?*
@@ -17,12 +21,11 @@
       - Location: Ghent (Belgium)
       - Date: starting 4th of November 2025.
 
-      Register at #link("https://willemvanhulle.tech")[willemvanhulle.tech]
+      Register at #link("https://pretix.eu/devlab/rust-course/")[pretix.eu/devlab/rust-course/]
     ]
 
 
-    - Contact me: #link("mailto:willemvanhulle@protonmail.com") \
-    - These slides: #link("https://github.com/wvhulle/streams-eurorust-2025")[github.com/wvhulle/streams-eurorust-2025]
+
   ]
 
   slide[

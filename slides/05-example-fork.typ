@@ -99,7 +99,7 @@
         stream-node((1, 1), <fork>)[`Fork`],
         styled-edge(<fork>, <bob>, color: colors.neutral, label: [`.clone()`], bend: -20deg),
         styled-edge(<fork>, <alice>, color: colors.neutral, label: [`.clone()`], bend: 20deg),
-        queue-link(<fork>, <queue-a-consumed>, "queue", colors.neutral),
+        queue-link(<fork>, <queue-a-consumed>, [ring-buffer], colors.neutral),
 
         stream-node((2, 2), <bob>, color: colors.stream)[Bob],
         styled-edge(<bob>, <bob-a>, color: colors.action),
@@ -296,19 +296,16 @@
   ]
 
 
-  slide(title: [`Barrier`s for task synchronization])[
+  slide(title: [`Barrier`s for task synchronization checkpoints])[
     #set text(size: 8pt)
 
     For performance reasons, you may want to *ignore unpolled consumers* (init required) in 1-to-N stream operators.
 
+    Each consumer needs to signal when it is ready to receive items.
+
     Synchronisation after the "init" phase is done with a single `Barrier` of type $N + 1$.
 
-    ```rs
-    let b1 = Arc::new(Barrier::new(3)); // For input task
-    let b2 = b1.clone(); // First output
-    let b3 = b1.clone(); // For second output
-    ```
-    #v(-1em)
+
     #styled-diagram(
       spacing: (1em, 1em),
       {
@@ -324,10 +321,6 @@
         node((10, 1), [], stroke: none, name: <consume1-end>)
         node((10, 2), [], stroke: none, name: <consume2-end>)
 
-        styled-edge(<send-start>, <send-end>, color: colors.neutral)
-        styled-edge(<consume1-start>, <consume1-end>, color: colors.neutral)
-        styled-edge(<consume2-start>, <consume2-end>, color: colors.neutral)
-
         colored-node((4, 0), color: colors.action, name: <b1>, stroke-width: 1pt)[•]
         node((4, 0.5), text(size: 7pt)[`b1.wait().await`], stroke: none, name: <b1-label>)
 
@@ -337,14 +330,51 @@
         colored-node((6, 2), color: colors.action, name: <b3>, stroke-width: 1pt)[•]
         node((6, 2.6), text(size: 7pt)[`b3.wait().await`], stroke: none, name: <b3-label>)
 
-        colored-node((6, -1), color: colors.state, name: <crossed>)[•]
-        node((5.5, -1), text(size: 7pt)[Barrier crossed], stroke: none, name: <crossed-label>)
+        // Before barrier - edges end at await points
+        styled-edge(<send-start>, <b1>, color: colors.neutral)
+        styled-edge(<consume1-start>, <b2>, color: colors.neutral)
+        styled-edge(<consume2-start>, <b3>, color: colors.neutral)
+
+        colored-node((6.5, -1), color: colors.state, name: <crossed>)[•]
+        node((5.7, -1.3), text(size: 9pt)[Barrier crossed!], stroke: none, name: <crossed-label>)
+
+        // Barrier crossing points (where barrier intersects each task)
+        node((6.5, 0), [], stroke: none, name: <send-crossed>, fill: colors.state, radius: 0.5em)
+        node((6.5, 1), [], stroke: none, name: <consume1-crossed>, fill: colors.state, radius: 0.5em)
+        node((6.5, 2), [], stroke: none, name: <consume2-crossed>, fill: colors.state, radius: 0.5em)
+
+        // After barrier - edges start from barrier crossing points
+        styled-edge(<send-crossed>, <send-end>, color: colors.state, stroke-width: 2pt)
+        styled-edge(<consume1-crossed>, <consume1-end>, color: colors.state, stroke-width: 2pt)
+        styled-edge(<consume2-crossed>, <consume2-end>, color: colors.state, stroke-width: 2pt)
         node((10, -1), [], stroke: none, name: <end>)
 
-        edge(<crossed>, <b3>, stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt), "-")
+        edge(
+          <crossed>,
+          <b3>,
+          stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt),
+          "-",
+          label: [`Arc`],
+        )
+        edge(
+          <crossed>,
+          <b2>,
+          stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt),
+          "-",
+          label: [`Arc`],
+        )
+        edge(
+          <crossed>,
+          <b1>,
+          stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt),
+          "-",
+          label: [`Arc`],
+        )
         styled-edge(<crossed>, <end>, color: colors.state, stroke-width: 2pt)
       },
     )
+
+    Multiple *synchronization points are possible* with multiple `Barrier`s.
   ]
 
   slide(title: [Including `Barrier`s in your unit tests])[

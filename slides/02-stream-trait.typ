@@ -7,9 +7,9 @@
     == Rust's `Stream` trait
   ]
 
-  slide(title: "A lazy interface")[
+  slide(title: [The `Stream` trait: async iterator])[
     #set text(size: 9pt)
-    Similar to `Future`, but yields multiple items over time (when queried / *pulled*):
+    Like `Future`, but yields *multiple items* over time when polled:
 
     ```rust
     trait Stream {
@@ -20,12 +20,11 @@
     }
     ```
 
-    Returns `Poll` enum:
+    The `Poll<Option<Item>>` return type:
 
-    1. `Poll::Pending`: not ready (like `Future`)
-    2. `Poll::Ready(_)`:
-      - `Ready(Some(item))`: new data is made available
-      - `Ready(None)`: currently exhausted (not necessarily the end)
+    - `Poll::Pending` - not ready yet, try again later
+    - `Poll::Ready(Some(item))` - here's the next item
+    - `Poll::Ready(None)` - stream is exhausted (no more items)
   ]
 
   slide(title: [Moving from `Iterator` to `Stream`])[

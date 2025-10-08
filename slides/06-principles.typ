@@ -41,7 +41,9 @@
 
       #v(2em)
 
-      "Perfection is achieved, not when there is nothing more to add, but when there is *nothing left to take away*." — _Antoine de Saint-Exupéry_
+      "Perfection is achieved when there is *nothing left to take away*."
+
+      — _Antoine de Saint-Exupéry_
     ]
   ]
 
@@ -99,7 +101,7 @@
         (0.6, 2),
         color: colors.operator,
         name: <rxjs>,
-      )[RxJs-like \ e.g. 1-N],
+      )[ReactiveX-like \ e.g. 1-N],
 
       colored-node(
         (-0.5, 3),

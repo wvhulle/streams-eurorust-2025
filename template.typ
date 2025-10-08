@@ -224,7 +224,7 @@
 
   if title != none {
     heading(level: 3, title)
-    v(0.5em)
+    v(0.1em)
   }
 
   content

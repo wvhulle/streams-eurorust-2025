@@ -107,61 +107,43 @@
     )
   ]
 
-  slide(title: "Naive stream processing")[
-    *The challenge:* Process TCP connections, filter messages, and collect 5 long ones
+  slide(title: "Process TCP connections and collect 5 long messages")[
 
-    #text(size: 8pt)[
-      ```rust
-      let mut filtered_messages = Vec::new(); let mut count = 0; let mut = 0;
-      let mut tcp_stream = tokio::net::TcpListener::bind("127.0.0.1:8080")
-            .await?
-            .incoming();
-      while let Some(connection) = tcp_stream.next().await {
-          match connection {
-              Ok(stream) => {
-                  if should_process(&stream) {
-                      // More nested logic needed...
-                  }
-              }
-              Err(e) => {
-                  total_errors += 1;
-                  log_connection_error(e);
-                  if total_errors > 3 { break; }
-              } } }
-      ```]
+    #set text(size: 7pt)
+
+
+    ```rust
+    let mut results = Vec::new(); let mut count = 0;
+
+    while let Some(connection) = tcp_stream.next().await {
+        match connection {
+            Ok(stream) if should_process(&stream) => {
+                match process_stream(stream).await {
+                    Ok(msg) if msg.len() > 10 => {
+                        results.push(msg);
+                        count += 1;
+                        if count >= 5 { break; }
+                    }
+                    Ok(_) => continue,
+                    Err(_) => continue,
+                }
+            }
+            Ok(_) => continue,
+            Err(_) => continue,
+        }
+    }
+    ```
+
+    *Problems:* Deeply nested, hard to read and test each piece independently
   ]
 
-  slide(title: "Complexity grows with each requirement")[
-    Inside the processing block, *even more nested logic:*
-
-    #text(size: 8pt)[
-      ```rust
-      match process_stream(stream).await {
-          Ok(msg) if msg.len() > 10 => {
-              filtered_messages.push(msg);
-              count += 1;
-              if count >= 5 { break; }  // Break from outer loop!
-          }
-          Ok(_) => continue,  // Skip short messages
-          Err(e) => {
-              total_errors += 1;
-              log_error(e);
-              if total_errors > 3 { break; }  // Another outer break!
-          }
-      }
-      ```]
-
-    *Problems:* hard to read, trace or test!
-  ]
-
-
-  slide(title: [`Stream` operators preview])[
-    Same logic, much cleaner with stream operators:
+  slide(title: [`Stream` operators: declarative & composable])[
+    Same logic with stream operators:
 
     #text(size: 10pt)[
       ```rust
-      let filtered_messages: Vec<String> = tcp_stream
-          .filter_map(|connection| ready(connection.ok()))
+      let results: Vec<String> = tcp_stream
+          .filter_map(|conn| ready(conn.ok()))
           .filter(|stream| ready(should_process(stream)))
           .then(|stream| process_stream(stream))
           .filter_map(|result| ready(result.ok()))
@@ -171,6 +153,8 @@
           .await;
       ```]
 
-    "Programs must be written *for people to read*, and only incidentally for machines to execute." — _Harold Abelson & Gerald Jay Sussman_
+    *Benefits:* Each operation is isolated, testable, and reusable
+
+    "Programs must be written *for people to read*" — _Abelson & Sussman_
   ]
 }
