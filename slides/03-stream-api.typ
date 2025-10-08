@@ -35,7 +35,7 @@
       node((2, 0), [keep if > 4], name: <desc-filter>, fill: none, stroke: none),
       node((3, 0), [add index], name: <desc-enum>, fill: none, stroke: none),
       node((4, 0), [take first 3], name: <desc-take>, fill: none, stroke: none),
-      node((5, 0), [skip while < 1], name: <desc-skip>, fill: none, stroke: none),
+      node((5, 0), [skip while index < 1], name: <desc-skip>, fill: none, stroke: none),
 
       edge(<op-iter>, <op-map>, "->"),
       edge(<op-map>, <op-filter>, "->"),

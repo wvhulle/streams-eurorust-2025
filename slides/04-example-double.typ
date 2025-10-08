@@ -40,7 +40,7 @@
     All stream operators start by:
 
     - *wrapping input stream by value*
-    - and being *generic over stream type*
+    - and being *generic over stream type* (back-end agnostic)
 
     (No trait bounds yet ):
 
@@ -200,7 +200,7 @@
       fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) ->  Poll<Option<Self::Item>> {
         // `this` = a conventional name for `get_mut` output
         let mut this = self.get_mut();
-        let mut pinned_in = Pin::new(&mut this.in_stream) // Not possible!
+        let pinned_in = Pin::new(&mut this.in_stream);
         pinned_in
           .poll_next(cx)
           .map(|x| x * 2)
@@ -275,13 +275,9 @@
       ],
 
       [
-        *Problem:* We need `Pin<&mut InSt>`, not `&mut InSt`
-        - Without `Pin<Box<_>>`, we'd need `InSt: Unpin` to create `Pin<&mut InSt>` (`Pin::new()` requires `Unpin`)
-        - This would force an `Unpin` constraint on `InSt`!
+        *Problem:* Need `Pin<&mut InSt>`, but `Box<InSt>` requires `InSt: Unpin` to create it
 
-        *Solution:* Add a `Pin` layer around `Box`
-        - Use `Pin<Box<InSt>>` instead of `Box<InSt>`
-        - Enables to go directly from `Pin<&mut Double>` to `Pin<&mut InSt>` with  `Pin::as_mut()`
+        *Solution:* Use `Pin<Box<InSt>>` to project from `Pin<&mut Double>` to `Pin<&mut InSt>` via `Pin::as_mut()`
       ],
     )
 
@@ -373,7 +369,7 @@
               color: colors.pin,
             )[`Pin<Box<Inst>>`]
 
-            draw.content((center2.at(0), center2.at(1) - 1.4))[`&mut Self` \ mutable ref to operator]
+            draw.content((center2.at(0), center2.at(1) - 1.4))[_`&mut Self` \ mutable ref to operator_]
 
             styled-rect(
               draw,

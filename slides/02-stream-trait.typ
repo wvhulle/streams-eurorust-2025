@@ -45,9 +45,9 @@
         colored-node((0, 1), color: colors.action, name: <iter-call4>)[`next()`],
         styled-edge(<iter-call4>, <iter-result2>),
 
-        colored-node((1, 4), color: colors.data, name: <iter-result1>)[`Some(1)`],
-        colored-node((1, 1), color: colors.data, name: <iter-result2>)[`Some(2)`],
-        colored-node((1, 2), color: colors.data, name: <iter-result3>)[`Some(3)`],
+        colored-node((1, 4), color: colors.data, name: <iter-result1>)[`Some(2)`],
+        colored-node((1, 1), color: colors.data, name: <iter-result2>)[`Some(3)`],
+        colored-node((1, 2), color: colors.data, name: <iter-result3>)[`Some(1)`],
         colored-node((1, 3), color: colors.data, name: <iter-result4>)[`None`],
 
         title-node((3.5, 5), text(size: 10pt, weight: "bold")[Stream (low-level)]),
@@ -104,9 +104,9 @@
         colored-node((6, 1), color: colors.action, name: <async-call4>)[`next().await`],
         styled-edge(<async-call4>, <async-result2>),
 
-        colored-node((7, 4), color: colors.data, name: <async-result1>)[`Some(1)`],
-        colored-node((7, 1), color: colors.data, name: <async-result2>)[`Some(2)`],
-        colored-node((7, 2), color: colors.data, name: <async-result3>)[`Some(3)`],
+        colored-node((7, 4), color: colors.data, name: <async-result1>)[`Some(2)`],
+        colored-node((7, 1), color: colors.data, name: <async-result2>)[`Some(3)`],
+        colored-node((7, 2), color: colors.data, name: <async-result3>)[`Some(1)`],
         colored-node((7, 3), color: colors.data, name: <async-result4>)[`None`],
 
         title-node((0.5, 0), text(size: 8pt)[✓ Always returns immediately]),

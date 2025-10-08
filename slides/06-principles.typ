@@ -7,87 +7,6 @@
     == General principles
   ]
 
-  slide(title: "Steps for creating robust stream operators")[
-    #{
-      set text(size: 8pt)
-      styled-diagram(
-        spacing: (3em, 1em),
-
-        workflow-step(
-          (1, 3),
-          "1",
-          "Write tests",
-          ("Order preservation", "All items received", [Use `Barrier`s, not `sleep()`]),
-          colors.stream,
-          <write-tests>,
-        ),
-        styled-edge(<write-tests>, <analyze-states>),
-
-        workflow-step(
-          (3, 3),
-          "2",
-          "Analyze states",
-          ("Minimal state set", "Add tracing / logging", [Avoid `Option`s in states]),
-          colors.data,
-          <analyze-states>,
-        ),
-        styled-edge(<analyze-states>, <implement>, bend: -15deg),
-
-        workflow-step(
-          (2, 2),
-          "3",
-          "Define transitions",
-          ([Start with 1,2 output `Stream`s], "Get wake-up order right", [Don't create  custom `Waker`s]),
-          colors.state,
-          <implement>,
-        ),
-        styled-edge(<implement>, <run-tests>, bend: -15deg),
-
-        workflow-step(
-          (1, 1),
-          "4",
-          "Run tests",
-          ("Trace tests", "Debug tests"),
-          colors.action,
-          <run-tests>,
-        ),
-        styled-edge(<run-tests>, <benchmarks>, label: "✓ pass"),
-        styled-edge(
-          <run-tests>,
-          <implement>,
-          label: "✗ fail",
-          color: colors.error,
-          bend: -30deg,
-        ),
-
-        styled-edge(
-          <run-tests>,
-          <write-tests>,
-          label: "✗ missing test",
-          color: colors.error,
-          bend: -30deg,
-        ),
-
-        styled-edge(
-          <benchmarks>,
-          <implement>,
-          label: "✗ too slow",
-          color: colors.error,
-          bend: 30deg,
-          label-pos: 0.3,
-        ),
-
-        workflow-step(
-          (3, 1),
-          "5",
-          "Performance",
-          ("Add benchmarks (criterion)", "Add profiling", "Find hotspots"),
-          colors.operator,
-          <benchmarks>,
-        ),
-      )
-    }
-  ]
 
   slide(title: "Rules of thumb")[
     #align(horizon)[
@@ -115,7 +34,7 @@
         [
           *Simple state machines:*
           1. Fewer `Option`s
-          2. Fewer states
+          2. More states
 
         ],
       )

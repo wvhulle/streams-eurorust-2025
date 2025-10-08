@@ -301,7 +301,7 @@
 
     For performance reasons, you may want to *ignore unpolled consumers* (init required) in 1-to-N stream operators.
 
-    Synchronisation after the "init" phase is done with a single `Barrier` ot type $N + 1$.
+    Synchronisation after the "init" phase is done with a single `Barrier` of type $N + 1$.
 
     ```rs
     let b1 = Arc::new(Barrier::new(3)); // For input task
