@@ -302,6 +302,33 @@
     )
   ]
 
+
+  slide(title: [Approach 3: Projection with `pin-project`])[
+    #set text(size: 8pt)
+    Projects like Tokio use the `pin-project` crate:
+
+    ```rust
+    #[pin_project]
+    struct Double<InSt> {
+        #[pin]
+        in_stream: InSt,
+    }
+
+    impl<InSt: Stream> Stream for Double<InSt> {
+        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
+            -> Poll<Option<Self::Item>>
+        {
+            // pin-project generates a safe projection method `project()`
+            self.project().in_stream.poll_next(cx)
+                .map(|r| r.map(|x| x * 2))
+        }
+    }
+    ```
+
+    Uses a lot of macros underneath (a bit out-of-scope).
+  ]
+
+
   slide(title: [The _'real'_ stream drivers])[
     #align(center + horizon)[
       #canvas(length: 1cm, {

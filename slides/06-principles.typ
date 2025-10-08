@@ -3,6 +3,10 @@
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 
 #let principles-slides(slide) = {
+  slide[
+    == General principles
+  ]
+
   slide(title: "Steps for creating robust stream operators")[
     #{
       set text(size: 8pt)
@@ -83,10 +87,6 @@
         ),
       )
     }
-  ]
-
-  slide[
-    == General principles
   ]
 
   slide(title: "Rules of thumb")[

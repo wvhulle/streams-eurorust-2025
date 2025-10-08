@@ -8,12 +8,12 @@
 
 #let colors = (
   neutral: color.hsl(142.67deg, 100%, 91.18%), //  concepts in Rust that are not specific to streams
-  stream: color.hsl(200deg, 65%, 85%), //  all `Stream`s, flowing, continuous
-  operator: color.hsl(45.16deg, 100%, 81.76%), // stream transformation with stream operators or combinators
-  data: color.hsl(330.91deg, 57.89%, 88.82%), //  values, allocations, fundamental data types
-  state: color.hsl(140deg, 34.88%, 74.71%), //  low-level state of stream
+  stream: color.hsl(200deg, 65%, 92%), //  all `Stream`s, flowing, continuous
+  operator: color.hsl(45.16deg, 100%, 88.76%), // stream transformation with stream operators or combinators
+  data: color.hsl(330.91deg, 57.89%, 95%), //  values, allocations, fundamental data types
+  state: color.hsl(140deg, 34.88%, 84.71%), //  low-level state of stream
   action: color.hsl(21.25deg, 68.57%, 86.27%), //  primitive operation on a stream
-  pin: color.hsl(270deg, 100%, 87.84%), //  pinning, methods of Pin type, `Unpin`, stability
+  pin: color.hsl(240deg, 100%, 93.92%), //  pinning, methods of Pin type, `Unpin`, stability
   error: color.hsl(0deg, 65%, 85%), //  errors, warnings
 )
 

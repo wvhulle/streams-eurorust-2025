@@ -67,7 +67,7 @@
     node-outset: node-outset,
     edge-stroke: arrow-width,
     ..args,
-    body
+    body,
   )
 }
 

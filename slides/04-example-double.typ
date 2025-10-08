@@ -6,26 +6,33 @@
 
 #let example-double-slides(slide) = {
   slide[
-    == Example 1: One-to-One Operator
+    == Example 1: $1 -> 1$ Operator
   ]
 
   slide(title: [Doubling stream operator])[
-    #styled-diagram(
-      spacing: 6em,
 
-      stream-node((0, 0), <in>)[Input\ Stream],
-      colored-node(
-        (1, 0),
-        color: colors.operator,
-        name: <double>,
-        shape: pill,
-      )[`Double`],
-      stream-node((2, 0), <out>)[Output\ Stream],
+    #align(center + horizon)[
+      Very simple `Stream` operator that *doubles every item* in an input stream:
 
-      styled-edge(<in>, <double>, label: [1, 2, 3, ...], "->", color: colors.data),
-      styled-edge(<double>, <out>, label: [2, 4, 6, ...], "->", color: colors.data),
-    )
-  ]
+
+      #styled-diagram(
+        spacing: (6em, 0em),
+
+        stream-node((0, 0), <in>)[Input\ Stream],
+        colored-node(
+          (1, 0),
+          color: colors.operator,
+          name: <double>,
+          shape: pill,
+        )[`Double`],
+        stream-node((2, 0), <out>)[Output\ Stream],
+
+        styled-edge(<in>, <double>, label: [1, 2, 3, ...], "->", color: colors.data),
+        styled-edge(<double>, <out>, label: [2, 4, 6, ...], "->", color: colors.data),
+      )
+
+      Input stream *needs to yield integers*.
+    ]]
 
   slide(title: "Wrapping the original stream")[
     #set text(size: 8pt)
@@ -103,20 +110,27 @@
           (color: colors.pin, label: [Pin types]),
           (color: colors.operator, label: [Operators]),
           (color: colors.stream, label: [Streams]),
-          (color: colors.action, label: [Stream \ actions]),
+          (color: colors.action, label: [Actions]),
         ))
       ]
     ]
   ]
 
-  slide(title: [`!Unpin` defends against unsafe moves])[
-    #set text(size: 8pt)
+  slide(title: [Marking types `!Unpin` defends against unsafe moves])[
+    #set text(size: 7pt)
+
+    A _pointer type_ can only be wrapped in `Pin` if it is *not `!Unpin`*.
+
+    Once a pointer type `P` appears inside `Pin<P>`, *target will never move again*.
+
+    #v(-1em)
+
     #show "🐦": it => text(size: 3em)[#it]
     #show "🐅": it => text(size: 3em)[#it]
     #align(center)[
       #grid(
         rows: (auto, auto),
-        row-gutter: 1.5em,
+        row-gutter: 0.5em,
 
         [
           #canvas(length: 1cm, {
@@ -175,7 +189,34 @@
   ]
 
 
-  slide(title: [Put your `!Unpin` type on the heap])[
+  slide(title: [Doing what the compiler wants you to do])[
+    #set text(size: 8pt)
+    The compiler will push you to add `Self: Unpin` which implies `InSt: Unpin`:
+
+    ```rs
+    impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> + Unpin {
+      type Item = InSt::Item;
+
+      fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) ->  Poll<Option<Self::Item>> {
+        // `this` = a conventional name for `get_mut` output
+        let mut this = self.get_mut();
+        let mut pinned_in = Pin::new(&mut this.in_stream) // Not possible!
+        pinned_in
+          .poll_next(cx)
+          .map(|x| x * 2)
+      }
+    }
+    ```
+
+
+    We *don't want to impose `InSt: Unpin` on users* of `Double`!
+
+    How to enable users to `Double` streams of type `InSt: !Unpin`? ...
+
+  ]
+
+
+  slide(title: [Turning `!Unpin` into `Unpin` with boxing])[
     #set text(size: 7pt)
     #align(center)[
       #canvas(length: 1.2cm, {
@@ -251,22 +292,26 @@
 
 
   slide(title: [Projecting the `Double`d stream])[
+    #set text(size: 8pt)
 
-    Create a `Double`d stream (works with `!Unpin` streams!)
-    ```rs
-    let double = Double {
-        in_stream: Pin::new(Box::new(in_stream)) // Box::pin()
-    };
-    ```
-    Inside `poll_next`, project to `Pin<&mut InSt>`:
 
-    ```rs
-    let in_stream: Pin<&mut InSt> = double
-      .get_mut() // Pin<&mut Double<InSt>> -> &mut Double<InSt>
-      .in_stream // &mut Double<InSt> -> Pin<Box<InSt>>
-      .as_mut(); // Pin<Box<InSt>> -> Pin<&mut InSt>
-    ```
+    1. `Box` the input stream to make it `Unpin`
+    2. `Pin` the input stream (works with `!Unpin` streams!)
+    3. Put the pinned box in `Double`d stream
+      ```rs
+      let double = Double {
+          in_stream: Pin::new(Box::new(in_stream)) // Box::pin()
+      };
+      ```
+      Inside `poll_next`, project to `Pin<&mut InSt>`:
 
+      ```rs
+      let in_stream: Pin<&mut InSt> = double
+        .get_mut() // Pin<&mut Double<InSt>> -> &mut Double<InSt>
+        .in_stream // &mut Double<InSt> -> Pin<Box<InSt>>
+        .as_mut(); // Pin<Box<InSt>> -> Pin<&mut InSt>
+      ```
+    This `Stream` impl *works without `InSt: Unpin`*!
 
 
   ]
@@ -328,6 +373,8 @@
               color: colors.pin,
             )[`Pin<Box<Inst>>`]
 
+            draw.content((center2.at(0), center2.at(1) - 1.4))[`&mut Self` \ mutable ref to operator]
+
             styled-rect(
               draw,
               (center2.at(0) - 0.4, center2.at(1) - 0.4),
@@ -356,12 +403,16 @@
 
             styled-circle(draw, (7.5, 4), colors.stream, radius: 0.25)[]
 
+            draw.content((center3.at(0), center3.at(1) - 1.4))[_pinned and boxed \ inner input stream field_]
+
             // Step 3: After .as_mut() - Pin<&mut InSt>
             let center4 = (10.5, 4)
 
             hexagon(draw, center4, 2, color: colors.pin)[`Pin<&mut InSt>`]
 
             styled-circle(draw, center4, colors.stream, radius: 0.25)[`InSt`]
+
+            draw.content((center4.at(0), center4.at(1) - 1.4))[_pinned unboxed inner \ input stream_]
 
             // Arrow 1: .get_mut()
             styled-line(draw, (2.9, 4), (3.3, 4), colors.pin, mark: (end: "barbed"))
@@ -395,7 +446,7 @@
 
     ]
 
-    `Pin` does not take up space, it functions more like a gatekeeper.
+    *Reminder*: `Pin` does not take up space, it functions more like a gatekeeper that guarantees *pointee will never move again*.
   ]
 
   slide(title: [Complete boxed `Stream` implementation])[
@@ -411,7 +462,6 @@
           {
               // We can project because `Self: Unpin`
               let this: &mut Double<InSt> = self.get_mut();
-              // `this` = a conventional name for `get_mut` output
               this.in_stream.as_mut()
                   .poll_next(cx)
                   .map(|r| r.map(|x| x * 2))
@@ -437,7 +487,7 @@
         impl<InSt> Stream for Double<InSt>
           where InSt: Stream
         ```
-        ✓ Works with `InSt`
+        ✓ Works with any `InSt`, also `!Unpin`
       ],
       [
         *Approach 2: Require `Unpin`*
@@ -449,35 +499,12 @@
         impl<InSt> Stream for Double<InSt>
           where InSt: Stream + Unpin
         ```
-        ✗ Imposes `Unpin` constraint
+        ✗ Imposes `Unpin` constraint on users
       ],
     )
+    #v(1em)
+    ... or, use `pin-project` crate
 
-  ]
-
-  slide(title: [Approach 3: Projection with `pin-project`])[
-    #set text(size: 8pt)
-    Projects like Tokio use the `pin-project` crate:
-
-    ```rust
-    #[pin_project]
-    struct Double<InSt> {
-        #[pin]
-        in_stream: InSt,
-    }
-
-    impl<InSt: Stream> Stream for Double<InSt> {
-        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
-            -> Poll<Option<Self::Item>>
-        {
-            // pin-project generates a safe projection method `project()`
-            self.project().in_stream.poll_next(cx)
-                .map(|r| r.map(|x| x * 2))
-        }
-    }
-    ```
-
-    Uses a lot of macros underneath (a bit out-of-scope).
   ]
 
   slide(title: "Distributing your operator")[
