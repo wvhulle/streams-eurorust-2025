@@ -1,5 +1,6 @@
 #import "../lib/constants.typ": *
 #import "../lib/diagram-helpers.typ": *
+#import "../lib/blocks.typ": conclusion
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 #import "@preview/cetz:0.4.2": canvas, draw
 
@@ -30,6 +31,66 @@
 
   slide[
     == Bonus slides
+  ]
+
+  slide(
+    title: [Simplified state machine of  #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[`clone-stream`]],
+  )[
+    #set text(size: 8pt)
+    Enforcing simplicity, *correctness and performance*:
+
+    #{
+      styled-diagram(
+        node-inset: 1em,
+        spacing: (4em, 1.5em),
+
+        state-node(
+          (0, 1),
+          "PollingInputStream",
+          "Actively polling input stream",
+          colors.state,
+          <polling-base-stream>,
+        ),
+        styled-edge(
+          <polling-base-stream>,
+          <processing-queue>,
+          label: [input stream ready,\ queue item],
+          label-pos: 0.5,
+          label-anchor: "north",
+          label-sep: 0em,
+        ),
+        styled-edge(
+          <polling-base-stream>,
+          <pending>,
+          label: "input stream pending",
+          bend: -15deg,
+          label-pos: 0.7,
+          label-sep: 0.5em,
+          label-anchor: "west",
+        ),
+
+        state-node(
+          (2, 1),
+          "ReadingBuffer",
+          "Reading from shared buffer",
+          colors.data,
+          <processing-queue>,
+        ),
+        styled-edge(
+          <processing-queue>,
+          <polling-base-stream>,
+          label: [buffer empty,\ poll base],
+          bend: 40deg,
+          label-pos: 0.5,
+        ),
+
+        state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.action, <pending>),
+        styled-edge(<pending>, <polling-base-stream>, label: "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
+        styled-edge(<pending>, <processing-queue>, label: "fresh buffer", bend: 15deg, label-pos: 0.7),
+      )
+    }
+    #v(-1em)
+    #conclusion[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
   ]
 
   slide(title: [`Stream`s in Rust are not new])[
@@ -384,6 +445,201 @@
         - Hardware signals
         - Channel senders pushing data
       ],
+    )
+  ]
+
+
+  slide(title: [Moving from `Iterator` to `Stream`])[
+    #{
+      set text(size: 7pt)
+      styled-diagram(
+        spacing: (1.2em, 0.8em),
+
+        title-node((0.5, 5), text(size: 11pt, weight: "bold")[Iterator (sync)]),
+
+        colored-node((0, 4), color: colors.action, name: <iter-call1>)[`next()`],
+        styled-edge(<iter-call1>, <iter-result1>),
+        colored-node((0, 3), color: colors.action, name: <iter-call2>)[`next()`],
+        styled-edge(<iter-call2>, <iter-result4>),
+        colored-node((0, 2), color: colors.action, name: <iter-call3>)[`next()`],
+        styled-edge(<iter-call3>, <iter-result3>),
+        colored-node((0, 1), color: colors.action, name: <iter-call4>)[`next()`],
+        styled-edge(<iter-call4>, <iter-result2>),
+
+        colored-node((1, 4), color: colors.data, name: <iter-result1>)[`Some(2)`],
+        colored-node((1, 1), color: colors.data, name: <iter-result2>)[`Some(3)`],
+        colored-node((1, 2), color: colors.data, name: <iter-result3>)[`Some(1)`],
+        colored-node((1, 3), color: colors.data, name: <iter-result4>)[`None`],
+
+        title-node((3.5, 5), text(size: 10pt, weight: "bold")[Stream (low-level)]),
+
+        colored-node((3, 4), color: colors.action, name: <stream-call1>)[`poll_next()`],
+        styled-edge(<stream-call1>, <stream-result1>),
+        colored-node((3, 3), color: colors.action, name: <stream-call2>)[`poll_next()`],
+        styled-edge(<stream-call2>, <stream-result2>),
+        colored-node((3, 2), color: colors.action, name: <stream-call3>)[`poll_next()`],
+        styled-edge(<stream-call3>, <stream-result3>),
+        colored-node((3, 1), color: colors.action, name: <stream-call4>)[`poll_next()`],
+        styled-edge(<stream-call4>, <stream-result4>),
+
+        colored-node((4, 4), color: colors.state, name: <stream-result1>)[`Pending`],
+        colored-node((4, 3), color: colors.data, name: <stream-result2>)[`Ready(Some(1))`],
+        colored-node((4, 2), color: colors.state, name: <stream-result3>)[`Pending`],
+        colored-node((4, 1), color: colors.data, name: <stream-result4>)[`Ready(Some(2))`],
+
+        node(
+          stroke: stroke-width + accent(colors.stream),
+          fill: colors.stream,
+
+          inset: 1em,
+          shape: rect,
+          radius: 8pt,
+          enclose: (
+            <stream-call1>,
+            <stream-call2>,
+            <stream-call3>,
+            <stream-call4>,
+            <stream-result1>,
+            <stream-result2>,
+            <stream-result3>,
+            <stream-result4>,
+            <async-call1>,
+            <async-call2>,
+            <async-call3>,
+            <async-call4>,
+            <async-result1>,
+            <async-result2>,
+            <async-result3>,
+            <async-result4>,
+          ),
+        ),
+
+        title-node((6.5, 5), text(size: 10pt, weight: "bold")[Stream (high-level)]),
+
+        colored-node((6, 4), color: colors.action, name: <async-call1>)[`next().await`],
+        styled-edge(<async-call1>, <async-result1>),
+        colored-node((6, 3), color: colors.action, name: <async-call2>)[`next().await`],
+        styled-edge(<async-call2>, <async-result4>),
+        colored-node((6, 2), color: colors.action, name: <async-call3>)[`next().await`],
+        styled-edge(<async-call3>, <async-result3>),
+        colored-node((6, 1), color: colors.action, name: <async-call4>)[`next().await`],
+        styled-edge(<async-call4>, <async-result2>),
+
+        colored-node((7, 4), color: colors.data, name: <async-result1>)[`Some(2)`],
+        colored-node((7, 1), color: colors.data, name: <async-result2>)[`Some(3)`],
+        colored-node((7, 2), color: colors.data, name: <async-result3>)[`Some(1)`],
+        colored-node((7, 3), color: colors.data, name: <async-result4>)[`None`],
+
+        title-node((0.5, 0), text(size: 8pt)[✓ Always returns immediately]),
+        title-node((3.5, 0), text(size: 8pt)[⚠️ May be Pending]),
+        title-node((6.5, 0), text(size: 8pt)[✓ Hides polling complexity]),
+      )
+
+      v(1em)
+
+      legend((
+        (color: colors.action, label: [Actions]),
+        (color: colors.data, label: [Data values]),
+        (color: colors.state, label: [State]),
+        (color: colors.stream, label: [Stream]),
+      ))
+    }
+  ]
+
+
+  slide(title: "How to get started")[
+    #set text(size: 7pt)
+    #v(-4.2em)
+    #styled-diagram(
+      stroke-width: stroke-width + colors.data,
+      mark-scale: 80%,
+      node-fill: colors.data,
+
+      colored-node((1.5, 0), color: colors.data, name: <transform>)[Stream processing style],
+      styled-edge(<transform>, <control-flow>, "-}>", label: [Traditional \ control flow]),
+      styled-edge(<transform>, <standard>, "-}>", label: [Stream \ operators]),
+
+      node(
+        fill: colors.pin,
+        stroke: accent(colors.pin) + stroke-width,
+        enclose: (
+          <standard>,
+          <futures-streamext>,
+          <futures-rx>,
+          <standard>,
+          <rxjs>,
+          <search-crates>,
+          <build-trait>,
+          <import-trait>,
+        ),
+        name: <stream-operators>,
+      ),
+
+      node(
+        fill: colors.neutral,
+        stroke: accent(colors.neutral) + stroke-width,
+        enclose: (<control-flow>, <unfold>, <async-stream>),
+        name: <traditional>,
+      ),
+
+      colored-node(
+        (2.5, 3.5),
+        color: colors.error,
+        name: <dark-magic>,
+      )[Always requires `Box` \ to make `!Unpin` \ output `Unpin` ],
+      styled-edge(<dark-magic>, <traditional>, "--"),
+      colored-node((0, 1), color: colors.data, name: <standard>)[Standard? \ e.g. N-1, 1-1],
+
+      styled-edge(<standard>, <rxjs>, "-}>", label: [No]),
+      colored-node(
+        (-0.5, 2),
+        color: colors.operator,
+        name: <futures-streamext>,
+      )[`futures::` \ `StreamExt`],
+      styled-edge(<standard>, <futures-streamext>, "-}>", label: [Yes]),
+      colored-node(
+        (0.6, 2),
+        color: colors.operator,
+        name: <rxjs>,
+      )[ReactiveX-like \ e.g. 1-N],
+
+      colored-node(
+        (-0.5, 3),
+        color: colors.operator,
+        name: <futures-rx>,
+      )[`futures-rx`],
+      styled-edge(<rxjs>, <futures-rx>, "-}>", label: [Yes]),
+
+      colored-node((0.6, 3), color: colors.data, name: <search-crates>)[Search \ crates.io],
+      styled-edge(<rxjs>, <search-crates>, "-}>", label: [No]),
+
+      colored-node(
+        (0, 4),
+        color: colors.operator,
+        name: <build-trait>,
+      )[Build your \ own trait],
+      styled-edge(<search-crates>, <build-trait>, "-}>", label: [Does not exist]),
+      colored-node(
+        (1, 4),
+        color: colors.operator,
+        name: <import-trait>,
+      )[Import \ extension trait],
+      styled-edge(<search-crates>, <import-trait>, "-}>", label: [Exists]),
+      colored-node((2.5, 1), color: colors.data, name: <control-flow>)[Declarative],
+      styled-edge(<control-flow>, <unfold>, "-}>", label: [Yes]),
+      styled-edge(<control-flow>, <async-stream>, "-}>", label: [No]),
+
+      colored-node(
+        (2, 2),
+        color: colors.stream,
+        name: <unfold>,
+      )[`futures::` \ `stream::unfold`],
+
+      colored-node(
+        (3, 2),
+        color: colors.stream,
+        name: <async-stream>,
+      )[`async-stream` \ with `yield`],
     )
   ]
 

@@ -75,9 +75,6 @@
     *Solution*: Create a _*stream operator*_ `fork()` makes the input stream `Clone`.
 
     ```rust
-    let tcp_stream = TcpStream::connect("127.0.0.1:8080").await?;
-
-    // Fork makes the input stream cloneable
     let ui_latency = tcp_stream.latency().fork();
 
     let breaks_latency_clone = ui_latency.clone();
@@ -238,67 +235,6 @@
   ]
 
 
-  slide(
-    title: [Simplified state machine of  #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[`clone-stream`]],
-  )[
-    #set text(size: 8pt)
-    Enforcing simplicity, *correctness and performance*:
-
-    #{
-      styled-diagram(
-        node-inset: 1em,
-        spacing: (4em, 1.5em),
-
-        state-node(
-          (0, 1),
-          "PollingInputStream",
-          "Actively polling input stream",
-          colors.state,
-          <polling-base-stream>,
-        ),
-        styled-edge(
-          <polling-base-stream>,
-          <processing-queue>,
-          label: [input stream ready,\ queue item],
-          label-pos: 0.5,
-          label-anchor: "north",
-          label-sep: 0em,
-        ),
-        styled-edge(
-          <polling-base-stream>,
-          <pending>,
-          label: "input stream pending",
-          bend: -15deg,
-          label-pos: 0.7,
-          label-sep: 0.5em,
-          label-anchor: "west",
-        ),
-
-        state-node(
-          (2, 1),
-          "ReadingBuffer",
-          "Reading from shared buffer",
-          colors.data,
-          <processing-queue>,
-        ),
-        styled-edge(
-          <processing-queue>,
-          <polling-base-stream>,
-          label: [buffer empty,\ poll base],
-          bend: 40deg,
-          label-pos: 0.5,
-        ),
-
-        state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.action, <pending>),
-        styled-edge(<pending>, <polling-base-stream>, label: "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
-        styled-edge(<pending>, <processing-queue>, label: "fresh buffer", bend: 15deg, label-pos: 0.7),
-      )
-    }
-    #v(-1em)
-    #conclusion[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
-  ]
-
-
   slide(title: [`Barrier`s for task synchronization checkpoints])[
     #set text(size: 8pt)
 
@@ -373,7 +309,6 @@
           "-",
           label: [`Arc`],
         )
-        styled-edge(<crossed>, <end>, color: colors.state, stroke-width: 2pt)
       },
     )
 

@@ -5,10 +5,6 @@
 #import fletcher.shapes: pill
 
 #let stream-api-slides(slide) = {
-  slide[
-    == Using the `Stream` API
-  ]
-
   slide(title: [Pipelines with `futures::StreamExt`])[
     #set text(size: 7pt)
     All basic stream operators are in #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
