@@ -41,9 +41,9 @@
 
       #v(2em)
 
-      "Perfection is achieved when there is *nothing left to take away*."
-
-      — _Antoine de Saint-Exupéry_
+      #quote(
+        attribution: [Antoine de Saint-Exupéry],
+      )[Perfection is achieved when there is *nothing left to take away*.]
     ]
   ]
 

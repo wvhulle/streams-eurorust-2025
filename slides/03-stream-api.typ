@@ -1,4 +1,5 @@
 #import "../lib/constants.typ": *
+#import "../lib/blocks.typ": conclusion
 #import "../lib/diagram-helpers.typ": *
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 #import fletcher.shapes: pill
@@ -58,13 +59,17 @@
       edge(<data-skip>, <desc-skip>, "-", stroke: (dash: "dashed")),
     )
 
+    #v(-2.5em)
+
     #align(center)[
       #text(size: 9pt)[
         ```rust
         stream::iter(0..10)
           .map(|x| x * 2)
           .filter(|&x| ready(x > 4))
-          .enumerate().take(3).skip_while(|&(i, _)| i < 1)
+          .enumerate()
+          .take(3)
+          .skip_while(|&(i, _)| i < 1)
         ```]
     ]
   ]
@@ -97,9 +102,11 @@
 
             - `ready(value)` creates a `Future` that immediately resolves to `value`.
 
-            - `ready(value)` is `Unpin` and *keeps pipelines `Unpin`*: *_easier to work with_*, see later.
+            - `ready(value)` is `Unpin`
           ]
         ],
       )]
+
+    #conclusion[`ready` keeps pipelines `Unpin`*: *_easier to work with_]
   ]
 }

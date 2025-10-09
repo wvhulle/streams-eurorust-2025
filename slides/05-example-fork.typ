@@ -1,4 +1,5 @@
 #import "../lib/constants.typ": *
+#import "../lib/blocks.typ": conclusion
 #import "../lib/diagram-helpers.typ": *
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 #import "@preview/cetz:0.4.2": canvas, draw
@@ -66,6 +67,8 @@
     ```
 
     *Error*: `latency` is moved into the first task,   so the second task can't access it.
+
+    #conclusion[We need a way to clone the latency stream!]
   ]
 
   slide(title: "Cloning streams with an operator")[
@@ -291,8 +294,8 @@
         styled-edge(<pending>, <processing-queue>, label: "fresh buffer", bend: 15deg, label-pos: 0.7),
       )
     }
-
-    Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]:
+    #v(-1em)
+    #conclusion[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
   ]
 
 
@@ -352,21 +355,21 @@
         edge(
           <crossed>,
           <b3>,
-          stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt),
+          stroke: (paint: accent(colors.neutral), dash: "dashed", thickness: 1pt),
           "-",
           label: [`Arc`],
         )
         edge(
           <crossed>,
           <b2>,
-          stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt),
+          stroke: (paint: accent(colors.neutral), dash: "dashed", thickness: 1pt),
           "-",
           label: [`Arc`],
         )
         edge(
           <crossed>,
           <b1>,
-          stroke: (paint: accent(colors.state), dash: "dashed", thickness: 1pt),
+          stroke: (paint: accent(colors.neutral), dash: "dashed", thickness: 1pt),
           "-",
           label: [`Arc`],
         )
@@ -374,7 +377,7 @@
       },
     )
 
-    Multiple *synchronization points are possible* with multiple `Barrier`s.
+    #conclusion[Multiple *synchronization points are possible* with multiple `Barrier`s.]
   ]
 
   slide(title: [Including `Barrier`s in your unit tests])[

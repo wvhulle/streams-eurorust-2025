@@ -1,5 +1,7 @@
 #import "../lib/constants.typ": *
 #import "../lib/diagram-helpers.typ": *
+#import "../lib/blocks.typ": conclusion
+
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 #import fletcher.shapes: pill
 #import "@preview/cetz:0.4.2": canvas, draw
@@ -38,8 +40,8 @@
     #set text(size: 9pt)
     #grid(
       columns: (1fr, 1fr),
-      column-gutter: 0.5em,
-      [
+      column-gutter: 1em,
+      align(horizon)[
         *Step 1:* Define a struct that wraps the input stream
 
         ```rust
@@ -52,7 +54,7 @@
         - Stores input stream by value
 
       ],
-      [
+      align(horizon)[
         *Step 2:* Implement `Stream` trait with bounds
 
         ```rs
@@ -152,7 +154,7 @@
 
     *Problem:* `Pin::get_mut()` requires `Double<InSt>: Unpin`
 
-    But `Double<InSt>` is `!Unpin` when `InSt: !Unpin`!
+    But _*`Double<InSt>` is `!Unpin`* when `InSt: !Unpin`_!
   ]
 
   slide(title: [Why does `Pin::get_mut()` require `Unpin`?])[
@@ -177,12 +179,12 @@
         styled-edge(<pin>, <getmut>, "-", color: colors.pin, label: [_unpinning_ `T`]),
         styled-edge(<getmut>, <mut>, "->", color: colors.pin, label: [gives]),
         styled-edge(<mut>, <swap>, "->", color: colors.error, label: "allows"),
-        styled-edge(<swap>, <moved>, "->", color: colors.error, label: "breaks promise"),
+        styled-edge(<swap>, <moved>, "->", color: colors.error, label: [breaks `Pin` \ contract promise]),
       )
     ]
 
-    #v(-2em)
-    *Solution:* Only allow `get_mut()` when `T: Unpin` (moving is safe).
+    #v(-3em)
+    #conclusion[*Solution*: Only allow `get_mut()` when `T: Unpin` (moving is safe).]
   ]
 
   slide(title: [`Unpin` types can be safely unpinned])[
@@ -228,7 +230,7 @@
 
     These types don't have self-referential pointers. Moving them in memory doesn't invalidate any internal references.
 
-    *Default:* Almost all types are `Unpin` by default!
+    #conclusion[Almost all types are `Unpin` by default!]
 
 
   ]
@@ -268,7 +270,7 @@
     *Examples of `!Unpin` types:*
 
     - `PhantomPinned` - explicitly opts out of `Unpin`
-    - Most `Future` types (async state machines)
+    - Most `Future` types (self-ref. state machines)
     - Types with self-referential pointers
     - `Double<InSt>` where `InSt: !Unpin`
 
@@ -276,7 +278,7 @@
 
     These types may contain pointers to their own fields. Moving them in memory would invalidate those internal pointers, causing use-after-free.
 
-    *Key insight:* `!Unpin` is rare and usually intentional for async/self-referential types.
+    #conclusion[`!Unpin` is rare and usually intentional for async/self-referential types.]
 
   ]
 
@@ -301,7 +303,7 @@
     ```
 
 
-    We *don't want to impose `InSt: Unpin` on users* of `Double`!
+    #conclusion[We *don't want to impose `InSt: Unpin` on users* of `Double`!]
 
     How to support `InSt: !Unpin` streams? ...
 
@@ -369,7 +371,7 @@
       [
         *Problem:* Need `Pin<&mut InSt>`, but `Box<InSt>` requires `InSt: Unpin` to create it
 
-        *Solution:* Use `Pin<Box<InSt>>` to project from `Pin<&mut Double>` to `Pin<&mut InSt>` via `Pin::as_mut()`
+        #conclusion[*Solution:* Use `Pin<Box<InSt>>` to project from `Pin<&mut Double>` to `Pin<&mut InSt>` via `Pin::as_mut()`]
       ],
     )
 

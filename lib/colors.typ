@@ -3,11 +3,25 @@
 // =====================================
 
 // Create accent color from base color with saturation and darkening
-#let accent(color, sat: 90%, dark: 10%) = rgb(color).saturate(sat).darken(dark)
+#let accent(color, sat: 90%, dark: 25%) = {
+  let rgb_color = rgb(color)
+  let comps = rgb_color.components()
+  let r = comps.at(0)
+  let g = comps.at(1)
+  let b = comps.at(2)
 
+  // Check if grayscale (all components within 5% of each other)
+  if calc.abs(r - g) < 5% and calc.abs(g - b) < 5% {
+    rgb_color.darken(dark)
+  } else {
+    rgb_color.saturate(sat).darken(dark)
+  }
+}
 
 #let colors = (
-  neutral: color.hsl(142.67deg, 100%, 91.18%), //  concepts in Rust that are not specific to streams
+  title: color.rgb("#b2edd7"),
+  code: color.rgb("#fcfcf5"),
+  neutral: color.hsl(0deg, 0%, 90.98%), //  concepts in Rust that are not specific to streams
   stream: color.hsl(200deg, 65%, 92%), //  all `Stream`s, flowing, continuous
   operator: color.hsl(45.16deg, 100%, 88.76%), // stream transformation with stream operators or combinators
   data: color.hsl(330.91deg, 57.89%, 95%), //  values, allocations, fundamental data types

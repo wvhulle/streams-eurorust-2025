@@ -24,7 +24,7 @@
 
     - `Poll::Pending` - not ready yet, try again later
     - `Poll::Ready(Some(item))` - here's the next item
-    - `Poll::Ready(None)` - stream is exhausted (no more items)
+    - `Poll::Ready(None)` - stream is exhausted (no more items *right now*)
   ]
 
   slide(title: [Moving from `Iterator` to `Stream`])[

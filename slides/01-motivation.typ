@@ -5,6 +5,8 @@
 #let motivation-slides(slide) = {
   slide[
     == Motivation
+
+
   ]
 
   slide(title: "Processing data from moving vehicles")[
@@ -18,18 +20,19 @@
           spacing: (5em, 2em),
           {
             emoji-node((-2, 1), colors.neutral, <vehicle>)[🚗]
-            styled-edge(<vehicle>, <video>, color: colors.neutral)
-            styled-edge(<vehicle>, <audio>, color: colors.neutral)
-            styled-edge(<vehicle>, <data>, color: colors.neutral)
+            styled-edge(<vehicle>, <video>, color: colors.data)
+            styled-edge(<vehicle>, <audio>, color: colors.data)
+            styled-edge(<vehicle>, <data>, color: colors.data)
+
 
             emoji-node((0, 2), colors.stream, <video>)[📹]
-            styled-edge(<video>, <control>, color: colors.stream)
+            styled-edge(<video>, <control>, color: colors.data)
 
             emoji-node((0, 1), colors.stream, <audio>)[🎵]
             styled-edge(<audio>, <control>, color: colors.data)
 
             emoji-node((0, 0), colors.stream, <data>)[📊]
-            styled-edge(<data>, <control>, color: colors.operator)
+            styled-edge(<data>, <control>, color: colors.data)
 
             emoji-node((3, 1), colors.neutral, <control>)[🎛️]
           },
@@ -109,38 +112,52 @@
 
   slide(title: "Process TCP connections and collect 5 long messages")[
 
-    #set text(size: 7pt)
+    #set text(size: 8pt)
 
 
-    ```rust
-    let mut results = Vec::new(); let mut count = 0;
+    #grid(
+      columns: (1fr, 0.4fr),
+      column-gutter: 1em,
+      ```rust
+      let mut results = Vec::new(); let mut count = 0;
 
-    while let Some(connection) = tcp_stream.next().await {
-        match connection {
-            Ok(stream) if should_process(&stream) => {
-                match process_stream(stream).await {
-                    Ok(msg) if msg.len() > 10 => {
-                        results.push(msg);
-                        count += 1;
-                        if count >= 5 { break; }
-                    }
-                    Ok(_) => continue,
-                    Err(_) => continue,
-                }
-            }
-            Ok(_) => continue,
-            Err(_) => continue,
-        }
-    }
-    ```
-
-    *Problems:* Deeply nested, hard to read and test each piece independently
+      while let Some(connection) = tcp_stream.next().await {
+          match connection {
+              Ok(stream) if should_process(&stream) => {
+                  match process_stream(stream).await {
+                      Ok(msg) if msg.len() > 10 => {
+                          results.push(msg);
+                          count += 1;
+                          if count >= 5 { break; }
+                      }
+                      Ok(_) => continue,
+                      Err(_) => continue,
+                  }
+              }
+              Ok(_) => continue,
+              Err(_) => continue,
+          }
+      }
+      ```,
+      align(horizon)[
+        *Problems:*
+        - Deeply nested
+        - Hard to read
+        - Cannot test pieces independently
+      ],
+    )
   ]
 
   slide(title: [`Stream` operators: declarative & composable])[
+
+
+    #set text(size: 9pt)
     Same logic with stream operators:
 
-    #text(size: 10pt)[
+
+    #grid(
+      columns: (1fr, 0.4fr),
+      column-gutter: 1em,
       ```rust
       let results: Vec<String> = tcp_stream
           .filter_map(|conn| ready(conn.ok()))
@@ -151,10 +168,18 @@
           .take(5)
           .collect()
           .await;
-      ```]
+      ```,
+      align(horizon)[
+        *Benefits:*
+        - Each operation is isolated
+        - Testable
+        - Reusable
+      ]
+    )
 
-    *Benefits:* Each operation is isolated, testable, and reusable
 
-    "Programs must be written *for people to read*" — _Abelson & Sussman_
+
+    #quote(attribution: [Abelson & Sussman])[Programs must be written *for people to read*]
+
   ]
 }
