@@ -1,13 +1,8 @@
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
-#import "constants.typ": (
+#import "theme.typ": (
   arrow-width as default-arrow-width, node-outset as default-node-outset, node-radius as default-node-radius,
-  stroke-width as default-stroke-width,
+  stroke-width as default-stroke-width, accent, colors
 )
-#import "colors.typ": accent, colors
-
-// =======================
-// Main Wrapper Function
-// ============================================================================
 
 #let styled-diagram(
   stroke-width: default-stroke-width,
@@ -26,10 +21,6 @@
     body,
   )
 ]
-
-// ============================================================================
-// Basic Node Creators
-// ============================================================================
 
 #let colored-node(
   pos,
@@ -90,10 +81,6 @@
   fill: fill,
   stroke: stroke,
 )
-
-// ============================================================================
-// Specialized Node Creators
-// ============================================================================
 
 #let call-node(
   pos,
@@ -190,10 +177,6 @@
   )
 }
 
-// ============================================================================
-// Data Item Nodes
-// ============================================================================
-
 #let queue-item(
   pos,
   consumed,
@@ -229,11 +212,6 @@
   name: name,
 )
 
-// ============================================================================
-// Edge Creators
-// ============================================================================
-
-// Unified styled edge with optional color and label
 #let styled-edge(
   from,
   to,
@@ -246,7 +224,6 @@
   let positional-args = args.pos()
   let named-args = args.named()
 
-  // Default to "->" if no mark is provided in positional args
   let mark = if positional-args.len() > 0 { positional-args.at(0) } else { "->" }
 
   edge(
@@ -259,7 +236,6 @@
   )
 }
 
-// Specialized: dashed link for queue connections
 #let queue-link(
   from,
   to,
@@ -275,3 +251,197 @@
   stroke: accent(color) + stroke-width,
   ..args,
 )
+
+#let conditional-node(
+  pos,
+  condition,
+  true-content,
+  false-content,
+  color: colors.action,
+  name,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
+) = node(
+  pos,
+  stack(
+    dir: ttb,
+    spacing: 0.3em,
+    text(size: 7pt, weight: "bold")[#condition],
+    grid(
+      columns: 2,
+      column-gutter: 0.5em,
+      text(size: 6pt, fill: colors.success)[✓ #true-content],
+      text(size: 6pt, fill: colors.error)[✗ #false-content],
+    ),
+  ),
+  fill: color,
+  stroke: accent(color) + stroke-width,
+  outset: outset,
+  shape: fletcher.shapes.diamond,
+  name: name,
+)
+
+#let process-node(
+  pos,
+  name,
+  process-name,
+  inputs,
+  outputs,
+  color: colors.operator,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
+) = node(
+  pos,
+  stack(
+    dir: ttb,
+    spacing: 0.4em,
+    text(size: 8pt, weight: "bold")[#process-name],
+    text(size: 6pt)[In: #inputs.join(", ")],
+    text(size: 6pt)[Out: #outputs.join(", ")],
+  ),
+  fill: color,
+  stroke: accent(color) + stroke-width,
+  outset: outset,
+  shape: fletcher.shapes.rect,
+  name: name,
+)
+
+#let timeline-node(
+  pos,
+  timestamp,
+  event,
+  details,
+  color: colors.state,
+  name,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
+) = node(
+  pos,
+  stack(
+    dir: ttb,
+    spacing: 0.3em,
+    text(size: 7pt, weight: "bold", fill: accent(color))[#timestamp],
+    text(size: 8pt)[#event],
+    text(size: 6pt, style: "italic")[#details],
+  ),
+  fill: color,
+  stroke: accent(color) + stroke-width,
+  outset: outset,
+  name: name,
+)
+
+#let metric-node(
+  pos,
+  metric-name,
+  value,
+  unit,
+  trend: none,
+  color: colors.data,
+  name,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
+) = node(
+  pos,
+  stack(
+    dir: ttb,
+    spacing: 0.2em,
+    text(size: 6pt)[#metric-name],
+    text(size: 10pt, weight: "bold")[#value #unit],
+    if trend != none {
+      text(size: 5pt, fill: if trend > 0 { colors.success } else if trend < 0 { colors.error } else { colors.neutral })[
+        #if trend > 0 { "↗" } else if trend < 0 { "↘" } else { "→" }
+      ]
+    },
+  ),
+  fill: color,
+  stroke: accent(color) + stroke-width,
+  outset: outset,
+  shape: fletcher.shapes.circle,
+  name: name,
+)
+
+#let group-node(
+  pos,
+  group-name,
+  members,
+  color: colors.neutral,
+  name,
+  stroke-width: default-stroke-width,
+  outset: default-node-outset,
+) = node(
+  pos,
+  stack(
+    dir: ttb,
+    spacing: 0.3em,
+    text(size: 8pt, weight: "bold")[#group-name],
+    text(size: 6pt)[#members.len() members],
+    for member in members.slice(0, calc.min(3, members.len())) {
+      text(size: 5pt)[• #member]
+    },
+    if members.len() > 3 {
+      text(size: 5pt, style: "italic")[...and #(members.len() - 3) more]
+    }
+  ),
+  fill: color,
+  stroke: accent(color) + stroke-width,
+  outset: outset,
+  name: name,
+)
+
+#let annotation-edge(
+  from,
+  to,
+  annotation,
+  color: colors.neutral,
+  stroke-width: default-stroke-width,
+  ..args,
+) = edge(
+  from,
+  to,
+  text(size: 6pt, fill: accent(color))[#annotation],
+  "-.->",
+  stroke: accent(color) + stroke-width,
+  ..args,
+)
+
+#let bidirectional-edge(
+  from,
+  to,
+  forward-label: none,
+  backward-label: none,
+  color: none,
+  stroke-width: default-stroke-width,
+  ..args,
+) = {
+  edge(
+    from,
+    to,
+    if forward-label != none { text(size: 6pt)[#forward-label] },
+    "<->",
+    stroke: if color != none { accent(color) + stroke-width } else { stroke-width },
+    ..args,
+  )
+}
+
+#let parallel-edges(
+  from,
+  to,
+  labels,
+  colors-list: none,
+  offset: 0.1,
+  stroke-width: default-stroke-width,
+  ..args,
+) = {
+  for (i, label) in labels.enumerate() {
+    let y-offset = (i - (labels.len() - 1) / 2) * offset
+    let edge-color = if colors-list != none { colors-list.at(calc.rem(i, colors-list.len())) } else { none }
+    edge(
+      (from, (0, y-offset)),
+      (to, (0, y-offset)),
+      text(size: 6pt)[#label],
+      "->",
+      stroke: if edge-color != none { accent(edge-color) + stroke-width } else { stroke-width },
+      ..args,
+    )
+  }
+}

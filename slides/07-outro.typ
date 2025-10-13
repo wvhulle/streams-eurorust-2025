@@ -1,6 +1,7 @@
-#import "../lib/constants.typ": *
-#import "../lib/diagram-helpers.typ": *
-#import "../lib/blocks.typ": conclusion
+#import "../lib/theme.typ": *
+#import "../lib/fletcher.typ": *
+#import "../lib/canvas.typ": *
+#import "../lib/components.typ": conclusion, legend
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 #import "@preview/cetz:0.4.2": canvas, draw
 

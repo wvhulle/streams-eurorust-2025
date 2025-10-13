@@ -1,5 +1,6 @@
-#import "../lib/constants.typ": *
-#import "../lib/diagram-helpers.typ": *
+#import "../lib/theme.typ": *
+#import "../lib/fletcher.typ": *
+#import "../lib/canvas.typ": *
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
 
 #let stream-trait-slides(slide) = {
