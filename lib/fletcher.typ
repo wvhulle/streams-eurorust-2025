@@ -1,13 +1,8 @@
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
-#import "constants.typ": (
+#import "theme.typ": (
   arrow-width as default-arrow-width, node-outset as default-node-outset, node-radius as default-node-radius,
-  stroke-width as default-stroke-width,
+  stroke-width as default-stroke-width, accent, colors
 )
-#import "colors.typ": accent, colors
-
-// =======================
-// Main Wrapper Function
-// ============================================================================
 
 #let styled-diagram(
   stroke-width: default-stroke-width,
@@ -26,10 +21,6 @@
     body,
   )
 ]
-
-// ============================================================================
-// Basic Node Creators
-// ============================================================================
 
 #let colored-node(
   pos,
@@ -90,10 +81,6 @@
   fill: fill,
   stroke: stroke,
 )
-
-// ============================================================================
-// Specialized Node Creators
-// ============================================================================
 
 #let call-node(
   pos,
@@ -190,10 +177,6 @@
   )
 }
 
-// ============================================================================
-// Data Item Nodes
-// ============================================================================
-
 #let queue-item(
   pos,
   consumed,
@@ -229,11 +212,6 @@
   name: name,
 )
 
-// ============================================================================
-// Edge Creators
-// ============================================================================
-
-// Unified styled edge with optional color and label
 #let styled-edge(
   from,
   to,
@@ -246,7 +224,6 @@
   let positional-args = args.pos()
   let named-args = args.named()
 
-  // Default to "->" if no mark is provided in positional args
   let mark = if positional-args.len() > 0 { positional-args.at(0) } else { "->" }
 
   edge(
@@ -259,7 +236,6 @@
   )
 }
 
-// Specialized: dashed link for queue connections
 #let queue-link(
   from,
   to,

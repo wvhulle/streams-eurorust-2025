@@ -1,12 +1,5 @@
 #import "@preview/cetz:0.4.2": canvas, draw
-#import "constants.typ": stroke-width as default-stroke-width
-#import "colors.typ": accent
-
-// ============================================================================
-// Canvas Helpers
-// ============================================================================
-
-// Styled canvas primitives that apply darkening automatically
+#import "theme.typ": stroke-width as default-stroke-width, accent
 #let styled-circle(
   draw,
   center,
@@ -134,7 +127,6 @@
   let (cx, cy) = center
   let radius = size / 2
 
-  // Calculate hexagon vertices (6 points around circle)
   let vertices = ()
   for i in range(6) {
     let angle = i * 60deg
@@ -143,7 +135,6 @@
     vertices.push((x, y))
   }
 
-  // Fill hexagon if color provided
   if color != none {
     draw.merge-path(fill: color, stroke: none, {
       for i in range(6) {
@@ -158,7 +149,6 @@
     })
   }
 
-  // Draw hexagon outline using line() calls
   for i in range(6) {
     let start = vertices.at(i)
     let end = vertices.at(calc.rem(i + 1, 6))

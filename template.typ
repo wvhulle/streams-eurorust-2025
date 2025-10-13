@@ -1,5 +1,4 @@
-#import "lib/colors.typ": accent, colors
-#import "lib/constants.typ": *
+#import "lib/theme.typ": accent, colors, stroke-width, node-radius
 
 // ============================================================================
 // Title slide
