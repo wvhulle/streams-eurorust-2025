@@ -2,19 +2,7 @@
 
 #import "colors.typ": accent, colors, node-radius, stroke-width as default-stroke-width
 
-#let conclusion(
-  color: colors.operator,
-  stroke-width: default-stroke-width,
-  inset: 0.7em,
-  radius: 4pt,
-  content,
-) = rect(
-  fill: color,
-  stroke: accent(color) + stroke-width,
-  inset: inset,
-  radius: radius,
-  content,
-)
+
 
 // Shared implementation for titled boxes (warning, error, etc.)
 #let titled-box(
@@ -28,7 +16,7 @@
 ) = {
   let show-title = if title == auto { true } else if title == false { false } else { true }
   let title-text = if title == auto { default-title } else if title == false { none } else { title }
-  v(0.5em)
+  v(0em)
   if show-title and title-text != none {
     align(center, block(
       breakable: false,

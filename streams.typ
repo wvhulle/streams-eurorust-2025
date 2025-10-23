@@ -735,7 +735,7 @@
     )
   ]
 
-  #conclusion[`ready` keeps pipelines `Unpin`*: *_easier to work with_]
+  #info(title: [The `ready` trick])[`ready` keeps pipelines `Unpin`*: *_easier to work with_]
 ]
 
 == Flatten a *finite collection* of `Stream`s
@@ -830,7 +830,7 @@
 
 = Example 1: $1 -> 1$ Operator
 
-== Concept: Doubling stream operator
+== Doubling stream operator
 
 #slide[
   #align(center + horizon)[
@@ -856,7 +856,6 @@
   ]
 ]
 
-== Building a stream operator: structure
 
 #slide[
   *Step 1:* Define a struct that wraps the input stream
@@ -871,7 +870,6 @@
   - Stores input stream by value
 ]
 
-== Implementing the `Stream` trait
 
 #slide[
   *Step 2:* Implement `Stream` trait with bounds
@@ -911,7 +909,6 @@
   `Pin<&mut Self>` *blocks access to `self.in_stream`* (when `Self: !Unpin`)!
 ]
 
-== Accessing pinned fields
 
 #slide[
 
@@ -955,7 +952,6 @@
   ]
 ]
 
-== The naive solution fails
 
 
 #slide[
@@ -1007,7 +1003,7 @@
     )
   ]
 
-  #conclusion[*Solution*: Only allow `get_mut()` when `T: Unpin` (moving is safe).]
+  #warning(title: [Solution])[Only allow `get_mut()` when `T: Unpin` (moving is safe).]
 ]
 
 == `Unpin` types can be safely unpinned
@@ -1023,12 +1019,21 @@
     styled-content(draw, (1, 2.0), bird-color)[`Unpin` Bird]
     styled-content(draw, (1, 1.6), bird-color)[Safe to move]
 
+    (pause,)
+
+    hexagon(
+      draw,
+      (8.5, 2.3),
+      2.5,
+      color: colors.pin,
+    )[`Pin<&mut Bird>`]
+
+    (pause,)
+
     styled-line(draw, (1.8, 2.7), (7.2, 2.7), colors.pin, mark: (end: "barbed"))
     styled-content(draw, (4.5, 3.0), colors.pin)[`Pin::new()`]
-    styled-content(draw, (4.5, 2.4), colors.pin)[Always safe if `Bird: Unpin`]
 
-    styled-line(draw, (7.2, 1.7), (1.8, 1.7), colors.pin, mark: (end: "barbed"))
-    styled-content(draw, (4.5, 2.0), colors.pin)[`Pin::get_mut()`]
+    (pause,)
 
     hexagon(
       draw,
@@ -1039,12 +1044,18 @@
     styled-content(draw, (8.5, 2.8), bird-color)[🐦]
     styled-content(draw, (8.5, 2.2), bird-color)[`Unpin` Bird]
     styled-content(draw, (8.5, 1.6), bird-color)[Moving won't\ break anything]
+    (pause,)
+    styled-line(draw, (7.2, 1.7), (1.8, 1.7), colors.pin, mark: (end: "barbed"))
+    styled-content(draw, (4.5, 2.0), colors.pin)[`Pin::get_mut()`]
+
+
+    (pause,)
+    styled-content(draw, (4.5, 2.4), colors.pin)[Always safe if `Bird: Unpin`]
   })
 
   If `T: Unpin`, then `Pin::get_mut()` is safe because moving `T` doesn't cause UB.
 ]
 
-== More `Unpin` types
 
 #slide[
   *Examples of `Unpin` types:*
@@ -1057,10 +1068,11 @@
 
     These types don't have self-referential pointers. Moving them in memory doesn't invalidate any internal references.
 
-    #conclusion[Almost all types are `Unpin` by default!]
+    #info[Almost all types are `Unpin` by default!]
 ]
 
-== `!Unpin` types cannot be safely unpinned
+== `!Unpin` types cannot be unpinned
+
 
 #slide[
   #show "🐅": it => text(size: 3em)[#it]
@@ -1090,7 +1102,6 @@
   })
 ]
 
-== More `!Unpin` types
 
 #slide[
   *Examples of `!Unpin` types:*
@@ -1104,10 +1115,10 @@
 
     These types may contain pointers to their own fields. Moving them in memory would invalidate those internal pointers, causing use-after-free.
 
-    #conclusion[`!Unpin` is rare and usually intentional for async/self-referential types.]
+    #info[`!Unpin` is rare and usually intentional for async/self-referential types.]
 ]
 
-== One workaround: add the `Unpin` bound
+== Following compiler hints
 
 #slide[
   The compiler error suggests adding `InSt: Unpin`:
@@ -1125,13 +1136,37 @@
           .poll_next(cx)
           .map(|p| p.map(|x| x * 2))
       }
-      }
+    }
     ```
   ]
+  #pause
+  #warning[This is a common, misleading compiler hint and *not the right solution*!]
 
-  #warning[We *don't want to impose `InSt: Unpin` on users* of `Double`!]
+]
 
-  How to support `InSt: !Unpin` streams? ...
+
+
+
+#slide[
+  Instead of mindlessly following the compiler suggestion:
+
+
+  #info[#align(
+    left,
+  )[Accept that `!Unpin` things are a fact of life and ask your users to pin stream operators (or futures and other raw `!Unpin` types):
+
+    - On the stack with the `pin!` macro
+    - On the heap with `Box::new()`
+  ]]
+
+  #pause
+
+  Instead of forcing customers of our API to know what `Unpin` means, I decided to "fix" the problem upstream and pin on the heap.
+
+  #pause
+
+  #warning[Pinning the original stream on the heap is not a *real* / idiomatic Rust solution! (-0-30% runtime performance)]
+
 ]
 
 == Turning `!Unpin` into `Unpin` with boxing
@@ -1192,12 +1227,13 @@
     [
       *Problem:* Need `Pin<&mut InSt>`, but `Box<InSt>` requires `InSt: Unpin` to create it
 
-      #conclusion[*Solution:* Use `Pin<Box<InSt>>` to project from `Pin<&mut Double>` to `Pin<&mut InSt>` via `Pin::as_mut()`]
+      #info(
+        title: [Solution],
+      )[Use `Pin<Box<InSt>>` to project from `Pin<&mut Double>` to `Pin<&mut InSt>` via `Pin::as_mut()`]
     ],
   )
 ]
 
-== Applying the solution: `Pin<Box<InSt>>`
 
 #slide[
   #set text(size: 0.8em)
@@ -1211,6 +1247,8 @@
   - `Box<InSt>` is always `Unpin` (pointers are safe to move)
   - `Pin<Box<InSt>>` can hold `!Unpin` streams safely on the heap
 
+
+  #pause
   *Projection in `poll_next`:*
 
 
@@ -1227,7 +1265,6 @@
   This works *without requiring `InSt: Unpin`*!
 ]
 
-== Projecting visually
 
 #slide[
   From `Pin<&mut Double>` to `Pin<&mut InSt>` in a few *safe steps*:
@@ -1239,7 +1276,7 @@
     #align(center + horizon)[
       #cetz-canvas(length: 2.2cm, {
         import draw: *
-        
+
         // Step 0: Starting point - Pin<&mut Double>
         let center1 = (1, 4)
         hexagon(
@@ -1265,7 +1302,7 @@
         )[`Box<InSt>`]
         styled-circle(draw, center1, colors.stream, radius: 0.25)[]
 
-        content((3, 5.3), text(size: 1em, "🐅"), anchor: "center")
+        content((3, 5.3), text(size: 3em, "🐅"), anchor: "center")
         arc(
           (2.5, 5.3),
           start: 80deg,
@@ -1361,7 +1398,6 @@
   ]
 ]
 
-== Complete boxed `Stream` implementation
 
 #slide[
   #text(size: 0.8em)[
@@ -1385,7 +1421,7 @@
   ]
 ]
 
-== Two ways to handle `!Unpin` fields
+== Review of approaches to `!Unpin` fields
 
 #slide[
   #grid(
@@ -1406,6 +1442,7 @@
       ✓ Works with any `InSt`, also `!Unpin`
     ],
     [
+      #pause
       *Approach 2: Require `Unpin`*
       ```rust
       struct Double<InSt> {
@@ -1420,14 +1457,15 @@
   )
 
   #v(1em)
-  ... or, use `pin-project` crate
+  * Approach 3*: Use `pin-project` crate
 ]
 
-== Approach 3: Projection with `pin-project`
-
 #slide[
-  #set text(size: 0.8em)
-  Projects like Tokio use the `pin-project` crate:
+  #set text(size: 0.7em)
+
+  *Approach 3*: Projection with `pin-project`
+
+  Do not impose `Unpin` constraint on input stream *and* avoid heap allocation with `Box`:
 
   ```rust
   #[pin_project]
@@ -1439,14 +1477,16 @@
       fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
           -> Poll<Option<Self::Item>>
       {
-          // pin-project generates a safe projection method `project()`
+          //
           self.project().in_stream.poll_next(cx)
               .map(|r| r.map(|x| x * 2))
       }
     }
   ```
+  #v(-4em)
+  #info[`pin-project` generates a safe projection method `project()`.
 
-  Uses a macros underneath.
+    You don't have juggle with `Unpin` (*but your users have to!*)]
 ]
 
 == Distributing your operator
@@ -1463,7 +1503,7 @@
     // A blanket implementation should be provided by you!
     impl<S> DoubleStream for S where S: Stream<Item = i32> {}
   ```
-
+  #pause
   Now, users *don't need to know how* `Double` is implemented, just
 
   1. import your extension trait: `DoubleStream`
@@ -1499,7 +1539,6 @@
   `Stream` trait just provides a *uniform way to query* - it doesn't create or drive data flow.
 ]
 
-== The `Stream` trait: a lazy query interface
 
 #slide[
   *The `Stream` trait is NOT the stream itself* - it's just a lazy frontend to query data.
@@ -1544,6 +1583,7 @@
       - Task coordination complexity
     ],
     [
+      #pause
       *Inherent `Iterator` challenges:*
       - Ordering guarantees across consumers
       - Backpressure with slow consumers
@@ -1593,7 +1633,6 @@
   #warning[We need a way to clone the latency stream!]
 ]
 
-== Cloning streams with an operator
 
 #slide[
   *Solution*: Create a _*stream operator*_ `fork()` makes the input stream `Clone`.
@@ -1611,7 +1650,7 @@
   *Requirement*: `Stream<Item: Clone>`, so we can clone the items (`Duration` is `Clone`)
 ]
 
-== Polling and waking flow
+== Handling sleeping and waking
 
 #slide(composer: (3fr, 1fr))[
 
@@ -1662,6 +1701,11 @@
       bend: -50deg,
       label-pos: 70%,
     ),
+    colored-node(
+      (1, 1.5),
+      color: colors.data,
+      name: <poll-data>,
+    )[data 'x'],
     pause,
 
 
@@ -1685,11 +1729,6 @@
     ),
 
 
-    colored-node(
-      (1, 1.5),
-      color: colors.data,
-      name: <poll-data>,
-    )[data 'x'],
     styled-edge(
       <poll-data>,
       <poll-alice>,
@@ -1717,92 +1756,13 @@
   ))
 ]
 
-== Steps for creating robust stream operators
-
-#slide[
-
-  #styled-diagram(
-    spacing: (3em, 1em),
-
-    workflow-step(
-      (1, 3),
-      "1",
-      "Write tests",
-      ("Order preservation", "All items received", [Use `Barrier`s, not `sleep()`]),
-      colors.stream,
-      <write-tests>,
-    ),
-    styled-edge(<write-tests>, <analyze-states>),
-
-    workflow-step(
-      (3, 3),
-      "2",
-      "Analyze states",
-      ("Minimal state set", "Add tracing / logging", [Avoid `Option`s in states]),
-      colors.data,
-      <analyze-states>,
-    ),
-    styled-edge(<analyze-states>, <implement>, bend: -15deg),
-
-    workflow-step(
-      (2, 2),
-      "3",
-      "Define transitions",
-      ([Start with 1,2 output `Stream`s], "Get wake-up order right", [Don't create  custom `Waker`s]),
-      colors.state,
-      <implement>,
-    ),
-    styled-edge(<implement>, <run-tests>, bend: -15deg),
-
-    workflow-step(
-      (1, 1),
-      "4",
-      "Run tests",
-      ("Trace tests", "Debug tests"),
-      colors.action,
-      <run-tests>,
-    ),
-    styled-edge(<run-tests>, <benchmarks>, label: "✓ pass"),
-    styled-edge(
-      <run-tests>,
-      <implement>,
-      label: "✗ fail",
-      color: colors.error,
-      bend: -30deg,
-    ),
-
-    styled-edge(
-      <run-tests>,
-      <write-tests>,
-      label: "✗ missing test",
-      color: colors.error,
-      bend: -30deg,
-    ),
-
-    styled-edge(
-      <benchmarks>,
-      <implement>,
-      label: "✗ too slow",
-      color: colors.error,
-      bend: 30deg,
-      label-pos: 0.3,
-    ),
-
-    workflow-step(
-      (3, 1),
-      "5",
-      "Performance",
-      ("Add benchmarks (criterion)", "Add profiling", "Find hotspots"),
-      colors.operator,
-      <benchmarks>,
-    ),
-  )
-]
 
 == Simplified state machine of  #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[`clone-stream`]
 
 #slide[
   Enforcing simplicity, *correctness and performance*:
+
+  #warning[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
 
   #{
     styled-diagram(
@@ -1845,7 +1805,7 @@
         <processing-queue>,
         <polling-base-stream>,
         label: [buffer empty,\ poll base],
-        bend: 20deg,
+        bend: 10deg,
         label-pos: 0.5,
       ),
 
@@ -1855,7 +1815,10 @@
     )
   }
 
-  #warning[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
+
+
+  #pause
+  #info(title: [Speed])[8 - 12 micro seconds per item per clone. (Using `pin-project` slowed down.)]
 ]
 
 
@@ -1958,7 +1921,89 @@
   )
 ]
 
+== Advanced operator construction
 
+
+
+#slide[
+  #set align(horizon)
+  #styled-diagram(
+    spacing: (3em, 1em),
+
+    workflow-step(
+      (1, 3),
+      "1",
+      "Write tests",
+      ("Order preservation", "All items received", [Use `Barrier`s, not `sleep()`]),
+      colors.stream,
+      <write-tests>,
+    ),
+    styled-edge(<write-tests>, <analyze-states>),
+
+    workflow-step(
+      (3, 3),
+      "2",
+      "Analyze states",
+      ("Minimal state set", "Add tracing / logging", [Avoid `Option`s in states]),
+      colors.data,
+      <analyze-states>,
+    ),
+    styled-edge(<analyze-states>, <implement>, bend: -15deg),
+
+    workflow-step(
+      (2, 2),
+      "3",
+      "Define transitions",
+      ([Start with 1,2 output `Stream`s], "Get wake-up order right", [Don't create  custom `Waker`s]),
+      colors.state,
+      <implement>,
+    ),
+    styled-edge(<implement>, <run-tests>, bend: -15deg),
+
+    workflow-step(
+      (1, 1),
+      "4",
+      "Run tests",
+      ("Trace tests", "Debug tests"),
+      colors.action,
+      <run-tests>,
+    ),
+    styled-edge(<run-tests>, <benchmarks>, label: "✓ pass"),
+    styled-edge(
+      <run-tests>,
+      <implement>,
+      label: "✗ fail",
+      color: colors.error,
+      bend: -30deg,
+    ),
+
+    styled-edge(
+      <run-tests>,
+      <write-tests>,
+      label: "✗ missing test",
+      color: colors.error,
+      bend: -30deg,
+    ),
+
+    styled-edge(
+      <benchmarks>,
+      <implement>,
+      label: "✗ too slow",
+      color: colors.error,
+      bend: 30deg,
+      label-pos: 0.3,
+    ),
+
+    workflow-step(
+      (3, 1),
+      "5",
+      "Performance",
+      ("Add benchmarks (criterion)", "Add profiling", "Find hotspots"),
+      colors.operator,
+      <benchmarks>,
+    ),
+  )
+]
 
 
 == Questions
@@ -1973,8 +2018,8 @@
 
 
 
-  #warning(title: false)[
-    *Want to learn more?*
+  #warning(title: [Learn more?])[
+    #set align(left)
 
     Join my 7-week course _*"Creating Safe Systems in Rust"*_
 
