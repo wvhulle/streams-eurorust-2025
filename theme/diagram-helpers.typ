@@ -1,9 +1,18 @@
+// Diagram helpers using Fletcher and CeTZ
+
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
-#import "theme.typ": (
-  arrow-width as default-arrow-width, node-outset as default-node-outset, node-radius as default-node-radius,
-  stroke-width as default-stroke-width, accent, colors
+#import "@preview/touying:0.6.1": *
+#import "@preview/cetz:0.4.2": canvas, draw
+#import "colors.typ": (
+  accent, arrow-width as default-arrow-width, colors, node-outset as default-node-outset,
+  node-radius as default-node-radius, stroke-width as default-stroke-width,
 )
 
+// Touying bindings for CeTZ and Fletcher
+#let cetz-canvas = touying-reducer.with(reduce: canvas, cover: draw.hide.with(bounds: true))
+#let fletcher-diagram = touying-reducer.with(reduce: fletcher.diagram, cover: fletcher.hide.with(bounds: true))
+
+// Fletcher diagram helpers
 #let styled-diagram(
   stroke-width: default-stroke-width,
   node-radius: default-node-radius,
@@ -11,16 +20,14 @@
   node-outset: default-node-outset,
   ..args,
   body,
-) = align(center + horizon)[
-  #diagram(
-    node-stroke: stroke-width,
-    node-corner-radius: node-radius,
-    edge-stroke: arrow-width,
-    node-outset: node-outset,
-    ..args,
-    body,
-  )
-]
+) = fletcher-diagram(
+  node-stroke: stroke-width,
+  node-corner-radius: node-radius,
+  edge-stroke: arrow-width,
+  node-outset: node-outset,
+  ..args,
+  body,
+)
 
 #let colored-node(
   pos,
@@ -107,8 +114,8 @@
   color,
   name,
   stroke-width: default-stroke-width,
-  title-size: 8pt,
-  desc-size: 6pt,
+  title-size: 0.7em,
+  desc-size: 0.6em,
   outset: default-node-outset,
 ) = node(
   pos,
@@ -132,7 +139,7 @@
   color,
   name,
   stroke-width: default-stroke-width,
-  text-size: 7pt,
+  text-size: 0.6em,
   outset: default-node-outset,
 ) = node(
   pos,
@@ -156,9 +163,9 @@
   examples,
   color: colors.operator,
   stroke-width: default-stroke-width,
-  label-size: 10pt,
-  desc-size: 8pt,
-  examples-size: 7pt,
+  label-size: 1em,
+  desc-size: 0.7em,
+  examples-size: 0.6em,
   outset: default-node-outset,
 ) = {
   node(
@@ -219,7 +226,7 @@
   label: none,
   color: none,
   stroke-width: default-stroke-width,
-  label-size: 7pt,
+  label-size: 0.6em,
 ) = {
   let positional-args = args.pos()
   let named-args = args.named()
@@ -251,3 +258,163 @@
   stroke: accent(color) + stroke-width,
   ..args,
 )
+
+// CeTZ canvas helpers
+#let styled-circle(
+  draw,
+  center,
+  color,
+  radius: 0.5,
+  stroke-width: default-stroke-width,
+  body,
+) = {
+  draw.circle(
+    center,
+    radius: radius,
+    fill: color,
+    stroke: accent(color) + stroke-width,
+  )
+  if body != none and body != [] {
+    draw.content(
+      (center.at(0), center.at(1) + radius + 0.15),
+      text(weight: "bold", body),
+      anchor: "center",
+    )
+  }
+}
+
+#let styled-rect(
+  draw,
+  from,
+  to,
+  color,
+  stroke-width: default-stroke-width,
+  radius: none,
+  content,
+) = {
+  draw.rect(
+    from,
+    to,
+    fill: color,
+    stroke: accent(color) + stroke-width,
+    radius: radius,
+  )
+  if content != none {
+    let center-x = (from.at(0) + to.at(0)) / 2
+    let top-y = calc.max(from.at(1), to.at(1)) + 0.15
+    draw.content((center-x, top-y), [#content], anchor: "south")
+  }
+}
+
+#let styled-triangle(
+  draw,
+  p1,
+  p2,
+  p3,
+  color,
+  stroke-width: default-stroke-width,
+  label-size: 0.8em,
+  content,
+) = {
+  draw.merge-path(fill: color, stroke: accent(color) + stroke-width, {
+    draw.line(p1, p2)
+    draw.line((), p3)
+    draw.line((), p1)
+  })
+  if content != none {
+    let center-x = (p1.at(0) + p2.at(0) + p3.at(0)) / 3
+    let center-y = (p1.at(1) + p2.at(1) + p3.at(1)) / 3
+    draw.content((center-x, center-y), text(size: label-size)[#content], anchor: "center")
+  }
+}
+
+#let styled-line(
+  draw,
+  from,
+  to,
+  color,
+  stroke-width: default-stroke-width,
+  mark: none,
+) = {
+  draw.line(
+    from,
+    to,
+    stroke: accent(color) + stroke-width,
+    mark: mark,
+  )
+}
+
+#let styled-content(
+  draw,
+  pos,
+  color,
+  anchor: "center",
+  background: none,
+  padding: 0.2,
+  content,
+) = {
+  if background != none {
+    draw.content(
+      pos,
+      box(
+        fill: background,
+        inset: padding * 1em,
+        radius: 0.2em,
+        text(weight: "bold")[#content],
+      ),
+      anchor: anchor,
+    )
+  } else {
+    draw.content(
+      pos,
+      [#content],
+      anchor: anchor,
+    )
+  }
+}
+
+#let hexagon(
+  draw,
+  center,
+  size,
+  color: white,
+  stroke-width: default-stroke-width,
+  label,
+) = {
+  let stroke-color = accent(color)
+  let radius = size / 2
+  let (cx, cy) = center
+  let radius = size / 2
+
+  let vertices = ()
+  for i in range(6) {
+    let angle = i * 60deg
+    let x = cx + radius * calc.cos(angle)
+    let y = cy + radius * calc.sin(angle)
+    vertices.push((x, y))
+  }
+
+  if color != none {
+    draw.merge-path(fill: color, stroke: none, {
+      for i in range(6) {
+        let vertex = vertices.at(i)
+        if i == 0 {
+          draw.line(vertex, vertex)
+        } else {
+          draw.line((), vertex)
+        }
+      }
+      draw.line((), vertices.at(0))
+    })
+  }
+
+  for i in range(6) {
+    let start = vertices.at(i)
+    let end = vertices.at(calc.rem(i + 1, 6))
+    draw.circle(start, radius: 0.08, fill: stroke-color, stroke: none)
+    draw.line(start, end, stroke: stroke-color + stroke-width)
+  }
+  if label != none {
+    draw.content((center.at(0), center.at(1) + radius + 0.05), text[#label], anchor: "center")
+  }
+}

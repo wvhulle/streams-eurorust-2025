@@ -1,3 +1,10 @@
+// Color definitions and utilities
+
+#let primary-color = green.darken(60%)
+#let secondary-color = green.darken(40%)
+#let tertiary-color = green.darken(30%)
+#let text-color = black.transparentize(20%)
+
 #let stroke-width = 0.5pt
 #let arrow-width = 1pt
 #let node-radius = 5pt
@@ -18,7 +25,7 @@
 }
 
 #let colors = (
-  title: color.rgb("#b2edd7"),
+  title: color.rgb("#bfeddc"),
   code: color.rgb("#fcfcf5"),
   neutral: color.hsl(0deg, 0%, 90.98%),
   stream: color.hsl(200deg, 65%, 92%),
@@ -27,5 +34,5 @@
   state: color.hsl(140deg, 34.88%, 84.71%),
   action: color.hsl(21.25deg, 68.57%, 86.27%),
   pin: color.hsl(240deg, 100%, 93.92%),
-  error: color.hsl(0deg, 65%, 85%),
+  error: color.hsl(0deg, 61.4%, 88.82%),
 )

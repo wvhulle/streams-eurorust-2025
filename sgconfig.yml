@@ -1,0 +1,8 @@
+ruleDirs:
+  - rules
+
+customLanguages:
+  typst:
+    libraryPath: .tree-sitter/typst.so
+    extensions: [typ, typst]
+    expandoChar: µ
