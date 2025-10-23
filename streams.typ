@@ -1,4 +1,14 @@
 #import "template.typ": *
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.8": *
+
+#show: codly-init.with()
+
+#codly(
+  languages: codly-languages,
+  zebra-fill: rgb("#f5f5f5"),
+  radius: 0.5em,
+)
 
 #show: conference-theme.with(
   config-info(
@@ -320,7 +330,13 @@
 == Process TCP connections and collect long messages
 
 #slide[
-
+  #codly(
+    highlights: (
+      (line: 3, fill: red.lighten(80%)), // First match nesting
+      (line: 5, fill: red.lighten(70%)), // Second match nesting
+      (line: 6, fill: red.lighten(60%)), // Third level nesting
+    ),
+  )
   #grid(
     columns: (1fr, 0.4fr),
     column-gutter: 1em,
@@ -328,7 +344,6 @@
       #set text(size: 0.6em)
       ```rust
       let mut results = Vec::new(); let mut count = 0;
-
       while let Some(connection) = tcp_stream.next().await {
           match connection {
               Ok(stream) if should_process(&stream) => {
@@ -354,6 +369,7 @@
       - Cannot test pieces independently
     ],
   )
+  #codly-reset()
 ]
 
 == `Stream` operators: declarative & composable
@@ -362,6 +378,17 @@
   #set text(size: 0.9em)
   Same logic with stream operators:
 
+  #codly(
+    highlights: (
+      (line: 2, fill: green.lighten(80%)), // filter_map
+      (line: 3, fill: green.lighten(80%)), // filter
+      (line: 4, fill: green.lighten(80%)), // then
+      (line: 5, fill: green.lighten(80%)), // filter_map
+      (line: 6, fill: green.lighten(80%)), // filter
+      (line: 7, fill: blue.lighten(80%)), // take
+      (line: 8, fill: blue.lighten(80%)), // collect
+    ),
+  )
   #grid(
     columns: (1fr, 0.4fr),
     column-gutter: 1em,
@@ -383,6 +410,7 @@
       - Reusable
     ],
   )
+  #codly-reset()
 
   #quote(attribution: [Abelson & Sussman])[Programs must be written *for people to read*]
 ]
@@ -497,6 +525,12 @@
 #slide[
   Like `Future`, but yields *multiple items* over time when polled:
 
+  #codly(
+    highlights: (
+      (line: 4, fill: yellow.lighten(80%)), // poll_next signature
+      (line: 5, fill: yellow.lighten(80%)), // return type
+    ),
+  )
   ```rust
   trait Stream {
       type Item;
@@ -505,6 +539,7 @@
           -> Poll<Option<Self::Item>>;
   }
   ```
+  #codly-reset()
 
   The `Poll<Option<Item>>` return type:
 
@@ -860,11 +895,17 @@
 #slide[
   *Step 1:* Define a struct that wraps the input stream
 
+  #codly(
+    highlights: (
+      (line: 2, fill: blue.lighten(85%)), // in_stream field
+    ),
+  )
   ```rust
   struct Double<InSt> {
       in_stream: InSt,
     }
   ```
+  #codly-reset()
 
   - Generic over stream type (works with any backend)
   - Stores input stream by value
@@ -874,6 +915,12 @@
 #slide[
   *Step 2:* Implement `Stream` trait with bounds
 
+  #codly(
+    highlights: (
+      (line: 3, fill: yellow.lighten(85%)), // where clause
+      (line: 7, fill: green.lighten(85%)), // poll_next signature
+    ),
+  )
   ```rs
   impl<InSt> Stream for Double<InSt>
   where
@@ -887,6 +934,7 @@
       }
     }
   ```
+  #codly-reset()
 ]
 
 == Naive implementation of `poll_next`
