@@ -418,3 +418,55 @@
     draw.content((center.at(0), center.at(1) + radius + 0.05), text[#label], anchor: "center")
   }
 }
+
+// Timeline entry drawing helper for history slides
+#let draw-timeline-entry(y, year, event, description, reference, ref-url, color) = {
+  import draw: *
+  rect(
+    (1, y - 0.3),
+    (3, y + 0.3),
+    fill: color,
+    stroke: accent(color) + default-stroke-width,
+    radius: default-node-radius,
+  )
+  content((2, y), text(size: 0.7em, weight: "bold", year), anchor: "center")
+
+  content((3.5, y + 0.2), text(size: 0.8em, weight: "bold", event), anchor: "west")
+  content((3.5, y - 0.03), text(size: 0.6em, description), anchor: "west")
+  content(
+    (3.5, y - 0.24),
+    link(ref-url, text(size: 0.6em, style: "italic", fill: accent(colors.stream), reference)),
+    anchor: "west",
+  )
+
+  line((0.8, y), (1, y), stroke: accent(colors.neutral) + default-stroke-width)
+}
+
+// Arrow drawing helper for fused/unfused stream visualization
+#let fuse-arrow(multiple: false, fused: false, color) = {
+  cetz-canvas(length: 1.8cm, {
+    import draw: *
+    let arrow-width = 2 * default-arrow-width
+    if multiple {
+      if fused {
+        line((-0.8, 0), (0.6, 0), stroke: accent(color) + arrow-width)
+        line((0.8, -0.3), (0.8, 0.3), stroke: accent(color) + (arrow-width))
+      } else {
+        line((-0.8, 0), (0.8, 0), stroke: accent(color) + arrow-width, mark: (end: "barbed"))
+      }
+      for i in range(if fused { 4 } else { 3 }) {
+        let dash-x = -0.6 + i * 0.4
+        line((dash-x, -0.15), (dash-x, 0.15), stroke: accent(color) + (arrow-width))
+      }
+    } else {
+      line((-0.8, 0), (0.3, 0), stroke: accent(color) + arrow-width)
+      line((0, -0.2), (0, 0.2), stroke: accent(color) + (arrow-width * 1.5))
+      if fused {
+        line((0.3, 0), (0.6, 0), stroke: accent(color) + arrow-width)
+        line((0.8, -0.3), (0.8, 0.3), stroke: accent(color) + (arrow-width))
+      } else {
+        line((0.3, 0), (0.8, 0), stroke: accent(color) + arrow-width, mark: (end: "barbed"))
+      }
+    }
+  })
+}

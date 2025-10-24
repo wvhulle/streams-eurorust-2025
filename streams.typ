@@ -139,27 +139,6 @@
     #cetz-canvas(length: 2cm, {
       import draw: *
 
-      let draw-timeline-entry(y, year, event, description, reference, ref-url, color) = {
-        rect(
-          (1, y - 0.3),
-          (3, y + 0.3),
-          fill: color,
-          stroke: accent(color) + stroke-width,
-          radius: node-radius,
-        )
-        content((2, y), text(size: 0.7em, weight: "bold", year), anchor: "center")
-
-        content((3.5, y + 0.2), text(size: 0.8em, weight: "bold", event), anchor: "west")
-        content((3.5, y - 0.03), text(size: 0.6em, description), anchor: "west")
-        content(
-          (3.5, y - 0.24),
-          link(ref-url, text(size: 0.6em, style: "italic", fill: accent(colors.stream), reference)),
-          anchor: "west",
-        )
-
-        line((0.8, y), (1, y), stroke: accent(colors.neutral) + stroke-width)
-      }
-
       line((0.8, 0.3), (0.8, 5.7), stroke: accent(colors.neutral) + arrow-width * 2)
 
 
@@ -366,17 +345,7 @@
   #set text(size: 0.9em)
   Same logic with stream operators:
 
-  #codly(
-    highlights: (
-      (line: 2, fill: green.lighten(80%)), // filter_map
-      (line: 3, fill: green.lighten(80%)), // filter
-      (line: 4, fill: green.lighten(80%)), // then
-      (line: 5, fill: green.lighten(80%)), // filter_map
-      (line: 6, fill: green.lighten(80%)), // filter
-      (line: 7, fill: blue.lighten(80%)), // take
-      (line: 8, fill: blue.lighten(80%)), // collect
-    ),
-  )
+
   #grid(
     columns: (1fr, 0.4fr),
     column-gutter: 1em,
@@ -588,49 +557,21 @@
 
 #slide[
   #align(center + horizon)[
-    #let draw-arrow(multiple: false, fused: false, color) = {
-      cetz-canvas(length: 1.8cm, {
-        import draw: *
-        let arrow-width = 2 * arrow-width
-        if multiple {
-          if fused {
-            line((-0.8, 0), (0.6, 0), stroke: accent(color) + arrow-width)
-            line((0.8, -0.3), (0.8, 0.3), stroke: accent(color) + (arrow-width))
-          } else {
-            line((-0.8, 0), (0.8, 0), stroke: accent(color) + arrow-width, mark: (end: "barbed"))
-          }
-          for i in range(if fused { 4 } else { 3 }) {
-            let dash-x = -0.6 + i * 0.4
-            line((dash-x, -0.15), (dash-x, 0.15), stroke: accent(color) + (arrow-width))
-          }
-        } else {
-          line((-0.8, 0), (0.3, 0), stroke: accent(color) + arrow-width)
-          line((0, -0.2), (0, 0.2), stroke: accent(color) + (arrow-width * 1.5))
-          if fused {
-            line((0.3, 0), (0.6, 0), stroke: accent(color) + arrow-width)
-            line((0.8, -0.3), (0.8, 0.3), stroke: accent(color) + (arrow-width))
-          } else {
-            line((0.3, 0), (0.8, 0), stroke: accent(color) + arrow-width, mark: (end: "barbed"))
-          }
-        }
-      })
-    }
-
     #grid(
       columns: (auto, 1fr, 1fr, 2fr),
       rows: (auto, auto, auto, auto, auto),
       gutter: 2em,
       [], [*`Future`*], [*`Stream`*], [*Meaning*],
       [*Regular*],
-      [#draw-arrow(multiple: false, fused: false, blue)],
-      [#draw-arrow(multiple: true, fused: false, green)],
+      [#fuse-arrow(multiple: false, fused: false, blue)],
+      [#fuse-arrow(multiple: true, fused: false, green)],
       [May continue],
 
       [*Fused*], [*`FusedFuture`*], [*`FusedStream`*], [`is_terminated()` method],
 
       [*Fused*],
-      [#draw-arrow(multiple: false, fused: true, blue)],
-      [#draw-arrow(multiple: true, fused: true, green)],
+      [#fuse-arrow(multiple: false, fused: true, blue)],
+      [#fuse-arrow(multiple: true, fused: true, green)],
       [Done permanently],
 
       [*Fused value*], [`Pending`], [`Ready(None)`], [Final value],
