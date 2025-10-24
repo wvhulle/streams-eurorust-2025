@@ -1,7 +1,7 @@
 // Diagram helpers using Fletcher and CeTZ
 
-#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
-#import "@preview/touying:0.6.1": *
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node, hide, shapes
+#import "@preview/touying:0.6.1": touying-reducer
 #import "@preview/cetz:0.4.2": canvas, draw
 #import "colors.typ": (
   accent, arrow-width as default-arrow-width, colors, node-outset as default-node-outset,
@@ -10,7 +10,7 @@
 
 // Touying bindings for CeTZ and Fletcher
 #let cetz-canvas = touying-reducer.with(reduce: canvas, cover: draw.hide.with(bounds: true))
-#let fletcher-diagram = touying-reducer.with(reduce: fletcher.diagram, cover: fletcher.hide.with(bounds: true))
+#let fletcher-diagram = touying-reducer.with(reduce: diagram, cover: hide.with(bounds: true))
 
 // Fletcher diagram helpers
 #let styled-diagram(
@@ -71,7 +71,7 @@
   stroke: if color == none { none } else { accent(color) + stroke-width },
   outset: outset,
   inset: inset,
-  shape: fletcher.shapes.circle,
+  shape: shapes.circle,
   name: name,
 )
 
@@ -198,7 +198,7 @@
   outset: outset,
   fill: if consumed { color.lighten(90%) } else { color },
   stroke: accent(colors.neutral) + stroke-width,
-  shape: fletcher.shapes.rect,
+  shape: shapes.rect,
   name: name,
 )
 
@@ -215,7 +215,7 @@
   outset: outset,
   fill: color,
   stroke: accent(color) + stroke-width,
-  shape: fletcher.shapes.circle,
+  shape: shapes.circle,
   name: name,
 )
 

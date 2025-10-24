@@ -116,7 +116,7 @@
         .map(item => {
           (
             align(if vertical { left } else { center })[
-              #box(width: 2em, height: 0.8em, rect(fill: item.color, stroke: accent(item.color) + 0.7em))
+              #box(width: 2em, height: 0.8em, rect(fill: item.color, stroke: accent(item.color)))
               #h(0.5em)
               #text(size: 0.7em)[#item.label]
             ],

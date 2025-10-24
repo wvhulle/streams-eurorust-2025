@@ -1,12 +1,9 @@
-#import "@preview/touying:0.6.1": *
-#import "@preview/codly:1.3.0": *
+#import "@preview/touying:0.6.1": touying-slide-wrapper, touying-slide, utils, config-common, config-page, components
+#import "@preview/codly:1.3.0": codly
 #import "custom-outline.typ": custom-outline
+#import "math-helpers.typ": _type
 
 // Import all theme components
-#import "colors.typ": *
-#import "math-helpers.typ": *
-#import "diagram-helpers.typ": *
-#import "components.typ": *
 
 /// Default slide function for the presentation.
 ///

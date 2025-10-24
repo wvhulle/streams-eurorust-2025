@@ -1,15 +1,12 @@
-// Main template file - imports all theme components and provides the university theme
-
-#import "@preview/touying:0.6.1": *
-#import "@preview/codly:1.3.0": *
+#import "@preview/touying:0.6.1": (
+  config-colors, config-common, config-info, config-methods, config-page, config-store, meanwhile, only, pause,
+  touying-slides, uncover, utils,
+)
+#import "@preview/codly:1.3.0": codly, codly-init, codly-reset
 
 // Import all theme components
-#import "theme/colors.typ": *
-#import "theme/math-helpers.typ": *
-#import "theme/diagram-helpers.typ": *
-#import "theme/components.typ": *
-#import "theme/slides.typ": *
-
+#import "theme/colors.typ": primary-color, secondary-color, tertiary-color, text-color
+#import "theme/slides.typ": new-section-slide, slide
 
 /// Touying university theme.
 ///
@@ -71,6 +68,24 @@
   body,
 ) = {
   show: codly-init.with()
+
+  // Default codly setup for presentations
+  codly(
+    languages: (
+      rs: (name: "Rust", icon: "🦀", color: rgb("#CE412B")),
+      rust: (name: "Rust", icon: "🦀", color: rgb("#CE412B")),
+      python: (name: "Python", icon: "🐍", color: rgb("#3572A5")),
+      typst: (name: "Typst", icon: "📘", color: primary-color),
+      javascript: (name: "JavaScript", icon: "JS", color: rgb("#F7DF1E")),
+      bash: (name: "Bash", icon: "$", color: rgb("#4EAA25")),
+    ),
+    zebra-fill: rgb("#f5f5f5"),
+    radius: 0.5em,
+  )
+
+  // Default heading numbering for presentations
+  set heading(numbering: "1.")
+
   show: touying-slides.with(
     config-page(
       paper: "presentation-" + aspect-ratio,
@@ -81,42 +96,6 @@
     config-common(
       slide-fn: slide,
       new-section-slide-fn: new-section-slide,
-      preamble: {
-        codly(
-          languages: (
-            rs: (
-              name: "Rust",
-              icon: "🦀",
-              color: rgb("#CE412B"),
-            ),
-            rust: (
-              name: "Rust",
-              icon: "🦀",
-              color: rgb("#CE412B"),
-            ),
-            python: (
-              name: "Python",
-              icon: "🐍",
-              color: rgb("#3572A5"),
-            ),
-            typst: (
-              name: "Typst",
-              icon: "📘",
-              color: primary-color,
-            ),
-            javascript: (
-              name: "JavaScript",
-              icon: "JS",
-              color: rgb("#F7DF1E"),
-            ),
-            bash: (
-              name: "Bash",
-              icon: "$",
-              color: rgb("#4EAA25"),
-            ),
-          ),
-        )
-      },
     ),
     config-methods(
       init: (self: none, body) => {
@@ -148,3 +127,9 @@
 
   body
 }
+
+// Re-export commonly used functions for convenience
+#import "theme/slides.typ": focus-slide, matrix-slide, new-section-slide, slide, title-slide
+#import "theme/components.typ": error, info, large-center-text, legend, todo, warning
+#import "theme/diagram-helpers.typ": *
+#import "theme/colors.typ": accent, arrow-width, colors, node-outset, node-radius, stroke-width

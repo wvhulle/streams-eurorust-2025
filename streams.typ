@@ -1,14 +1,5 @@
 #import "template.typ": *
-#import "@preview/codly:1.3.0": *
-#import "@preview/codly-languages:0.1.8": *
 
-#show: codly-init.with()
-
-#codly(
-  languages: codly-languages,
-  zebra-fill: rgb("#f5f5f5"),
-  radius: 0.5em,
-)
 
 #show: conference-theme.with(
   config-info(
@@ -20,8 +11,6 @@
     logo: align(right + top, image("willem-vanhulle-logo.svg", width: 2em)),
   ),
 )
-
-#set heading(numbering: "1.")
 
 #title-slide()
 
@@ -332,9 +321,8 @@
 #slide[
   #codly(
     highlights: (
-      (line: 3, fill: red.lighten(80%)), // First match nesting
-      (line: 5, fill: red.lighten(70%)), // Second match nesting
-      (line: 6, fill: red.lighten(60%)), // Third level nesting
+      (line: 4, fill: colors.state),
+      (line: 5, fill: colors.state),
     ),
   )
   #grid(
@@ -527,8 +515,7 @@
 
   #codly(
     highlights: (
-      (line: 4, fill: yellow.lighten(80%)), // poll_next signature
-      (line: 5, fill: yellow.lighten(80%)), // return type
+      (line: 4, fill: colors.stream),
     ),
   )
   ```rust
@@ -897,7 +884,7 @@
 
   #codly(
     highlights: (
-      (line: 2, fill: blue.lighten(85%)), // in_stream field
+      (line: 2, fill: colors.stream), // in_stream field
     ),
   )
   ```rust
@@ -917,8 +904,7 @@
 
   #codly(
     highlights: (
-      (line: 3, fill: yellow.lighten(85%)), // where clause
-      (line: 7, fill: green.lighten(85%)), // poll_next signature
+      (line: 3, fill: colors.stream),
     ),
   )
   ```rs
