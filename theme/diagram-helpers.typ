@@ -1,6 +1,6 @@
 // Diagram helpers using Fletcher and CeTZ
 
-#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node, hide, shapes
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, hide, node, shapes
 #import "@preview/touying:0.6.1": touying-reducer
 #import "@preview/cetz:0.4.2": canvas, draw
 #import "colors.typ": (
@@ -13,7 +13,7 @@
 #let fletcher-diagram = touying-reducer.with(reduce: diagram, cover: hide.with(bounds: true))
 
 // Fletcher diagram helpers
-#let styled-diagram(
+#let spaced-diagram(
   stroke-width: default-stroke-width,
   node-radius: default-node-radius,
   arrow-width: default-arrow-width,
@@ -29,7 +29,7 @@
   body,
 )
 
-#let colored-node(
+#let accented-node(
   pos,
   color: none,
   name: none,
@@ -54,7 +54,7 @@
   stroke-width: default-stroke-width,
   outset: default-node-outset,
   body,
-) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, body)
+) = accented-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, body)
 
 #let emoji-node(
   pos,
@@ -96,7 +96,7 @@
   stroke-width: default-stroke-width,
   outset: default-node-outset,
   content,
-) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, content)
+) = accented-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, content)
 
 #let result-node(
   pos,
@@ -105,7 +105,7 @@
   stroke-width: default-stroke-width,
   outset: default-node-outset,
   content,
-) = colored-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, content)
+) = accented-node(pos, color: color, name: name, stroke-width: stroke-width, outset: outset, content)
 
 #let state-node(
   pos,
@@ -283,7 +283,7 @@
   }
 }
 
-#let styled-rect(
+#let accented-rect(
   draw,
   from,
   to,
@@ -306,7 +306,7 @@
   }
 }
 
-#let styled-triangle(
+#let accented-triangle(
   draw,
   p1,
   p2,

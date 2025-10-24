@@ -241,19 +241,19 @@
 
   Stream operators must wrap and own their input by value
 
-  #styled-diagram(
+  #spaced-diagram(
     spacing: (4em, 2em),
     node-inset: 2pt,
     node-fill: colors.state,
     stroke-width: stroke-width + colors.state,
     node-shape: circle,
     {
-      colored-node((0, 1.2), color: none, name: <gc-title>)[*GC Languages*]
-      colored-node((0, 0.5), color: colors.state, name: <gc>, stroke-width: 1.5pt, shape: circle)[GC]
-      colored-node((-0.5, -0.3), color: colors.stream, name: <gc-d1>)[•]
-      colored-node((0, -0.5), color: colors.stream, name: <gc-d2>)[•]
-      colored-node((0.5, -0.2), color: colors.stream, name: <gc-d3>)[•]
-      colored-node(
+      accented-node((0, 1.2), color: none, name: <gc-title>)[*GC Languages*]
+      accented-node((0, 0.5), color: colors.state, name: <gc>, stroke-width: 1.5pt, shape: circle)[GC]
+      accented-node((-0.5, -0.3), color: colors.stream, name: <gc-d1>)[•]
+      accented-node((0, -0.5), color: colors.stream, name: <gc-d2>)[•]
+      accented-node((0.5, -0.2), color: colors.stream, name: <gc-d3>)[•]
+      accented-node(
         (0, -1.2),
         color: none,
         name: <gc-caption>,
@@ -266,7 +266,7 @@
         enclose: (<gc-title>, <gc>, <gc-d1>, <gc-d2>, <gc-d3>, <gc-caption>),
       )
 
-      colored-node((1.5, 0.3), color: none)[*vs*]
+      accented-node((1.5, 0.3), color: none)[*vs*]
 
       node(
         fill: colors.stream,
@@ -285,14 +285,14 @@
         ),
       )
 
-      colored-node((3, 1.2), color: none, name: <rust-title>)[*Rust*]
-      colored-node((2.7, 0.2), color: colors.stream, name: <owner>, stroke-width: 1pt)[•]
-      colored-node((2.7, 0.6), color: none, name: <owner-label>)[#text(size: 6pt)[Owner]]
-      colored-node((3.5, 0.2), color: colors.stream, name: <moved>, stroke-width: 1pt)[•]
-      colored-node((3.5, 0.6), color: none, name: <moved-label>)[#text(size: 6pt)[Moved]]
-      colored-node((3.5, -0.5), color: colors.stream, name: <borrowed>, stroke-width: 1pt)[•]
-      colored-node((3.5, -0.9), color: none, name: <borrow-label>)[#text(size: 6pt)[Borrow]]
-      colored-node(
+      accented-node((3, 1.2), color: none, name: <rust-title>)[*Rust*]
+      accented-node((2.7, 0.2), color: colors.stream, name: <owner>, stroke-width: 1pt)[•]
+      accented-node((2.7, 0.6), color: none, name: <owner-label>)[#text(size: 6pt)[Owner]]
+      accented-node((3.5, 0.2), color: colors.stream, name: <moved>, stroke-width: 1pt)[•]
+      accented-node((3.5, 0.6), color: none, name: <moved-label>)[#text(size: 6pt)[Moved]]
+      accented-node((3.5, -0.5), color: colors.stream, name: <borrowed>, stroke-width: 1pt)[•]
+      accented-node((3.5, -0.9), color: none, name: <borrow-label>)[#text(size: 6pt)[Borrow]]
+      accented-node(
         (3, -1.5),
         color: none,
         name: <rust-caption>,
@@ -409,7 +409,7 @@
 
 #slide[
   #set text(size: 0.8em)
-  #styled-diagram(
+  #spaced-diagram(
     spacing: (0.7em, 1em),
 
     title-node((0.5, 0), text(size: 0.7em)[✓ Always returns immediately]),
@@ -420,37 +420,37 @@
 
     title-node((0.5, 5), text(weight: "bold")[Iterator (sync)]),
 
-    colored-node((0, 1), color: colors.action, name: <iter-call4>)[`next()`],
+    accented-node((0, 1), color: colors.action, name: <iter-call4>)[`next()`],
     styled-edge(<iter-call4>, <iter-result2>),
-    colored-node((0, 2), color: colors.action, name: <iter-call3>)[`next()`],
+    accented-node((0, 2), color: colors.action, name: <iter-call3>)[`next()`],
     styled-edge(<iter-call3>, <iter-result3>),
-    colored-node((0, 3), color: colors.action, name: <iter-call2>)[`next()`],
+    accented-node((0, 3), color: colors.action, name: <iter-call2>)[`next()`],
     styled-edge(<iter-call2>, <iter-result4>),
-    colored-node((0, 4), color: colors.action, name: <iter-call1>)[`next()`],
+    accented-node((0, 4), color: colors.action, name: <iter-call1>)[`next()`],
     styled-edge(<iter-call1>, <iter-result1>),
 
-    colored-node((1, 1), color: colors.data, name: <iter-result2>)[`Some(3)`],
-    colored-node((1, 2), color: colors.data, name: <iter-result3>)[`Some(1)`],
-    colored-node((1, 3), color: colors.data, name: <iter-result4>)[`None`],
-    colored-node((1, 4), color: colors.data, name: <iter-result1>)[`Some(2)`],
+    accented-node((1, 1), color: colors.data, name: <iter-result2>)[`Some(3)`],
+    accented-node((1, 2), color: colors.data, name: <iter-result3>)[`Some(1)`],
+    accented-node((1, 3), color: colors.data, name: <iter-result4>)[`None`],
+    accented-node((1, 4), color: colors.data, name: <iter-result1>)[`Some(2)`],
 
     pause,
 
     title-node((3.5, 5), text(weight: "bold")[Stream (low-level)]),
 
-    colored-node((3, 1), color: colors.action, name: <stream-call4>)[`poll_next()`],
+    accented-node((3, 1), color: colors.action, name: <stream-call4>)[`poll_next()`],
     styled-edge(<stream-call4>, <stream-result4>),
-    colored-node((3, 2), color: colors.action, name: <stream-call3>)[`poll_next()`],
+    accented-node((3, 2), color: colors.action, name: <stream-call3>)[`poll_next()`],
     styled-edge(<stream-call3>, <stream-result3>),
-    colored-node((3, 3), color: colors.action, name: <stream-call2>)[`poll_next()`],
+    accented-node((3, 3), color: colors.action, name: <stream-call2>)[`poll_next()`],
     styled-edge(<stream-call2>, <stream-result2>),
-    colored-node((3, 4), color: colors.action, name: <stream-call1>)[`poll_next()`],
+    accented-node((3, 4), color: colors.action, name: <stream-call1>)[`poll_next()`],
     styled-edge(<stream-call1>, <stream-result1>),
 
-    colored-node((4, 1), color: colors.data, name: <stream-result4>)[`Ready(Some(2))`],
-    colored-node((4, 2), color: colors.state, name: <stream-result3>)[`Pending`],
-    colored-node((4, 3), color: colors.data, name: <stream-result2>)[`Ready(Some(1))`],
-    colored-node((4, 4), color: colors.state, name: <stream-result1>)[`Pending`],
+    accented-node((4, 1), color: colors.data, name: <stream-result4>)[`Ready(Some(2))`],
+    accented-node((4, 2), color: colors.state, name: <stream-result3>)[`Pending`],
+    accented-node((4, 3), color: colors.data, name: <stream-result2>)[`Ready(Some(1))`],
+    accented-node((4, 4), color: colors.state, name: <stream-result1>)[`Pending`],
 
     pause,
 
@@ -483,19 +483,19 @@
 
     title-node((6.5, 5), text(weight: "bold")[Stream (high-level)]),
 
-    colored-node((6, 1), color: colors.action, name: <async-call4>)[`next().await`],
+    accented-node((6, 1), color: colors.action, name: <async-call4>)[`next().await`],
     styled-edge(<async-call4>, <async-result2>),
-    colored-node((6, 2), color: colors.action, name: <async-call3>)[`next().await`],
+    accented-node((6, 2), color: colors.action, name: <async-call3>)[`next().await`],
     styled-edge(<async-call3>, <async-result3>),
-    colored-node((6, 3), color: colors.action, name: <async-call2>)[`next().await`],
+    accented-node((6, 3), color: colors.action, name: <async-call2>)[`next().await`],
     styled-edge(<async-call2>, <async-result4>),
-    colored-node((6, 4), color: colors.action, name: <async-call1>)[`next().await`],
+    accented-node((6, 4), color: colors.action, name: <async-call1>)[`next().await`],
     styled-edge(<async-call1>, <async-result1>),
 
-    colored-node((7, 1), color: colors.data, name: <async-result2>)[`Some(3)`],
-    colored-node((7, 2), color: colors.data, name: <async-result3>)[`Some(1)`],
-    colored-node((7, 3), color: colors.data, name: <async-result4>)[`None`],
-    colored-node((7, 4), color: colors.data, name: <async-result1>)[`Some(2)`],
+    accented-node((7, 1), color: colors.data, name: <async-result2>)[`Some(3)`],
+    accented-node((7, 2), color: colors.data, name: <async-result3>)[`Some(1)`],
+    accented-node((7, 3), color: colors.data, name: <async-result4>)[`None`],
+    accented-node((7, 4), color: colors.data, name: <async-result1>)[`Some(2)`],
   )
 
   #v(1em)
@@ -645,12 +645,12 @@
 #slide[
   All basic stream operators are in #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
 
-  #styled-diagram(
+  #spaced-diagram(
     spacing: (0.4em, 1.2em),
 
     // Source stream
-    colored-node((0, 2), color: colors.stream, name: <op-iter>, shape: circle)[`iter(0..10)`],
-    colored-node((0, 1), color: colors.data, name: <data-iter>, shape: circle)[0,1,2,3...],
+    accented-node((0, 2), color: colors.stream, name: <op-iter>, shape: circle)[`iter(0..10)`],
+    accented-node((0, 1), color: colors.data, name: <data-iter>, shape: circle)[0,1,2,3...],
     node((0, 0), [source], shape: circle, name: <desc-iter>, fill: none, stroke: none),
     edge(<op-iter>, <data-iter>, "-", stroke: (dash: "dashed")),
     edge(<data-iter>, <desc-iter>, "-", stroke: (dash: "dashed")),
@@ -658,8 +658,8 @@
     pause,
 
     // Map operator
-    colored-node((1, 2), color: colors.operator, name: <op-map>)[`map(*2)`],
-    colored-node((1, 1), color: colors.data, name: <data-map>)[0,2,4,6...],
+    accented-node((1, 2), color: colors.operator, name: <op-map>)[`map(*2)`],
+    accented-node((1, 1), color: colors.data, name: <data-map>)[0,2,4,6...],
     node((1, 0), [multiply by 2], name: <desc-map>, fill: none, stroke: none),
     edge(<op-iter>, <op-map>, "->"),
     edge(<op-map>, <data-map>, "-", stroke: (dash: "dashed")),
@@ -668,8 +668,8 @@
     pause,
 
     // Filter operator
-    colored-node((2, 2), color: colors.operator, name: <op-filter>)[`filter(>4)`],
-    colored-node((2, 1), color: colors.data, name: <data-filter>)[6,8,10...],
+    accented-node((2, 2), color: colors.operator, name: <op-filter>)[`filter(>4)`],
+    accented-node((2, 1), color: colors.data, name: <data-filter>)[6,8,10...],
     node((2, 0), [keep if > 4], name: <desc-filter>, fill: none, stroke: none),
     edge(<op-map>, <op-filter>, "->"),
     edge(<op-filter>, <data-filter>, "-", stroke: (dash: "dashed")),
@@ -678,8 +678,8 @@
     pause,
 
     // Enumerate operator
-    colored-node((3, 2), color: colors.operator, name: <op-enum>)[`enumerate`],
-    colored-node((3, 1), color: colors.data, name: <data-enum>)[(0,6),(1,8)...],
+    accented-node((3, 2), color: colors.operator, name: <op-enum>)[`enumerate`],
+    accented-node((3, 1), color: colors.data, name: <data-enum>)[(0,6),(1,8)...],
     node((3, 0), [add index], name: <desc-enum>, fill: none, stroke: none),
     edge(<op-filter>, <op-enum>, "->"),
     edge(<op-enum>, <data-enum>, "-", stroke: (dash: "dashed")),
@@ -688,8 +688,8 @@
     pause,
 
     // Take operator
-    colored-node((4, 2), color: colors.operator, name: <op-take>)[`take(3)`],
-    colored-node((4, 1), color: colors.data, name: <data-take>)[(0,6),(1,8),(2,10)],
+    accented-node((4, 2), color: colors.operator, name: <op-take>)[`take(3)`],
+    accented-node((4, 1), color: colors.data, name: <data-take>)[(0,6),(1,8),(2,10)],
     node((4, 0), [take first 3], name: <desc-take>, fill: none, stroke: none),
     edge(<op-enum>, <op-take>, "->"),
     edge(<op-take>, <data-take>, "-", stroke: (dash: "dashed")),
@@ -698,8 +698,8 @@
     pause,
 
     // Skip operator
-    colored-node((5, 2), color: colors.operator, name: <op-skip>)[`skip_while(<1)`],
-    colored-node((5, 1), color: colors.data, name: <data-skip>)[(1,8),(2,10)],
+    accented-node((5, 2), color: colors.operator, name: <op-skip>)[`skip_while(<1)`],
+    accented-node((5, 1), color: colors.data, name: <data-skip>)[(1,8),(2,10)],
     node((5, 0), [skip while index < 1], name: <desc-skip>, fill: none, stroke: none),
     edge(<op-take>, <op-skip>, "->"),
     edge(<op-skip>, <data-skip>, "-", stroke: (dash: "dashed")),
@@ -829,7 +829,7 @@
     )
     let label(pos, content) = node(pos, content, fill: none, stroke: none)
 
-    styled-diagram(
+    spaced-diagram(
       spacing: (6em, 2em),
       {
         endpoint((0, 1), colors.stream, <stream>)[Stream]
@@ -858,11 +858,11 @@
   #align(center + horizon)[
     Very simple `Stream` operator that *doubles every item* in an input stream:
 
-    #styled-diagram(
+    #spaced-diagram(
       spacing: (4em, 1em),
 
       stream-node((0, 0), <in>)[Input\ Stream],
-      colored-node(
+      accented-node(
         (1, 0),
         color: colors.operator,
         name: <double>,
@@ -1017,18 +1017,18 @@
   `Pin<P>` makes a promise: *the pointee will never move again*.
 
   #align(center)[
-    #styled-diagram(
+    #spaced-diagram(
       spacing: (2em, 1.5em),
 
-      colored-node((0, 0), color: colors.pin, name: <pin>)[`Pin<&mut T>`],
+      accented-node((0, 0), color: colors.pin, name: <pin>)[`Pin<&mut T>`],
 
-      colored-node((1, 1), color: colors.action, name: <getmut>)[`.get_mut()`],
+      accented-node((1, 1), color: colors.action, name: <getmut>)[`.get_mut()`],
 
-      colored-node((2, 2), color: colors.data, name: <mut>)[`&mut T`],
+      accented-node((2, 2), color: colors.data, name: <mut>)[`&mut T`],
 
-      colored-node((3, 3), color: colors.error, name: <swap>)[`mem::swap()`],
+      accented-node((3, 3), color: colors.error, name: <swap>)[`mem::swap()`],
 
-      colored-node((4, 4), color: colors.error, name: <moved>)[Value moved!],
+      accented-node((4, 4), color: colors.error, name: <moved>)[Value moved!],
 
       styled-edge(<pin>, <getmut>, "-", color: colors.pin, label: [_unpinning_ `T`]),
       styled-edge(<getmut>, <mut>, "->", color: colors.pin, label: [gives]),
@@ -1212,15 +1212,15 @@
       import draw: *
       content((2.5, 5.5), text(weight: "bold")[Stack], anchor: "center")
 
-      styled-rect(draw, (1, 3), (4, 5), colors.neutral, radius: node-radius)[]
-      styled-rect(draw, (1.9, 3.5), (3, 4.5), colors.data)[pointer `0X1234` \ (memory address)]
+      accented-rect(draw, (1, 3), (4, 5), colors.neutral, radius: node-radius)[]
+      accented-rect(draw, (1.9, 3.5), (3, 4.5), colors.data)[pointer `0X1234` \ (memory address)]
       content((2.5, 3.3), [`Unpin` = Safe to move], anchor: "center")
 
 
       content((5.25, 4.3), [`Box::new(in_stream)` \ dereferences to], anchor: "center")
 
 
-      styled-triangle(draw, (6.0, 3), (10, 3), (8, 5), colors.neutral)[]
+      accented-triangle(draw, (6.0, 3), (10, 3), (8, 5), colors.neutral)[]
 
       content((8, 5.3), text(weight: "bold", [Heap]), anchor: "center")
 
@@ -1328,7 +1328,7 @@
           color: colors.pin,
         )[`Pin<Box<Inst>>`]
 
-        styled-rect(
+        accented-rect(
           draw,
           (center1.at(0) - 0.4, center1.at(1) - 0.4),
           (center1.at(0) + 0.4, center1.at(1) + 0.4),
@@ -1369,7 +1369,7 @@
 
         draw.content((center2.at(0), center2.at(1) - 1.4))[_`&mut Self` \ mutable ref to operator_]
 
-        styled-rect(
+        accented-rect(
           draw,
           (center2.at(0) - 0.4, center2.at(1) - 0.4),
           (center2.at(0) + 0.4, center2.at(1) + 0.4),
@@ -1393,7 +1393,7 @@
           color: colors.pin,
         )[`Pin<Box<Inst>>`]
 
-        styled-rect(
+        accented-rect(
           draw,
           (center3.at(0) - 0.4, center3.at(1) - 0.4),
           (center3.at(0) + 0.4, center3.at(1) + 0.4),
@@ -1688,7 +1688,7 @@
 
 #slide(composer: (3fr, 1fr))[
 
-  #styled-diagram(
+  #spaced-diagram(
     spacing: (2em, 1.5em),
     styled-edge(
       <poll-alice>,
@@ -1698,7 +1698,7 @@
       bend: 50deg,
       label-pos: 79%,
     ),
-    colored-node(
+    accented-node(
       (1, 0),
       color: colors.stream,
       name: <poll-input-stream>,
@@ -1711,7 +1711,7 @@
       bend: -85deg,
       label-pos: 90%,
     ),
-    colored-node(
+    accented-node(
       (0, 3),
       color: colors.stream,
       name: <poll-alice>,
@@ -1719,7 +1719,7 @@
     )[Alice\ 💤 Sleeping],
 
     pause,
-    colored-node(
+    accented-node(
       (2, 3),
       color: colors.stream,
       name: <poll-bob>,
@@ -1735,7 +1735,7 @@
       bend: -50deg,
       label-pos: 70%,
     ),
-    colored-node(
+    accented-node(
       (1, 1.5),
       color: colors.data,
       name: <poll-data>,
@@ -1799,7 +1799,7 @@
   #warning[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
 
   #{
-    styled-diagram(
+    spaced-diagram(
       node-inset: 0.5em,
       spacing: (4em, 0.5em),
 
@@ -1861,13 +1861,13 @@
 == Quickstart
 
 #slide[
-  #styled-diagram(
+  #spaced-diagram(
     spacing: (2em, 1.2em),
     stroke-width: stroke-width + colors.data,
     mark-scale: 80%,
     node-fill: colors.data,
 
-    colored-node((1.5, 0), color: colors.data, name: <transform>)[Stream processing style],
+    accented-node((1.5, 0), color: colors.data, name: <transform>)[Stream processing style],
     styled-edge(<transform>, <control-flow>, "-}>", label: [Traditional \ control flow]),
     styled-edge(<transform>, <standard>, "-}>", label: [Stream \ operators]),
 
@@ -1894,60 +1894,60 @@
       name: <traditional>,
     ),
 
-    colored-node(
+    accented-node(
       (2.5, 3.5),
       color: colors.error,
       name: <dark-magic>,
     )[Always requires `Box` \ to make `!Unpin` \ output `Unpin` ],
     styled-edge(<dark-magic>, <traditional>, "--"),
-    colored-node((0, 1), color: colors.data, name: <standard>)[Standard? \ e.g. N-1, 1-1],
+    accented-node((0, 1), color: colors.data, name: <standard>)[Standard? \ e.g. N-1, 1-1],
 
     styled-edge(<standard>, <rxjs>, "-}>", label: [No]),
-    colored-node(
+    accented-node(
       (-0.5, 2),
       color: colors.operator,
       name: <futures-streamext>,
     )[`futures::` \ `StreamExt`],
     styled-edge(<standard>, <futures-streamext>, "-}>", label: [Yes]),
-    colored-node(
+    accented-node(
       (0.6, 2),
       color: colors.operator,
       name: <rxjs>,
     )[ReactiveX-like \ e.g. 1-N],
 
-    colored-node(
+    accented-node(
       (-0.5, 3),
       color: colors.operator,
       name: <futures-rx>,
     )[`futures-rx`],
     styled-edge(<rxjs>, <futures-rx>, "-}>", label: [Yes]),
 
-    colored-node((0.6, 3), color: colors.data, name: <search-crates>)[Search \ crates.io],
+    accented-node((0.6, 3), color: colors.data, name: <search-crates>)[Search \ crates.io],
     styled-edge(<rxjs>, <search-crates>, "-}>", label: [No]),
 
-    colored-node(
+    accented-node(
       (0, 4),
       color: colors.operator,
       name: <build-trait>,
     )[Build your \ own trait],
     styled-edge(<search-crates>, <build-trait>, "-}>", label: [Does not exist]),
-    colored-node(
+    accented-node(
       (1, 4),
       color: colors.operator,
       name: <import-trait>,
     )[Import \ extension trait],
     styled-edge(<search-crates>, <import-trait>, "-}>", label: [Exists]),
-    colored-node((2.5, 1), color: colors.data, name: <control-flow>)[Declarative],
+    accented-node((2.5, 1), color: colors.data, name: <control-flow>)[Declarative],
     styled-edge(<control-flow>, <unfold>, "-}>", label: [Yes]),
     styled-edge(<control-flow>, <async-stream>, "-}>", label: [No]),
 
-    colored-node(
+    accented-node(
       (2, 2),
       color: colors.stream,
       name: <unfold>,
     )[`futures::` \ `stream::unfold`],
 
-    colored-node(
+    accented-node(
       (3, 2),
       color: colors.stream,
       name: <async-stream>,
@@ -1961,7 +1961,7 @@
 
 #slide[
   #set align(horizon)
-  #styled-diagram(
+  #spaced-diagram(
     spacing: (3em, 1em),
 
     workflow-step(
