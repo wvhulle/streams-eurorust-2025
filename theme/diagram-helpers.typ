@@ -219,7 +219,7 @@
   name: name,
 )
 
-#let styled-edge(
+#let accented-edge(
   from,
   to,
   ..args,

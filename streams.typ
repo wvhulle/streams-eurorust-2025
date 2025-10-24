@@ -72,7 +72,7 @@
       color: colors.stream,
     ),
 
-    styled-edge(<physical>, <leaf>, "->", color: colors.operator, label: "OS abstraction"),
+    accented-edge(<physical>, <leaf>, "->", color: colors.operator, label: "OS abstraction"),
 
     node(
       (-1, 1),
@@ -80,7 +80,7 @@
       [Requires an `async` runtime \ #text(size: 0.7em)[(see 'leaf future' by _Carl Fredrik Samson_)]],
       stroke: none,
     ),
-    styled-edge(<runtime-note>, <leaf>, "->", color: colors.neutral),
+    accented-edge(<runtime-note>, <leaf>, "->", color: colors.neutral),
 
     pause,
 
@@ -93,10 +93,10 @@
       color: colors.operator,
     ),
 
-    styled-edge(<leaf>, <operators>, "->", color: colors.stream, label: "Stream operators"),
+    accented-edge(<leaf>, <operators>, "->", color: colors.stream, label: "Stream operators"),
 
     node((-1, 0), name: <presentation-note>, [In this presentation], stroke: none),
-    styled-edge(<presentation-note>, <operators>, "->", color: colors.neutral),
+    accented-edge(<presentation-note>, <operators>, "->", color: colors.neutral),
 
     node(
       (1, 2),
@@ -265,12 +265,12 @@
       )
 
       accented-node((3, 1.2), color: none, name: <rust-title>)[*Rust*]
-      accented-node((2.7, 0.2), color: colors.stream, name: <owner>, stroke-width: 1pt)[•]
-      accented-node((2.7, 0.6), color: none, name: <owner-label>)[#text(size: 6pt)[Owner]]
-      accented-node((3.5, 0.2), color: colors.stream, name: <moved>, stroke-width: 1pt)[•]
-      accented-node((3.5, 0.6), color: none, name: <moved-label>)[#text(size: 6pt)[Moved]]
-      accented-node((3.5, -0.5), color: colors.stream, name: <borrowed>, stroke-width: 1pt)[•]
-      accented-node((3.5, -0.9), color: none, name: <borrow-label>)[#text(size: 6pt)[Borrow]]
+      accented-node((2.7, 0.2), color: colors.stream, name: <owner>)[•]
+      accented-node((2.7, 0.6), color: none, name: <owner-label>)[Owner]
+      accented-node((3.5, 0.2), color: colors.stream, name: <moved>)[•]
+      accented-node((3.5, 0.6), color: none, name: <moved-label>)[Moved]
+      accented-node((3.5, -0.5), color: colors.stream, name: <borrowed>)[•]
+      accented-node((3.5, -0.9), color: none, name: <borrow-label>)[Borrow]
       accented-node(
         (3, -1.5),
         color: none,
@@ -278,7 +278,7 @@
         shape: rect,
       )[Explicit ownership,\ tracked at compile time]
 
-      styled-edge(<owner>, <moved>, color: colors.stream, stroke-width: 1.5pt)
+      accented-edge(<owner>, <moved>, color: colors.stream, stroke-width: 1.5pt)
       edge(<owner>, <borrowed>, "->", stroke: (paint: accent(colors.stream), thickness: 1.5pt, dash: "dashed"))
 
       node(fill: colors.action, stroke: accent(colors.action) + stroke-width, enclose: (
@@ -300,8 +300,9 @@
 #slide[
   #codly(
     highlights: (
-      (line: 4, fill: colors.state),
-      (line: 5, fill: colors.state),
+      (line: 4, fill: accent(colors.state)),
+      (line: 5, fill: accent(colors.state)),
+      (line: 9, fill: accent(colors.error)),
     ),
   )
   #grid(
@@ -390,13 +391,13 @@
     title-node((0.5, 5), text(weight: "bold")[Iterator (sync)]),
 
     accented-node((0, 1), color: colors.action, name: <iter-call4>)[`next()`],
-    styled-edge(<iter-call4>, <iter-result2>),
+    accented-edge(<iter-call4>, <iter-result2>),
     accented-node((0, 2), color: colors.action, name: <iter-call3>)[`next()`],
-    styled-edge(<iter-call3>, <iter-result3>),
+    accented-edge(<iter-call3>, <iter-result3>),
     accented-node((0, 3), color: colors.action, name: <iter-call2>)[`next()`],
-    styled-edge(<iter-call2>, <iter-result4>),
+    accented-edge(<iter-call2>, <iter-result4>),
     accented-node((0, 4), color: colors.action, name: <iter-call1>)[`next()`],
-    styled-edge(<iter-call1>, <iter-result1>),
+    accented-edge(<iter-call1>, <iter-result1>),
 
     accented-node((1, 1), color: colors.data, name: <iter-result2>)[`Some(3)`],
     accented-node((1, 2), color: colors.data, name: <iter-result3>)[`Some(1)`],
@@ -408,13 +409,13 @@
     title-node((3.5, 5), text(weight: "bold")[Stream (low-level)]),
 
     accented-node((3, 1), color: colors.action, name: <stream-call4>)[`poll_next()`],
-    styled-edge(<stream-call4>, <stream-result4>),
+    accented-edge(<stream-call4>, <stream-result4>),
     accented-node((3, 2), color: colors.action, name: <stream-call3>)[`poll_next()`],
-    styled-edge(<stream-call3>, <stream-result3>),
+    accented-edge(<stream-call3>, <stream-result3>),
     accented-node((3, 3), color: colors.action, name: <stream-call2>)[`poll_next()`],
-    styled-edge(<stream-call2>, <stream-result2>),
+    accented-edge(<stream-call2>, <stream-result2>),
     accented-node((3, 4), color: colors.action, name: <stream-call1>)[`poll_next()`],
-    styled-edge(<stream-call1>, <stream-result1>),
+    accented-edge(<stream-call1>, <stream-result1>),
 
     accented-node((4, 1), color: colors.data, name: <stream-result4>)[`Ready(Some(2))`],
     accented-node((4, 2), color: colors.state, name: <stream-result3>)[`Pending`],
@@ -453,13 +454,13 @@
     title-node((6.5, 5), text(weight: "bold")[Stream (high-level)]),
 
     accented-node((6, 1), color: colors.action, name: <async-call4>)[`next().await`],
-    styled-edge(<async-call4>, <async-result2>),
+    accented-edge(<async-call4>, <async-result2>),
     accented-node((6, 2), color: colors.action, name: <async-call3>)[`next().await`],
-    styled-edge(<async-call3>, <async-result3>),
+    accented-edge(<async-call3>, <async-result3>),
     accented-node((6, 3), color: colors.action, name: <async-call2>)[`next().await`],
-    styled-edge(<async-call2>, <async-result4>),
+    accented-edge(<async-call2>, <async-result4>),
     accented-node((6, 4), color: colors.action, name: <async-call1>)[`next().await`],
-    styled-edge(<async-call1>, <async-result1>),
+    accented-edge(<async-call1>, <async-result1>),
 
     accented-node((7, 1), color: colors.data, name: <async-result2>)[`Some(3)`],
     accented-node((7, 2), color: colors.data, name: <async-result3>)[`Some(1)`],
@@ -484,7 +485,7 @@
 
   #codly(
     highlights: (
-      (line: 4, fill: colors.stream),
+      (line: 4, fill: accent(colors.stream)),
     ),
   )
   ```rust
@@ -507,7 +508,7 @@
 == Possible inconsistency
 
 #slide[
-  ```rs
+  ```rust
   trait Stream {
       type Item;
 
@@ -584,6 +585,8 @@
 == Pipelines with `futures::StreamExt`
 
 #slide[
+  #set align(center + horizon)
+  #set text(size: 0.8em)
   All basic stream operators are in #link("https://docs.rs/futures/latest/futures/stream/trait.StreamExt.html")[`futures::StreamExt`]
 
   #spaced-diagram(
@@ -648,17 +651,21 @@
   )
 
 
-  #align(center)[
-    #text(size: 0.7em)[
-      ```rust
-      stream::iter(0..10)
-        .map(|x| x * 2)
-        .filter(|&x| ready(x > 4))
-        .enumerate()
-        .take(3)
-        .skip_while(|&(i, _)| i < 1)
-      ```]
-  ]
+
+  #codly(
+    highlights: (
+      (line: 3, fill: accent(colors.operator)),
+    ),
+  )
+  ```rust
+  stream::iter(0..10)
+    .map(|x| x * 2)
+    .filter(|&x| ready(x > 4))
+    .enumerate()
+    .take(3)
+    .skip_while(|&(i, _)| i < 1)
+  ```
+
 ]
 
 == The handy #link("https://doc.rust-lang.org/std/future/fn.ready.html")[`std::future::ready`] function
@@ -679,7 +686,7 @@
         ```
 
         *Option 2*: Async closure (not `Unpin`!)
-        ```rs
+        ```rust
         stream.filter(async |&x| x % 2 == 0)
         ```
       ],
@@ -726,7 +733,7 @@
 #slide[
   *Beware!*: `flatten()` on a stream of infinite streams will never complete!
 
-  ```rs
+  ```rust
   let infinite_streams = stream::unfold(0, |id| async move {
       Some((stream::iter(id..), id + 1))
   });
@@ -811,8 +818,8 @@
       )[`Double`],
       stream-node((2, 0), <out>)[Output\ Stream],
 
-      styled-edge(<in>, <double>, label: [1, 2, 3, ...], "->", color: colors.data),
-      styled-edge(<double>, <out>, label: [2, 4, 6, ...], "->", color: colors.data),
+      accented-edge(<in>, <double>, label: [1, 2, 3, ...], "->", color: colors.data),
+      accented-edge(<double>, <out>, label: [2, 4, 6, ...], "->", color: colors.data),
     )
 
     Input stream *needs to yield integers*.
@@ -845,10 +852,10 @@
 
   #codly(
     highlights: (
-      (line: 3, fill: colors.stream),
+      (line: 3, fill: accent(colors.stream)),
     ),
   )
-  ```rs
+  ```rust
   impl<InSt> Stream for Double<InSt>
   where
       InSt: Stream<Item = i32>
@@ -871,6 +878,11 @@
 
   (Remember that `Self = Double<InSt>` with field `in_stream: InSt`):
 
+  #codly(
+    highlights: (
+      (line: 4, fill: accent(colors.error)),
+    ),
+  )
   ```rust
   fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
       -> Poll<Option<Self::Item>> {
@@ -886,11 +898,9 @@
 
 
 #slide[
-
-
-  #warning[We have `Pin<&mut Double>`.
-
-    How can we obtain `Pin<&mut InSt>` to call `poll_next()`?]
+  #set align(horizon)
+  #v(1em)
+  #warning(title: [We have `Pin<&mut Double>`])[How can we obtain `Pin<&mut InSt>` to call `poll_next()`?]
 
   #align(center + horizon)[
 
@@ -933,7 +943,13 @@
   #set text(size: 0.8em)
   Can we use `Pin::get_mut()` to unwrap and re-wrap?
 
-  ```rs
+
+  #codly(
+    highlights: (
+      (line: 7, fill: accent(colors.error)),
+    ),
+  )
+  ```rust
   impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> {
 
     type Item = InSt::Item;
@@ -944,7 +960,7 @@
       let pinned_in = Pin::new(&mut this.in_stream);
       pinned_in.poll_next(cx).map(|p| p.map(|x| x * 2))
     }
-    }
+  }
   ```
 
   *Problem:* `Pin::get_mut()` requires `Double<InSt>: Unpin`
@@ -971,10 +987,10 @@
 
       accented-node((4, 4), color: colors.error, name: <moved>)[Value moved!],
 
-      styled-edge(<pin>, <getmut>, "-", color: colors.pin, label: [_unpinning_ `T`]),
-      styled-edge(<getmut>, <mut>, "->", color: colors.pin, label: [gives]),
-      styled-edge(<mut>, <swap>, "->", color: colors.error, label: "allows"),
-      styled-edge(<swap>, <moved>, "->", color: colors.error, label: [breaks `Pin` \ contract promise]),
+      accented-edge(<pin>, <getmut>, "-", color: colors.pin, label: [_unpinning_ `T`]),
+      accented-edge(<getmut>, <mut>, "->", color: colors.pin, label: [gives]),
+      accented-edge(<mut>, <swap>, "->", color: colors.error, label: "allows"),
+      accented-edge(<swap>, <moved>, "->", color: colors.error, label: [breaks `Pin` \ contract promise]),
     )
   ]
 
@@ -1099,7 +1115,12 @@
   The compiler error suggests adding `InSt: Unpin`:
 
   #text(size: 0.7em)[
-    ```rs
+    #codly(
+      highlights: (
+        (line: 1, start: 69, end: 73, fill: accent(colors.error)),
+      ),
+    )
+    ```rust
     impl<InSt> Stream for Double<InSt> where InSt: Stream<Item = i32> + Unpin {
       type Item = InSt::Item;
 
@@ -1227,7 +1248,7 @@
   *Projection in `poll_next`:*
 
 
-  ```rs
+  ```rust
   fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
       -> Poll<Option<Self::Item>> {
       let this = self.get_mut();  // Safe: Double is Unpin now
@@ -1378,6 +1399,11 @@
   #text(size: 0.8em)[
     We can call `Pin::get_mut()` to get `&mut Double<InSt>` safely from `Pin<&mut Double<InSt>>`
 
+    #codly(
+      highlights: (
+        (line: 8, start: 39, end: 52, fill: accent(colors.pin)),
+      ),
+    )
     ```rust
     impl<InSt> Stream for Double<InSt>
     where InSt: Stream<Item = i32>
@@ -1442,6 +1468,7 @@
 
   Do not impose `Unpin` constraint on input stream *and* avoid heap allocation with `Box`:
 
+  #codly(highlights: ((line: 10, start: 9, end: 22, fill: accent(colors.pin)),))
   ```rust
   #[pin_project]
   struct Double<InSt> {
@@ -1452,16 +1479,15 @@
       fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>)
           -> Poll<Option<Self::Item>>
       {
-          //
           self.project().in_stream.poll_next(cx)
               .map(|r| r.map(|x| x * 2))
       }
     }
   ```
   #v(-4em)
-  #info[`pin-project` generates a safe projection method `project()`.
+  #info[`pin-project` generates a safe projection method `project()`. ]
 
-    You don't have juggle with `Unpin` (*but your users have to!*)]
+  #warning[You don't have juggle with an `Unpin` constraint (*but your users have to!*)]
 ]
 
 == Distributing your operator
@@ -1631,7 +1657,7 @@
 
   #spaced-diagram(
     spacing: (2em, 1.5em),
-    styled-edge(
+    accented-edge(
       <poll-alice>,
       <poll-input-stream>,
       label: [1. `poll_next()`],
@@ -1644,7 +1670,7 @@
       color: colors.stream,
       name: <poll-input-stream>,
     )[`InputStream`],
-    styled-edge(
+    accented-edge(
       <poll-input-stream>,
       <poll-alice>,
       label: [2. `Pending`],
@@ -1666,8 +1692,8 @@
       name: <poll-bob>,
       shape: fletcher.shapes.circle,
     )[Bob\ 🔍 Polling],
-    styled-edge(<poll-input-stream>, <poll-data>, label: [4. `Ready`], color: colors.data),
-    styled-edge(
+    accented-edge(<poll-input-stream>, <poll-data>, label: [4. `Ready`], color: colors.data),
+    accented-edge(
       <poll-bob>,
       <poll-input-stream>,
       label: [3. `poll_next()`],
@@ -1684,7 +1710,7 @@
     pause,
 
 
-    styled-edge(
+    accented-edge(
       <poll-bob>,
       <poll-alice>,
       label: [5. `wake()` Alice],
@@ -1694,7 +1720,7 @@
     ),
 
 
-    styled-edge(
+    accented-edge(
       <poll-alice>,
       <poll-data>,
       label: [6. `poll_next()`],
@@ -1704,7 +1730,7 @@
     ),
 
 
-    styled-edge(
+    accented-edge(
       <poll-data>,
       <poll-alice>,
       label: [7. `clone()`],
@@ -1712,7 +1738,7 @@
       bend: -40deg,
       label-pos: 30%,
     ),
-    styled-edge(
+    accented-edge(
       <poll-data>,
       <poll-bob>,
       label: [8. original],
@@ -1737,7 +1763,9 @@
 #slide[
   Enforcing simplicity, *correctness and performance*:
 
-  #warning[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
+  #warning(
+    title: [Solution],
+  )[Each clone maintains its own #link("https://github.com/wvhulle/clone-stream/blob/main/src/states.rs")[state]]
 
   #{
     spaced-diagram(
@@ -1751,7 +1779,7 @@
         colors.state,
         <polling-base-stream>,
       ),
-      styled-edge(
+      accented-edge(
         <polling-base-stream>,
         <processing-queue>,
         label: [input stream ready,\ queue item],
@@ -1759,7 +1787,7 @@
         label-anchor: "north",
         label-sep: 0em,
       ),
-      styled-edge(
+      accented-edge(
         <polling-base-stream>,
         <pending>,
         label: "input stream pending",
@@ -1776,7 +1804,7 @@
         colors.data,
         <processing-queue>,
       ),
-      styled-edge(
+      accented-edge(
         <processing-queue>,
         <polling-base-stream>,
         label: [buffer empty,\ poll base],
@@ -1785,15 +1813,15 @@
       ),
 
       state-node((1, 0), "Sleeping", "Waiting with stored waker", colors.action, <pending>),
-      styled-edge(<pending>, <polling-base-stream>, label: "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
-      styled-edge(<pending>, <processing-queue>, label: "fresh buffer", bend: 15deg, label-pos: 0.7),
+      accented-edge(<pending>, <polling-base-stream>, label: "woken", bend: -15deg, label-pos: 0.7, label-sep: 1em),
+      accented-edge(<pending>, <processing-queue>, label: "fresh buffer", bend: 15deg, label-pos: 0.7),
     )
   }
 
 
 
   #pause
-  #info(title: [Speed])[8 - 12 micro seconds per item per clone. (Using `pin-project` slowed down.)]
+  #info(title: [Speed])[8 - 12 micro seconds per item per clone. (Using `pin-project` did not speed up.)]
 ]
 
 
@@ -1809,8 +1837,8 @@
     node-fill: colors.data,
 
     accented-node((1.5, 0), color: colors.data, name: <transform>)[Stream processing style],
-    styled-edge(<transform>, <control-flow>, "-}>", label: [Traditional \ control flow]),
-    styled-edge(<transform>, <standard>, "-}>", label: [Stream \ operators]),
+    accented-edge(<transform>, <control-flow>, "-}>", label: [Traditional \ control flow]),
+    accented-edge(<transform>, <standard>, "-}>", label: [Stream \ operators]),
 
     node(
       fill: colors.pin,
@@ -1840,16 +1868,16 @@
       color: colors.error,
       name: <dark-magic>,
     )[Always requires `Box` \ to make `!Unpin` \ output `Unpin` ],
-    styled-edge(<dark-magic>, <traditional>, "--"),
+    accented-edge(<dark-magic>, <traditional>, "--"),
     accented-node((0, 1), color: colors.data, name: <standard>)[Standard? \ e.g. N-1, 1-1],
 
-    styled-edge(<standard>, <rxjs>, "-}>", label: [No]),
+    accented-edge(<standard>, <rxjs>, "-}>", label: [No]),
     accented-node(
       (-0.5, 2),
       color: colors.operator,
       name: <futures-streamext>,
     )[`futures::` \ `StreamExt`],
-    styled-edge(<standard>, <futures-streamext>, "-}>", label: [Yes]),
+    accented-edge(<standard>, <futures-streamext>, "-}>", label: [Yes]),
     accented-node(
       (0.6, 2),
       color: colors.operator,
@@ -1861,26 +1889,26 @@
       color: colors.operator,
       name: <futures-rx>,
     )[`futures-rx`],
-    styled-edge(<rxjs>, <futures-rx>, "-}>", label: [Yes]),
+    accented-edge(<rxjs>, <futures-rx>, "-}>", label: [Yes]),
 
     accented-node((0.6, 3), color: colors.data, name: <search-crates>)[Search \ crates.io],
-    styled-edge(<rxjs>, <search-crates>, "-}>", label: [No]),
+    accented-edge(<rxjs>, <search-crates>, "-}>", label: [No]),
 
     accented-node(
       (0, 4),
       color: colors.operator,
       name: <build-trait>,
-    )[Build your \ own trait],
-    styled-edge(<search-crates>, <build-trait>, "-}>", label: [Does not exist]),
+    )[Build your \ own trait \ (`pin-project`)],
+    accented-edge(<search-crates>, <build-trait>, "-}>", label: [Does not exist]),
     accented-node(
       (1, 4),
       color: colors.operator,
       name: <import-trait>,
     )[Import \ extension trait],
-    styled-edge(<search-crates>, <import-trait>, "-}>", label: [Exists]),
+    accented-edge(<search-crates>, <import-trait>, "-}>", label: [Exists]),
     accented-node((2.5, 1), color: colors.data, name: <control-flow>)[Declarative],
-    styled-edge(<control-flow>, <unfold>, "-}>", label: [Yes]),
-    styled-edge(<control-flow>, <async-stream>, "-}>", label: [No]),
+    accented-edge(<control-flow>, <unfold>, "-}>", label: [Yes]),
+    accented-edge(<control-flow>, <async-stream>, "-}>", label: [No]),
 
     accented-node(
       (2, 2),
@@ -1913,7 +1941,7 @@
       colors.stream,
       <write-tests>,
     ),
-    styled-edge(<write-tests>, <analyze-states>),
+    accented-edge(<write-tests>, <analyze-states>),
 
     workflow-step(
       (3, 3),
@@ -1923,7 +1951,7 @@
       colors.data,
       <analyze-states>,
     ),
-    styled-edge(<analyze-states>, <implement>, bend: -15deg),
+    accented-edge(<analyze-states>, <implement>, bend: -15deg),
 
     workflow-step(
       (2, 2),
@@ -1933,7 +1961,7 @@
       colors.state,
       <implement>,
     ),
-    styled-edge(<implement>, <run-tests>, bend: -15deg),
+    accented-edge(<implement>, <run-tests>, bend: -15deg),
 
     workflow-step(
       (1, 1),
@@ -1943,8 +1971,8 @@
       colors.action,
       <run-tests>,
     ),
-    styled-edge(<run-tests>, <benchmarks>, label: "✓ pass"),
-    styled-edge(
+    accented-edge(<run-tests>, <benchmarks>, label: "✓ pass"),
+    accented-edge(
       <run-tests>,
       <implement>,
       label: "✗ fail",
@@ -1952,7 +1980,7 @@
       bend: -30deg,
     ),
 
-    styled-edge(
+    accented-edge(
       <run-tests>,
       <write-tests>,
       label: "✗ missing test",
@@ -1960,7 +1988,7 @@
       bend: -30deg,
     ),
 
-    styled-edge(
+    accented-edge(
       <benchmarks>,
       <implement>,
       label: "✗ too slow",

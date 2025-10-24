@@ -72,7 +72,6 @@
   // Default codly setup for presentations
   codly(
     languages: (
-      rs: (name: "Rust", icon: "🦀", color: rgb("#CE412B")),
       rust: (name: "Rust", icon: "🦀", color: rgb("#CE412B")),
       python: (name: "Python", icon: "🐍", color: rgb("#3572A5")),
       typst: (name: "Typst", icon: "📘", color: primary-color),
